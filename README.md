@@ -30,12 +30,15 @@ Below is the complete feature breakdown mapping out user workflows, AI triggers,
 
 ### Module A: Authentication & Diagnostic Onboarding
 
-#### A1. Role-Based Authentication & Router
-* **User Flow:** User enters their PolyU email address on `index.html`.
-* **Validation & Routing:**
-  * `@connect.polyu.hk` (e.g., `26001399g@connect.polyu.hk`) -> Sets `userRole: "student"` in `localStorage` and opens Onboarding Modal or redirects to `student.html`.
-  * `@polyu.edu.hk` (e.g., `richard.lui@polyu.edu.hk`) -> Sets `userRole: "instructor"` in `localStorage` and redirects to `instructor.html`.
-
+#### A1. Role-Based Authentication & Database Router
+* **User Flow:** Users log in using their credentials on the `index.html` landing page.
+* **Backend Infrastructure:** Powered by **Supabase** (PostgreSQL & Auth). Replaces hardcoded client-side email checks with secure, database-driven authentication to manage multiple demo accounts.
+* **Validation & Routing Logic:**
+  1. The frontend securely authenticates the user via the Supabase Auth API (`signInWithPassword`).
+  2. Upon successful login, the system queries a dedicated `profiles` table in the Supabase database using the authenticated User ID to fetch the specific account role.
+  3. **Student Routing:** If the database returns `role: 'student'`, the system redirects the user to the Diagnostic Onboarding assessment or directly to the learner hub (`student.html`)[cite: 1].
+  4. **Instructor Routing:** If the database returns `role: 'instructor'`, the system redirects the user to the Instructor Studio (`instructor.html`)[cite: 1].
+  5. 
 #### A2. Diagnostic Debugging Assessment (Background Profiling)
 * **Objective:** Automatically determine whether a student should follow the **CS Major Track** or **Non-CS Major Track** without filling out manual survey forms.
 * **Mechanic:** A 2-minute diagnostic minigame presenting a broken code snippet (e.g., an off-by-one array error or missing API parameter).
