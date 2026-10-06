@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#A21942" />
+  <title>Diagnostic Onboarding - CS Qualification | PolyU</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-[#262626] antialiased">
+    <header class="bg-[#A21942] text-white shadow-sm">
+      <nav class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+        <a class="inline-flex items-center gap-3" href="/index.html" aria-label="PolyU Learning Portal home">
+          <span class="grid size-10 place-items-center rounded-md border border-white/30 text-lg font-bold text-white" aria-hidden="true">P</span>
+          <span class="border-l border-white/40 pl-3">
+            <span class="block text-lg font-bold leading-tight">PolyU</span>
+            <span class="block text-[11px] font-semibold uppercase leading-tight text-white/80">Learning Portal</span>
+          </span>
+        </a>
+        <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+          <h1 class="text-sm font-semibold sm:text-base">Diagnostic Onboarding - CS Qualification</h1>
+          <button
+            id="logout-button"
+            type="button"
+            class="rounded-md border border-white/70 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white hover:text-[#A21942] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#A21942] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Logout
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section class="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm" aria-label="Qualification progress">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm font-semibold text-gray-600">Status: <span id="overall-status" class="text-[#A21942]">In Progress</span></p>
+            <h2 class="mt-1 text-xl font-bold text-[#262626]">CS Qualification: Pass 1 of 2 rounds to qualify</h2>
+          </div>
+          <div class="flex items-center gap-2" aria-label="Round progress">
+            <span id="round-one-indicator" class="grid size-9 place-items-center rounded-full border-2 border-[#A21942] bg-[#A21942] text-sm font-bold text-white" aria-label="Round 1 in progress">1</span>
+            <span class="h-0.5 w-8 bg-gray-300" aria-hidden="true"></span>
+            <span id="round-two-indicator" class="grid size-9 place-items-center rounded-full border-2 border-gray-300 bg-white text-sm font-bold text-gray-500" aria-label="Round 2 not started">2</span>
+          </div>
+        </div>
+        <div class="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm leading-6 text-gray-600">Pass either round for the Advanced Track, or continue to the Foundation Track if you skip or do not pass.</p>
+          <button
+            id="proceed-button"
+            type="button"
+            class="inline-flex shrink-0 items-center justify-center rounded-md bg-[#A21942] px-4 py-2 font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Proceed to Learner Hub
+          </button>
+        </div>
+        <p id="diagnostic-feedback" class="mt-4 hidden rounded-md border px-4 py-3 text-sm" role="alert" aria-live="polite"></p>
+        <p id="logout-feedback" class="mt-4 hidden rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert" aria-live="polite"></p>
+      </section>
+
+      <section id="completion-banner" class="mb-8 hidden rounded-lg border border-emerald-200 bg-emerald-50 p-6 shadow-sm" role="status" aria-live="polite">
+        <p class="text-sm font-semibold text-emerald-800">CS Qualification Complete</p>
+        <h2 class="mt-1 text-xl font-bold text-[#262626]">Proceed to Learner Hub</h2>
+        <p class="mt-2 text-sm text-emerald-800">You have passed at least one diagnostic round and can continue to the Learner Hub.</p>
+      </section>
+
+      <div class="space-y-8">
+        <section class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm" aria-labelledby="round-one-heading">
+          <div class="border-b border-gray-200 p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-[#A21942]">Round 1 · Python</p>
+                <h2 id="round-one-heading" class="mt-1 text-xl font-bold text-[#262626]">Python Pop-Up Box</h2>
+              </div>
+              <span id="round-one-status" class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">Not started</span>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-gray-700">Write Python code using <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#262626]">tkinter</code> (or <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#262626]">tkinter.messagebox</code>) to display a pop-up dialog box containing the message <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#262626]">'Hello World'</code>.</p>
+          </div>
+
+          <div class="bg-[#F8F9FA] p-4 sm:p-6">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2">
+              <div class="flex items-center gap-2">
+                <button type="button" class="rounded border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700" aria-label="Add code cell">+ Code</button>
+                <button type="button" class="rounded border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700" aria-label="Add text cell">+ Text</button>
+                <span class="ml-1 text-xs text-gray-500">Python 3</span>
+              </div>
+              <span class="text-xs text-gray-500">RAM / Disk <span class="ml-1 inline-block size-2 rounded-full bg-emerald-500" aria-label="Runtime ready"></span></span>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-gray-700 bg-[#1E1E1E] shadow-sm">
+              <div class="flex flex-col sm:flex-row">
+                <div class="flex items-start border-b border-gray-700 px-3 py-3 sm:border-b-0 sm:border-r">
+                  <button
+                    id="run-python"
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-md bg-[#A21942] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#1E1E1E]"
+                    aria-label="Run Python code"
+                  >
+                    <span aria-hidden="true">▶</span> Run
+                  </button>
+                </div>
+                <div class="flex min-w-0 flex-1 py-3">
+                  <pre id="python-line-numbers" class="select-none px-3 text-right font-mono text-sm leading-6 text-gray-500" aria-hidden="true">1
+2
+3
+4</pre>
+                  <label class="sr-only" for="python-editor">Python code editor</label>
+                  <textarea
+                    id="python-editor"
+                    class="min-h-32 w-full resize-y border-0 bg-transparent px-3 font-mono text-sm leading-6 text-gray-100 outline-none focus:ring-0"
+                    spellcheck="false"
+                    autocapitalize="off"
+                    autocomplete="off"
+                    aria-describedby="python-output"
+                  >import tkinter as tk
+from tkinter import messagebox
+
+# TODO: Create a message box showing 'Hello World'</textarea>
+                </div>
+              </div>
+              <div class="border-t border-gray-700 bg-[#171717] px-4 py-3">
+                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">Execution output</p>
+                <p id="python-output" class="font-mono text-sm text-gray-300" role="status" aria-live="polite">Run your code to check the solution. Python GUI execution is simulated in this browser.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm" aria-labelledby="round-two-heading">
+          <div class="border-b border-gray-200 p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-[#A21942]">Round 2 · Git</p>
+                <h2 id="round-two-heading" class="text-xl font-bold text-[#262626]">Round 2: Git Security &amp; Secret Protection</h2>
+              </div>
+              <span id="round-two-status" class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">Not started</span>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-gray-700">Prevent API key leakage. Add <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#262626]">.env</code> to <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#262626]">.gitignore</code> and click <span class="font-semibold">Commit &amp; Push</span>.</p>
+          </div>
+
+          <div class="bg-[#F8F9FA] p-4 sm:p-6">
+            <div class="overflow-hidden rounded-lg border border-gray-700 bg-[#1E1E1E] text-gray-100 shadow-sm">
+              <div class="flex min-h-[24rem] flex-col md:flex-row">
+                <aside class="w-full border-b border-gray-700 bg-[#252526] md:w-56 md:border-b-0 md:border-r" aria-label="File explorer">
+                  <div class="border-b border-gray-700 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Explorer</div>
+                  <div class="px-3 py-3">
+                    <p class="mb-2 truncate text-xs font-semibold uppercase text-gray-400">CS-Diagnostic</p>
+                    <ul class="space-y-1 font-mono text-sm">
+                      <li class="flex items-center justify-between rounded bg-[#37373D] px-2 py-1.5 text-white" aria-current="page">
+                        <span><span class="mr-2 text-blue-300" aria-hidden="true">✎</span>.gitignore</span>
+                        <span class="text-xs text-gray-400" aria-label="Edited">M</span>
+                      </li>
+                      <li class="flex items-center justify-between rounded px-2 py-1.5 text-gray-300">
+                        <span><span class="mr-2 text-gray-400" aria-hidden="true">◇</span>.env</span>
+                        <span id="env-warning-badge" class="rounded bg-red-700 px-1.5 py-0.5 font-sans text-[10px] font-bold tracking-wide text-white">UNTRACKED</span>
+                      </li>
+                      <li class="rounded px-2 py-1.5 text-gray-300"><span class="mr-2 text-amber-300" aria-hidden="true">JS</span>app.js</li>
+                      <li class="rounded px-2 py-1.5 text-gray-300"><span class="mr-2 text-amber-300" aria-hidden="true">{ }</span>package.json</li>
+                    </ul>
+                  </div>
+                </aside>
+
+                <div class="flex min-w-0 flex-1 flex-col">
+                  <div class="flex border-b border-gray-700 bg-[#252526]">
+                    <div class="border-t-2 border-[#A21942] bg-[#1E1E1E] px-4 py-3 font-mono text-sm" aria-current="page">.gitignore <span class="ml-2 text-blue-300" aria-label="Edited">●</span></div>
+                  </div>
+                  <div class="flex min-h-56 flex-1 overflow-auto py-3">
+                    <pre id="gitignore-line-numbers" class="select-none px-4 text-right font-mono text-sm leading-6 text-gray-500" aria-hidden="true">1
+2
+3
+4
+5
+6
+7</pre>
+                    <label class="sr-only" for="gitignore-editor">.gitignore editor</label>
+                    <textarea
+                      id="gitignore-editor"
+                      class="min-h-48 min-w-0 flex-1 resize-y border-0 bg-transparent px-3 font-mono text-sm leading-6 text-gray-100 outline-none focus:ring-0"
+                      spellcheck="false"
+                      autocapitalize="off"
+                      autocomplete="off"
+                      aria-label=".gitignore contents"
+                    ># Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# TODO: Add environment files here</textarea>
+                  </div>
+                  <div class="border-t border-gray-700 bg-[#181818]">
+                    <div class="flex items-center gap-5 border-b border-gray-700 px-4 py-2 text-xs font-medium uppercase tracking-wide">
+                      <span class="border-b-2 border-[#A21942] pb-1 text-white">Terminal</span>
+                      <span class="text-gray-500">Output</span>
+                      <span class="text-gray-500">Problems</span>
+                    </div>
+                    <div class="min-h-24 space-y-1 px-4 py-3 font-mono text-xs sm:text-sm">
+                      <p class="text-gray-400">$ git status</p>
+                      <p id="git-terminal-output" class="text-red-300" role="status" aria-live="polite">Untracked files: .env (DANGER: API keys exposed)</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p class="text-sm text-gray-600">Changes are checked in your editor before a simulated commit.</p>
+              <button
+                id="commit-push"
+                type="button"
+                class="inline-flex items-center justify-center rounded-md bg-[#A21942] px-4 py-2 font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2"
+              >
+                Commit &amp; Push
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/role.js"></script>
+    <script type="module" src="/student.js"></script>
+  </body>
+</html>
