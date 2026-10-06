@@ -69,7 +69,7 @@ if (!supabaseUrl || !supabaseKey) {
       const userId = authData.user.id;
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, cs_qualified')
         .eq('id', userId)
         .single();
 
@@ -83,7 +83,7 @@ if (!supabaseUrl || !supabaseKey) {
       }
 
       if (profile.role === 'student') {
-        window.location.assign('/student.html');
+        window.location.assign(profile.cs_qualified === true ? '/student-cs.html' : '/student.html');
       } else if (profile.role === 'instructor') {
         window.location.assign('/instructor.html');
       } else {
