@@ -5,25 +5,38 @@ const pythonLines = document.querySelector('#python-line-numbers');
 const pythonOutput = document.querySelector('#python-output');
 const roundOneStatus = document.querySelector('#round-one-status');
 const roundTwoStatus = document.querySelector('#round-two-status');
-const overallStatus = document.querySelector('#overall-status');
-const completionBanner = document.querySelector('#completion-banner');
+const stepOneContainer = document.querySelector('#step-one-container');
+const stepTwoContainer = document.querySelector('#step-two-container');
+const stepOneIndicator = document.querySelector('#step-one-indicator');
+const stepTwoIndicator = document.querySelector('#step-two-indicator');
+const successModal = document.querySelector('#python-success-modal');
+const diagnosticSteps = document.querySelector('#diagnostic-steps');
+const assessmentSummary = document.querySelector('#assessment-summary');
+const summaryFeedback = document.querySelector('#summary-feedback');
+const roundOneResult = document.querySelector('#round-one-result');
+const roundTwoResult = document.querySelector('#round-two-result');
+const overallResultBanner = document.querySelector('#overall-result-banner');
+const overallResultBadge = document.querySelector('#overall-result-badge');
+const overallResultExplanation = document.querySelector('#overall-result-explanation');
+const summaryAction = document.querySelector('#summary-action');
 const envWarningBadge = document.querySelector('#env-warning-badge');
 const gitignoreEditor = document.querySelector('#gitignore-editor');
 const gitignoreLines = document.querySelector('#gitignore-line-numbers');
 const gitTerminalOutput = document.querySelector('#git-terminal-output');
-const diagnosticFeedback = document.querySelector('#diagnostic-feedback');
-const proceedButton = document.querySelector('#proceed-button');
+const commitButton = document.querySelector('#commit-push');
 
 const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-let hasPassedRound = false;
+let round1Passed = false;
+let round2Passed = false;
+let round2Attempted = false;
 
-function showDiagnosticFeedback(message, type = 'error') {
-  diagnosticFeedback.textContent = message;
-  diagnosticFeedback.className = 'mt-4 rounded-md border px-4 py-3 text-sm';
-  diagnosticFeedback.classList.add(
+function showFeedback(element, message, type = 'error') {
+  element.textContent = message;
+  element.className = 'mt-4 rounded-md border px-4 py-3 text-sm';
+  element.classList.add(
     ...(type === 'error'
       ? ['border-red-200', 'bg-red-50', 'text-red-800']
       : ['border-emerald-200', 'bg-emerald-50', 'text-emerald-800']),
@@ -35,7 +48,7 @@ function updateLineNumbers(editor, lineNumbers) {
   lineNumbers.textContent = Array.from({ length: lineCount }, (_, index) => index + 1).join('\n');
 }
 
-async function saveQualification(qualified) {
+async function saveQualification(isQualified) {
   if (!supabase) {
     throw new Error('The learner hub service is not configured. Check the Supabase environment variables.');
   }
@@ -45,36 +58,70 @@ async function saveQualification(qualified) {
   const user = authData.user;
   if (!user) throw new Error('Your session has expired. Sign in again before continuing.');
 
-  const { data: profile, error: profileError } = await supabase
+  const { error } = await supabase
     .from('profiles')
-    .update({ cs_qualified: qualified })
-    .eq('id', user.id)
-    .select('id')
-    .maybeSingle();
+    .update({ cs_qualified: isQualified })
+    .eq('id', user.id);
 
-  if (profileError) throw new Error(`Unable to save your qualification result: ${profileError.message}`);
-  if (!profile) throw new Error('Your learner profile could not be found. Contact the system administrator.');
+  if (error) throw new Error(`Unable to save your qualification result: ${error.message}`);
 }
 
-async function markRoundPassed(statusElement) {
-  statusElement.textContent = 'PASSED';
-  statusElement.className = 'rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800';
-  overallStatus.textContent = 'Qualified';
-  overallStatus.className = 'text-emerald-700';
-  completionBanner.classList.remove('hidden');
-  hasPassedRound = true;
+function advanceToStepTwo() {
+  stepOneContainer.classList.add('hidden');
+  stepTwoContainer.classList.remove('hidden');
+  requestAnimationFrame(() => stepTwoContainer.classList.remove('opacity-0'));
+  stepOneIndicator.classList.remove('border-2', 'border-[#A21942]', 'bg-red-50', 'text-[#A21942]');
+  stepOneIndicator.classList.add('border', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-800');
+  stepOneIndicator.removeAttribute('aria-current');
+  stepTwoIndicator.classList.remove('border', 'border-gray-200', 'bg-white', 'text-gray-500');
+  stepTwoIndicator.classList.add('border-2', 'border-[#A21942]', 'bg-red-50', 'text-[#A21942]');
+  stepTwoIndicator.setAttribute('aria-current', 'step');
+  stepTwoContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
-  try {
-    await saveQualification(true);
-    showDiagnosticFeedback('Your CS qualification has been saved.', 'success');
-  } catch (error) {
-    showDiagnosticFeedback(error.message || 'Unable to save your qualification result. Please try again.');
+function openPythonSuccessModal() {
+  successModal.classList.remove('hidden');
+  successModal.classList.add('flex');
+  document.querySelector('#acknowledge-python').focus();
+}
+
+function updateRoundStatus(element, passed) {
+  element.textContent = passed ? 'PASSED' : 'FAILED';
+  element.className = passed
+    ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800'
+    : 'rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800';
+}
+
+function showAssessmentSummary() {
+  const isQualified = round1Passed || round2Passed;
+
+  roundOneResult.textContent = round1Passed ? 'PASSED ✅' : 'FAILED ❌';
+  roundOneResult.className = round1Passed ? 'font-semibold text-emerald-700' : 'font-semibold text-red-700';
+  roundTwoResult.textContent = round2Passed ? 'PASSED ✅' : 'FAILED ❌';
+  roundTwoResult.className = round2Passed ? 'font-semibold text-emerald-700' : 'font-semibold text-red-700';
+
+  if (isQualified) {
+    overallResultBanner.className = 'mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-5';
+    overallResultBadge.className = 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800';
+    overallResultBadge.textContent = 'CS Qualified (Advanced Track)';
+    overallResultExplanation.textContent = 'Congratulations! You passed at least one diagnostic round and qualify for the CS Track.';
+    summaryAction.textContent = 'Proceed to CS Learner Hub';
+  } else {
+    overallResultBanner.className = 'mt-6 rounded-md border border-red-200 bg-red-50 p-5';
+    overallResultBadge.className = 'inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-800';
+    overallResultBadge.textContent = 'Foundation Track Recommended';
+    overallResultExplanation.textContent = 'You have been placed in the Foundation Track to strengthen your programming basics.';
+    summaryAction.textContent = 'Proceed to Foundation Hub';
   }
-}
 
-function markRoundFailed(statusElement) {
-  statusElement.textContent = 'Not passed';
-  statusElement.className = 'rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800';
+  summaryAction.dataset.qualified = String(isQualified);
+  diagnosticSteps.classList.add('hidden');
+  stepOneContainer.classList.add('hidden');
+  stepTwoContainer.classList.add('hidden');
+  successModal.classList.add('hidden');
+  successModal.classList.remove('flex');
+  assessmentSummary.classList.remove('hidden');
+  assessmentSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 pythonEditor.addEventListener('input', () => updateLineNumbers(pythonEditor, pythonLines));
@@ -82,47 +129,69 @@ gitignoreEditor.addEventListener('input', () => updateLineNumbers(gitignoreEdito
 
 document.querySelector('#run-python').addEventListener('click', () => {
   const code = pythonEditor.value;
-  const hasHelloWorld = /['"]Hello World['"]/.test(code);
-  const hasMessageBox = /(?:\bmessagebox|\b(?:tk|tkinter)\.messagebox)\s*\.\s*show(?:info|warning|error)\s*\(/.test(code);
+  round1Passed = /Hello World/i.test(code) && /\b(?:messagebox|showinfo|print)\b/i.test(code);
 
-  if (hasHelloWorld && hasMessageBox) {
-    pythonOutput.textContent = "PASS: Found a tkinter message box call containing 'Hello World'. GUI execution is simulated in this browser.";
+  if (round1Passed) {
+    pythonOutput.textContent = 'PASS: Your code includes a Hello World output call.';
     pythonOutput.className = 'font-mono text-sm text-emerald-400';
-    void markRoundPassed(roundOneStatus);
+    updateRoundStatus(roundOneStatus, true);
+    openPythonSuccessModal();
     return;
   }
 
-  pythonOutput.textContent = "Not yet. Add a tkinter messagebox.showinfo (or showwarning/showerror) call containing 'Hello World'.";
+  pythonOutput.textContent = 'Not yet. Include a messagebox, showinfo, or print call and the text "Hello World".';
   pythonOutput.className = 'font-mono text-sm text-amber-300';
-  markRoundFailed(roundOneStatus);
+  updateRoundStatus(roundOneStatus, false);
 });
 
-document.querySelector('#commit-push').addEventListener('click', () => {
-  const ignoreRules = gitignoreEditor.value;
-  const protectsEnv = ['.env', '.env.local', '*.env', '.env*'].some((rule) => ignoreRules.includes(rule));
+document.querySelector('#skip-step-one').addEventListener('click', () => {
+  round1Passed = false;
+  roundOneStatus.textContent = 'Skipped';
+  roundOneStatus.className = 'rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600';
+  advanceToStepTwo();
+});
 
-  if (protectsEnv) {
-    gitTerminalOutput.textContent = '[SUCCESS] .env ignored. Commit successful!';
+document.querySelector('#acknowledge-python').addEventListener('click', () => {
+  successModal.classList.add('hidden');
+  successModal.classList.remove('flex');
+  advanceToStepTwo();
+});
+
+commitButton.addEventListener('click', () => {
+  if (round2Attempted) return;
+  round2Attempted = true;
+  commitButton.disabled = true;
+  commitButton.classList.add('cursor-not-allowed', 'opacity-50');
+
+  const acceptedRules = new Set(['.env', '.env.local', '*.env', '.env*']);
+  const ignoreRules = gitignoreEditor.value
+    .split('\n')
+    .map((line) => line.split('#')[0].trim());
+  round2Passed = ignoreRules.some((rule) => acceptedRules.has(rule));
+  updateRoundStatus(roundTwoStatus, round2Passed);
+
+  if (round2Passed) {
+    gitTerminalOutput.textContent = '[SUCCESS] Environment files are excluded by .gitignore.';
     gitTerminalOutput.className = 'text-emerald-400';
     envWarningBadge.classList.add('hidden');
-    void markRoundPassed(roundTwoStatus);
-    return;
+  } else {
+    gitTerminalOutput.textContent = '[ERROR] No accepted environment-file rule was found in .gitignore.';
+    gitTerminalOutput.className = 'text-red-300';
   }
 
-  gitTerminalOutput.textContent = '[ERROR] Secret file .env is still tracked by Git! Add .env to .gitignore.';
-  gitTerminalOutput.className = 'text-red-300';
-  markRoundFailed(roundTwoStatus);
+  window.setTimeout(showAssessmentSummary, 1000);
 });
 
-proceedButton.addEventListener('click', async () => {
-  diagnosticFeedback.classList.add('hidden');
-  proceedButton.disabled = true;
+summaryAction.addEventListener('click', async () => {
+  const isQualified = summaryAction.dataset.qualified === 'true';
+  summaryAction.disabled = true;
+  summaryFeedback.classList.add('hidden');
 
   try {
-    await saveQualification(hasPassedRound);
-    window.location.assign(hasPassedRound ? '/student-cs.html' : '/student-non-cs.html');
+    await saveQualification(isQualified);
+    window.location.assign(isQualified ? '/student-cs.html' : '/student-non-cs.html');
   } catch (error) {
-    showDiagnosticFeedback(error.message || 'Unable to continue. Please try again.');
-    proceedButton.disabled = false;
+    showFeedback(summaryFeedback, error.message || 'Unable to save your qualification result. Please try again.');
+    summaryAction.disabled = false;
   }
 });
