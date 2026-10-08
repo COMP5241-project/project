@@ -37,8 +37,8 @@ function getConnectionMessage(error) {
   return null;
 }
 
-const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   showFeedback('The sign-in service is not configured. Check the Supabase environment variables.');
