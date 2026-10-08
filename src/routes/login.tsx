@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, ArrowRight, GraduationCap, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { resolveSignedInRole, setCachedSignedInRole } from '../lib/session'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -26,6 +27,20 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Defense-in-depth: a user who is already signed in should never see the
+  // login form (e.g. clicking a stale "Student Login" link), so redirect
+  // them straight to their dashboard.
+  useEffect(() => {
+    let cancelled = false
+    void resolveSignedInRole().then((role) => {
+      if (cancelled || !role) return
+      void navigate({ to: role === 'instructor' ? '/instructor' : '/student', replace: true })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -73,8 +88,10 @@ function LoginPage() {
       }
 
       if (profile.role === 'student') {
+        setCachedSignedInRole('student')
         await navigate({ to: '/student' })
       } else if (profile.role === 'instructor') {
+        setCachedSignedInRole('instructor')
         await navigate({ to: '/instructor' })
       } else {
         throw new Error(

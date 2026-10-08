@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { isSupabaseConfigured, supabase } from './supabase'
+import { setCachedSignedInRole } from './session'
 
 export interface Profile {
   id: string
@@ -60,6 +61,10 @@ export function useProfile() {
         return
       }
 
+      setCachedSignedInRole(
+        profile.role === 'student' || profile.role === 'instructor' ? profile.role : null,
+      )
+
       setState({
         status: 'ready',
         email: authData.user.email ?? profile.email ?? 'unknown user',
@@ -76,6 +81,7 @@ export function useProfile() {
   const signOut = useCallback(async () => {
     if (!supabase) return
     await supabase.auth.signOut()
+    setCachedSignedInRole(null)
     await navigate({ to: '/login' })
   }, [navigate])
 

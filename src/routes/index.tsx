@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   Activity,
   ArrowDown,
@@ -27,10 +27,13 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useSignedInRole, type DashboardRole } from '../lib/useSignedInRole'
+import { resolveSignedInRole, type DashboardRole } from '../lib/session'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
+  // Resolve the signed-in role before first paint so the navbar never
+  // flashes the signed-out buttons for an authenticated user.
+  loader: async () => ({ signedInRole: await resolveSignedInRole() }),
 })
 
 interface NavLink {
@@ -93,7 +96,7 @@ function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeAudience, setActiveAudience] = useState<'non-cs' | 'cs'>('non-cs')
   const [demoOpen, setDemoOpen] = useState(false)
-  const signedInRole = useSignedInRole()
+  const { signedInRole } = Route.useLoaderData()
 
   return (
     <div className="min-h-screen overflow-hidden bg-white text-[#262626]">
@@ -128,7 +131,7 @@ interface NavbarProps {
 }
 
 function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: NavbarProps) {
-  const dashboardHref =
+  const dashboardHref: '/instructor' | '/student' | '/login' =
     signedInRole === 'instructor'
       ? '/instructor'
       : signedInRole === 'student'
@@ -175,18 +178,18 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
         </div>
 
         <div className="hidden items-center gap-2.5 sm:flex">
-          <a
+          <Link
             className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-            href={dashboardHref}
+            to={dashboardHref}
           >
             {secondaryLabel}
-          </a>
-          <a
+          </Link>
+          <Link
             className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
-            href={dashboardHref}
+            to={dashboardHref}
           >
             {primaryLabel} <ArrowRight aria-hidden="true" size={15} />
-          </a>
+          </Link>
         </div>
 
         <button
@@ -213,20 +216,20 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
               </a>
             ))}
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
-              <a
+              <Link
                 className="rounded-lg border border-gray-200 px-3 py-2.5 text-center text-sm font-semibold text-gray-700"
-                href={dashboardHref}
                 onClick={onNavigate}
+                to={dashboardHref}
               >
                 {secondaryLabel}
-              </a>
-              <a
+              </Link>
+              <Link
                 className="rounded-lg bg-[#A21942] px-3 py-2.5 text-center text-sm font-semibold text-white"
-                href={dashboardHref}
                 onClick={onNavigate}
+                to={dashboardHref}
               >
                 {primaryLabel}
-              </a>
+              </Link>
             </div>
           </div>
         </div>
