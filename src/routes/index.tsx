@@ -159,13 +159,13 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
         <div className="hidden items-center gap-2.5 sm:flex">
           <a
             className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-            href="#get-started"
+            href="/login"
           >
             Student Login
           </a>
           <a
             className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
-            href="#get-started"
+            href="/login"
           >
             Get started <ArrowRight aria-hidden="true" size={15} />
           </a>
@@ -197,14 +197,14 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
               <a
                 className="rounded-lg border border-gray-200 px-3 py-2.5 text-center text-sm font-semibold text-gray-700"
-                href="#get-started"
+                href="/login"
                 onClick={onNavigate}
               >
                 Student Login
               </a>
               <a
                 className="rounded-lg bg-[#A21942] px-3 py-2.5 text-center text-sm font-semibold text-white"
-                href="#get-started"
+                href="/login"
                 onClick={onNavigate}
               >
                 Get started
