@@ -7,37 +7,884 @@
     <title>Instructor Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="min-h-screen bg-[#F8F9FA] font-sans text-[#262626] antialiased">
-    <header class="border-b border-gray-200 bg-white">
-      <nav class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Main navigation">
-        <a class="inline-flex items-center gap-3" href="/index.html" aria-label="PolyU Learning Portal home">
-          <span class="grid size-10 place-items-center rounded-md bg-[#A21942] text-lg font-bold text-white" aria-hidden="true">P</span>
-          <span class="border-l border-gray-300 pl-3">
-            <span class="block text-lg font-bold leading-tight">PolyU</span>
-            <span class="block text-[11px] font-semibold uppercase leading-tight text-gray-500">Learning Portal</span>
-          </span>
+  <body class="min-h-screen bg-gray-50 font-sans text-[#262626] antialiased">
+    <header class="sticky top-0 z-10 border-b border-gray-200 bg-white">
+      <nav class="mx-auto grid h-16 w-full grid-cols-1 items-center gap-3 px-4 sm:grid-cols-[1fr_auto_1fr] sm:px-6" aria-label="Main navigation">
+        <a class="justify-self-center text-lg font-bold text-[#A21942] sm:justify-self-start" href="/instructor.html">
+          EduGenAI Instructor Studio
         </a>
+        <div class="flex items-center justify-center rounded-lg bg-gray-100 p-1" role="group" aria-label="Studio view">
+          <button
+            id="workspace-view-button"
+            type="button"
+            class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-[#A21942] shadow-sm"
+            aria-pressed="true"
+            aria-controls="course-workspace"
+          >
+            Course Workspace
+          </button>
+          <button
+            id="analytics-view-button"
+            type="button"
+            class="rounded-md px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-[#A21942]"
+            aria-pressed="false"
+            aria-controls="student-analytics"
+          >
+            Student Analytics
+          </button>
+        </div>
         <button
           id="logout-button"
           type="button"
-          class="rounded-md bg-[#A21942] px-4 py-2 font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+          class="justify-self-center rounded-md bg-[#A21942] px-4 py-2 font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 sm:justify-self-end"
         >
           Logout
         </button>
       </nav>
     </header>
 
-    <main class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <section class="mx-auto max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8" aria-labelledby="welcome-heading">
-        <div class="rounded-md border border-emerald-200 bg-emerald-50 p-5 text-emerald-800" role="status">
-          <p class="mb-2 text-sm font-semibold">Instructor onboarding</p>
-          <h1 id="welcome-heading" class="text-2xl font-bold text-[#262626]">Instructor Studio</h1>
-          <p class="mt-2">Welcome, Instructor! Here you can manage student onboarding.</p>
-        </div>
-        <p id="logout-feedback" class="mt-4 hidden rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert" aria-live="polite"></p>
+    <main class="h-[calc(100vh-64px)] w-full overflow-hidden">
+      <section id="course-workspace" class="flex h-full w-full overflow-hidden bg-white" aria-label="Course Workspace">
+        <aside class="w-1/4 shrink-0 overflow-y-auto border-r border-gray-200 bg-white p-4" aria-labelledby="sources-heading">
+          <div class="mb-5 flex items-center justify-between">
+            <h1 id="sources-heading" class="text-lg font-semibold">Sources</h1>
+            <button
+              id="focus-source-button"
+              type="button"
+              class="grid size-9 place-items-center rounded-full text-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]"
+              aria-label="Add a source"
+            >
+              +
+            </button>
+          </div>
+
+          <input
+            id="file-input"
+            class="sr-only"
+            type="file"
+            accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg,.jpeg,.txt"
+            multiple
+          />
+          <div
+            id="drop-zone"
+            class="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center transition-colors hover:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]"
+            role="button"
+            tabindex="0"
+            aria-controls="file-input"
+            aria-label="Drag and drop files here or click to browse"
+          >
+            <svg class="mx-auto mb-2 size-8 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+            </svg>
+            <p class="text-sm font-medium text-gray-700">Drag &amp; drop files here or click to browse</p>
+            <p class="mt-1 text-xs text-gray-500">PDF, PPT, Word, PNG, JPG, TXT</p>
+          </div>
+
+          <div id="upload-progress-container" class="mt-4 hidden" role="status" aria-live="polite">
+            <div class="mb-2 flex items-center justify-between text-xs text-gray-600">
+              <span id="upload-progress-status">Processing source...</span>
+              <span id="upload-progress-percent">0%</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-gray-200">
+              <div id="upload-progress" class="h-full w-0 rounded-full bg-[#A21942] transition-[width] duration-100 ease-linear"></div>
+            </div>
+          </div>
+          <p id="source-feedback" class="mt-3 hidden text-sm text-red-700" role="alert"></p>
+
+          <form id="website-link-form" class="mt-6 border-t border-gray-200 pt-5">
+            <label for="website-link-input" class="mb-2 block text-sm font-medium">Add a website link</label>
+            <div class="flex gap-2">
+              <input
+                id="website-link-input"
+                type="url"
+                class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#A21942] focus:ring-2 focus:ring-[#A21942]/20"
+                placeholder="https://example.com"
+                required
+              />
+              <button
+                type="submit"
+                class="shrink-0 rounded-md bg-[#A21942] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2"
+              >
+                Add Web Link
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-5">
+            <label for="new-source-input" class="mb-2 block text-sm font-medium">Add text source</label>
+            <textarea
+              id="new-source-input"
+              rows="3"
+              class="w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#A21942] focus:ring-2 focus:ring-[#A21942]/20"
+              placeholder="Paste lecture notes or other reference text..."
+            ></textarea>
+            <button
+              id="add-source-button"
+              type="button"
+              class="mt-3 w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#A21942] hover:text-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]"
+            >
+              Add Text Source
+            </button>
+          </div>
+
+          <div id="source-list" class="mt-6 space-y-3 border-t border-gray-200 pt-5" aria-label="Added sources" aria-live="polite">
+            <p class="text-sm text-gray-500">Your sources will appear here.</p>
+          </div>
+        </aside>
+
+        <section id="generated-content-area" class="flex w-2/4 min-w-0 shrink-0 flex-col bg-white" aria-label="Preview and chat">
+          <div class="flex h-1/2 flex-shrink-0 flex-col overflow-y-auto border-b border-gray-200 bg-gray-50 p-4">
+            <div class="mb-3 flex w-full max-w-3xl shrink-0 items-center justify-between gap-4">
+              <h2 class="text-base font-semibold text-[#262626] sm:text-lg">Content Preview Engine</h2>
+              <button
+                id="save-library-btn"
+                type="button"
+                class="rounded-md bg-[#A21942] px-4 py-2 font-medium text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2"
+              >
+                Save to Library
+              </button>
+            </div>
+
+            <div id="content-preview" class="w-full flex-1 overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <input
+                id="quiz-title"
+                type="text"
+                value="Quiz: Software Development Fundamentals"
+                class="mb-6 w-full border-b border-gray-300 text-2xl font-bold focus:outline-none"
+                aria-label="Quiz title"
+              />
+              <article id="quiz-question-card" class="rounded-lg border border-gray-200 p-4">
+                <div class="mb-4 flex items-start gap-3">
+                  <input
+                    id="quiz-question"
+                    type="text"
+                    value="Which practice helps teams deliver reliable software more frequently?"
+                    class="min-w-0 flex-1 border-b border-gray-200 py-2 text-base font-semibold focus:border-[#A21942] focus:outline-none"
+                    aria-label="Quiz question"
+                  />
+                  <button
+                    id="delete-quiz-question"
+                    type="button"
+                    class="rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#A21942]"
+                    aria-label="Delete question"
+                  >
+                    Delete
+                  </button>
+                </div>
+                <fieldset id="quiz-options" class="space-y-3">
+                  <legend class="sr-only">Answer options. Select the correct answer.</legend>
+                  <label class="flex items-center gap-3 rounded-md border border-gray-200 px-3 py-2">
+                    <input type="radio" name="correct-answer" value="A" checked class="size-4 accent-[#A21942]" aria-label="Mark option A correct" />
+                    <span class="w-5 shrink-0 text-sm font-semibold text-gray-500">A</span>
+                    <input type="text" value="Continuous integration and automated testing" class="min-w-0 flex-1 border-0 bg-transparent text-sm focus:outline-none focus:ring-0" aria-label="Option A" />
+                  </label>
+                  <label class="flex items-center gap-3 rounded-md border border-gray-200 px-3 py-2">
+                    <input type="radio" name="correct-answer" value="B" class="size-4 accent-[#A21942]" aria-label="Mark option B correct" />
+                    <span class="w-5 shrink-0 text-sm font-semibold text-gray-500">B</span>
+                    <input type="text" value="Delaying code reviews until release" class="min-w-0 flex-1 border-0 bg-transparent text-sm focus:outline-none focus:ring-0" aria-label="Option B" />
+                  </label>
+                  <label class="flex items-center gap-3 rounded-md border border-gray-200 px-3 py-2">
+                    <input type="radio" name="correct-answer" value="C" class="size-4 accent-[#A21942]" aria-label="Mark option C correct" />
+                    <span class="w-5 shrink-0 text-sm font-semibold text-gray-500">C</span>
+                    <input type="text" value="Combining all changes directly in production" class="min-w-0 flex-1 border-0 bg-transparent text-sm focus:outline-none focus:ring-0" aria-label="Option C" />
+                  </label>
+                  <label class="flex items-center gap-3 rounded-md border border-gray-200 px-3 py-2">
+                    <input type="radio" name="correct-answer" value="D" class="size-4 accent-[#A21942]" aria-label="Mark option D correct" />
+                    <span class="w-5 shrink-0 text-sm font-semibold text-gray-500">D</span>
+                    <input type="text" value="Avoiding feedback from users" class="min-w-0 flex-1 border-0 bg-transparent text-sm focus:outline-none focus:ring-0" aria-label="Option D" />
+                  </label>
+                </fieldset>
+              </article>
+            </div>
+          </div>
+
+          <section class="h-1/2 flex-shrink-0 flex flex-col bg-white overflow-hidden" aria-label="AI chat">
+            <div id="chat-history" class="min-h-0 flex-1 space-y-4 overflow-y-auto p-4" aria-live="polite" aria-label="Conversation">
+              <div class="flex justify-end">
+                <div class="max-w-[85%] rounded-2xl rounded-br-md bg-gray-200 px-4 py-3 text-sm leading-6 text-gray-800">
+                  Please generate a 3-slide introduction to Python based on my uploaded notes.
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-[#A21942] text-xs font-bold text-white" aria-label="EduGenAI">AI</span>
+                <div class="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm leading-6 text-gray-700 shadow-sm">
+                  I have generated the slides for you. You can preview them above. Would you like me to add a quiz?
+                </div>
+              </div>
+            </div>
+
+            <form id="ai-prompt-form" class="sticky bottom-0 shrink-0 border-t border-gray-200 bg-white p-4">
+              <label for="ai-prompt" class="sr-only">Message EduGenAI Instructor</label>
+              <div class="mx-auto flex max-w-3xl items-center gap-3 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm transition focus-within:border-[#A21942] focus-within:ring-2 focus-within:ring-[#A21942]/20">
+                <input
+                  id="ai-prompt"
+                  type="text"
+                  class="min-h-10 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm outline-none placeholder:text-gray-500 focus:ring-0"
+                  placeholder="Message EduGenAI Instructor..."
+                  autocomplete="off"
+                />
+                <span id="loading-spinner" class="hidden size-5 animate-spin rounded-full border-2 border-gray-300 border-t-[#A21942]" role="status" aria-label="Generating"></span>
+                <button
+                  id="generate-btn"
+                  type="submit"
+                  class="grid size-10 shrink-0 place-items-center rounded-xl bg-[#A21942] text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Send message"
+                  title="Send message"
+                >
+                  <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.1 6.5 12.6 1.9-12.6 1.9-.1 6.5Z" /></svg>
+                </button>
+              </div>
+              <p id="generate-feedback" class="mx-auto mt-2 hidden max-w-3xl text-sm text-red-700" role="alert"></p>
+            </form>
+          </section>
+        </section>
+
+        <aside class="flex h-full w-1/4 shrink-0 flex-col border-l border-gray-200 bg-gray-50" aria-label="Studio and release management">
+          <section class="flex-1 overflow-y-auto p-4" aria-labelledby="studio-generator-heading">
+            <h2 id="studio-generator-heading" class="mb-5 text-lg font-semibold text-[#262626]">Studio Generator</h2>
+            <div class="space-y-3">
+              <button type="button" data-generator-prompt="Create an engaging PowerPoint-style slide deck based on my sources." class="w-full rounded-lg border border-gray-200 bg-white p-3 text-left text-sm font-medium shadow-sm transition-colors hover:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]">PPT Slides</button>
+              <button id="mc-quiz-generator-button" type="button" data-generator-prompt="Create a multiple-choice quiz based on my sources, with answers and explanations." class="w-full rounded-lg border border-gray-200 bg-white p-3 text-left text-sm font-medium shadow-sm transition-colors hover:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]">MC Quiz</button>
+              <button type="button" data-generator-prompt="Create concise question-and-answer flashcards based on my sources." class="w-full rounded-lg border border-gray-200 bg-white p-3 text-left text-sm font-medium shadow-sm transition-colors hover:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]">Flashcards</button>
+              <button type="button" data-generator-prompt="Create an infographic outline that clearly visualizes the key ideas in my sources." class="w-full rounded-lg border border-gray-200 bg-white p-3 text-left text-sm font-medium shadow-sm transition-colors hover:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]">Infographics</button>
+              <button type="button" data-generator-prompt="Write a concise, structured summary of my sources." class="w-full rounded-lg border border-gray-200 bg-white p-3 text-left text-sm font-medium shadow-sm transition-colors hover:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]">Summary</button>
+            </div>
+          </section>
+          <section class="flex-1 overflow-y-auto border-t border-gray-200 bg-white p-4" aria-labelledby="release-management-heading">
+            <h2 id="release-management-heading" class="mb-4 text-lg font-semibold text-[#262626]">Release Management</h2>
+            <div id="release-list" class="mb-5 space-y-3">
+              <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p class="release-item-title text-sm font-semibold text-[#262626]">Quiz: Software Development Fundamentals</p>
+                <span class="release-status mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Status: Unreleased</span>
+              </div>
+            </div>
+            <label for="datetime-local" class="mb-2 block text-sm font-medium text-gray-700">Schedule date and time</label>
+            <input
+              id="datetime-local"
+              type="datetime-local"
+              lang="en"
+              class="mb-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]/20"
+            />
+            <button
+              id="schedule-release-btn"
+              type="button"
+              class="w-full rounded-md bg-[#A21942] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#801333] focus:outline-none focus:ring-2 focus:ring-[#A21942] focus:ring-offset-2"
+            >
+              Schedule Release to Students
+            </button>
+          </section>
+        </aside>
       </section>
+
+      <section id="student-analytics" class="hidden p-4 sm:p-8" aria-labelledby="analytics-heading" hidden>
+        <div class="mb-6">
+          <p class="text-sm font-semibold uppercase tracking-wide text-[#A21942]">Engagement overview</p>
+          <h1 id="analytics-heading" class="mt-1 text-2xl font-bold">Student Roster &amp; Engagement</h1>
+          <p class="mt-2 text-sm text-gray-600">A snapshot of learner activity across your courses.</p>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table class="w-full min-w-[42rem] border-collapse text-left text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+              <tr>
+                <th scope="col" class="px-5 py-4 font-semibold">Student</th>
+                <th scope="col" class="px-5 py-4 font-semibold">Courses Completed</th>
+                <th scope="col" class="px-5 py-4 font-semibold">Average Score</th>
+                <th scope="col" class="px-5 py-4 font-semibold">Engagement</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr>
+                <td class="px-5 py-4 font-medium">26001399g@connect.polyu.hk</td>
+                <td class="px-5 py-4">4</td>
+                <td class="px-5 py-4">92%</td>
+                <td class="px-5 py-4"><span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span></td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4 font-medium">26004567g@connect.polyu.hk</td>
+                <td class="px-5 py-4">2</td>
+                <td class="px-5 py-4">85%</td>
+                <td class="px-5 py-4"><span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">In progress</span></td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4 font-medium">26007891g@connect.polyu.hk</td>
+                <td class="px-5 py-4">1</td>
+                <td class="px-5 py-4">78%</td>
+                <td class="px-5 py-4"><span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Just started</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p id="logout-feedback" class="mx-4 mb-4 hidden rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:mx-8" role="alert" aria-live="polite"></p>
     </main>
 
+    <dialog id="source-preview-modal" class="m-auto max-h-[85vh] w-[min(90vw,48rem)] overflow-hidden rounded-xl border border-gray-200 bg-white p-0 shadow-xl backdrop:bg-black/50" aria-labelledby="source-preview-title">
+      <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-5">
+        <div class="min-w-0">
+          <p id="source-preview-type" class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#A21942]"></p>
+          <h2 id="source-preview-title" class="break-words text-lg font-semibold"></h2>
+          <p id="source-preview-metadata" class="mt-1 text-sm text-gray-500"></p>
+        </div>
+        <button
+          id="close-source-preview"
+          type="button"
+          class="grid size-9 shrink-0 place-items-center rounded-full text-xl text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#262626] focus:outline-none focus:ring-2 focus:ring-[#A21942]"
+          aria-label="Close source preview"
+        >
+          &times;
+        </button>
+      </div>
+      <div class="max-h-[60vh] overflow-y-auto p-5">
+        <pre id="source-preview-content" class="whitespace-pre-wrap break-words font-sans text-sm leading-6 text-gray-700"></pre>
+      </div>
+    </dialog>
+
     <script type="module" src="/role.js"></script>
+    <script type="module">
+      async function fetchOpenRouterResponse(messages) {
+        const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+        if (!apiKey) {
+          throw new Error('OpenRouter API key is missing. Set VITE_OPENROUTER_API_KEY to generate course content.');
+        }
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+            messages,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorDetails = await response.text();
+          throw new Error(`OpenRouter request failed: ${response.status} ${response.statusText}${errorDetails ? ` — ${errorDetails}` : ''}`);
+        }
+
+        return response.json();
+      }
+
+      window.fetchOpenRouterResponse = fetchOpenRouterResponse;
+    </script>
+    <script>
+      const workspaceViewButton = document.querySelector('#workspace-view-button');
+      const analyticsViewButton = document.querySelector('#analytics-view-button');
+      const courseWorkspace = document.querySelector('#course-workspace');
+      const studentAnalytics = document.querySelector('#student-analytics');
+
+      function showView(view) {
+        const showWorkspace = view === 'workspace';
+        courseWorkspace.classList.toggle('hidden', !showWorkspace);
+        courseWorkspace.hidden = !showWorkspace;
+        studentAnalytics.classList.toggle('hidden', showWorkspace);
+        studentAnalytics.hidden = showWorkspace;
+
+        workspaceViewButton.setAttribute('aria-pressed', String(showWorkspace));
+        analyticsViewButton.setAttribute('aria-pressed', String(!showWorkspace));
+        workspaceViewButton.classList.toggle('bg-white', showWorkspace);
+        workspaceViewButton.classList.toggle('text-[#A21942]', showWorkspace);
+        workspaceViewButton.classList.toggle('shadow-sm', showWorkspace);
+        workspaceViewButton.classList.toggle('text-gray-600', !showWorkspace);
+        analyticsViewButton.classList.toggle('bg-white', !showWorkspace);
+        analyticsViewButton.classList.toggle('text-[#A21942]', !showWorkspace);
+        analyticsViewButton.classList.toggle('shadow-sm', !showWorkspace);
+        analyticsViewButton.classList.toggle('text-gray-600', showWorkspace);
+      }
+
+      workspaceViewButton.addEventListener('click', () => showView('workspace'));
+      analyticsViewButton.addEventListener('click', () => showView('analytics'));
+
+      const supportedExtensions = new Set(['pdf', 'ppt', 'pptx', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'txt']);
+      const sourceList = document.querySelector('#source-list');
+      const sourceFeedback = document.querySelector('#source-feedback');
+      const dropZone = document.querySelector('#drop-zone');
+      const fileInput = document.querySelector('#file-input');
+      const progressContainer = document.querySelector('#upload-progress-container');
+      const progressBar = document.querySelector('#upload-progress');
+      const progressPercent = document.querySelector('#upload-progress-percent');
+      const progressStatus = document.querySelector('#upload-progress-status');
+      const previewModal = document.querySelector('#source-preview-modal');
+      const previewTitle = document.querySelector('#source-preview-title');
+      const previewType = document.querySelector('#source-preview-type');
+      const previewMetadata = document.querySelector('#source-preview-metadata');
+      const previewContent = document.querySelector('#source-preview-content');
+      let sourceIngestionQueue = Promise.resolve();
+      let progressHideTimeout;
+
+      window.knowledgeSources = [];
+
+      function setSourceFeedback(message) {
+        sourceFeedback.textContent = message;
+        sourceFeedback.classList.toggle('hidden', !message);
+      }
+
+      function getFileType(name) {
+        const extension = name.split('.').pop().toLowerCase();
+        if (extension === 'pdf') return 'PDF';
+        if (extension === 'ppt' || extension === 'pptx') return extension.toUpperCase();
+        if (extension === 'doc' || extension === 'docx') return extension.toUpperCase();
+        if (['png', 'jpg', 'jpeg'].includes(extension)) return 'IMAGE';
+        return 'TXT';
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
+      function renderSourceList() {
+        sourceList.replaceChildren();
+        if (window.knowledgeSources.length === 0) {
+          const emptyState = document.createElement('p');
+          emptyState.className = 'text-sm text-gray-500';
+          emptyState.textContent = 'Your sources will appear here.';
+          sourceList.append(emptyState);
+          return;
+        }
+
+        window.knowledgeSources.forEach((source) => {
+          const card = document.createElement('div');
+          card.className = 'flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-[#A21942]/50';
+          const openButton = document.createElement('button');
+          openButton.type = 'button';
+          openButton.className = 'flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#A21942]';
+          openButton.setAttribute('aria-label', `Preview ${source.name}`);
+
+          const typeBadge = document.createElement('span');
+          typeBadge.className = 'grid size-10 shrink-0 place-items-center rounded-lg bg-gray-100 text-[10px] font-bold text-gray-700';
+          typeBadge.textContent = source.type;
+
+          const details = document.createElement('span');
+          details.className = 'min-w-0 flex-1';
+          const name = document.createElement('span');
+          name.className = 'block truncate text-sm font-semibold text-[#262626]';
+          name.textContent = source.name;
+          const metadata = document.createElement('span');
+          metadata.className = 'mt-0.5 block truncate text-xs text-gray-500';
+          metadata.textContent = source.metadata;
+          details.append(name, metadata);
+
+          const checkmark = document.createElement('span');
+          checkmark.className = 'shrink-0 text-emerald-600';
+          checkmark.setAttribute('aria-label', 'Ingested');
+          checkmark.innerHTML = '<svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.2 7.26a1 1 0 0 1-1.42.003L4.29 10.18a1 1 0 1 1 1.42-1.407l3.09 3.12 6.49-6.597a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>';
+          openButton.append(typeBadge, details, checkmark);
+          openButton.addEventListener('click', () => openSourcePreview(source));
+
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'grid size-8 shrink-0 place-items-center rounded-full text-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#A21942]';
+          deleteButton.setAttribute('aria-label', `Remove ${source.name}`);
+          deleteButton.textContent = '×';
+          deleteButton.addEventListener('click', () => {
+            window.knowledgeSources = window.knowledgeSources.filter((item) => item.id !== source.id);
+            renderSourceList();
+          });
+
+          card.append(openButton, deleteButton);
+          sourceList.append(card);
+        });
+      }
+
+      function openSourcePreview(source) {
+        previewTitle.textContent = source.name;
+        previewType.textContent = source.type;
+        previewMetadata.textContent = source.metadata;
+        previewContent.textContent = source.content || 'No text could be extracted from this source. The source metadata is available to the AI generation flow.';
+        previewModal.showModal();
+      }
+
+      function createSource({ name, type, content, metadata }) {
+        return {
+          id: crypto.randomUUID(),
+          name,
+          type,
+          content,
+          metadata,
+        };
+      }
+
+      function animateUploadProgress() {
+        return new Promise((resolve) => {
+          const duration = 1500;
+          const startedAt = performance.now();
+          progressContainer.classList.remove('hidden');
+          progressStatus.textContent = 'Processing source...';
+          progressBar.style.width = '0%';
+          progressPercent.textContent = '0%';
+
+          function updateProgress(now) {
+            const progress = Math.min((now - startedAt) / duration, 1);
+            const percentage = Math.round(progress * 100);
+            progressBar.style.width = `${percentage}%`;
+            progressPercent.textContent = `${percentage}%`;
+            if (progress < 1) {
+              requestAnimationFrame(updateProgress);
+              return;
+            }
+            progressStatus.textContent = 'Source ready';
+            resolve();
+          }
+
+          requestAnimationFrame(updateProgress);
+        });
+      }
+
+      async function ingestSources(sources) {
+        if (sources.length === 0) return Promise.resolve();
+        const ingestion = sourceIngestionQueue.then(async () => {
+          window.clearTimeout(progressHideTimeout);
+          setSourceFeedback('');
+          await animateUploadProgress();
+          window.knowledgeSources.push(...sources);
+          renderSourceList();
+          progressHideTimeout = window.setTimeout(() => progressContainer.classList.add('hidden'), 500);
+        });
+        sourceIngestionQueue = ingestion.catch((error) => {
+          setSourceFeedback(error instanceof Error ? error.message : 'Unable to process this source.');
+          progressHideTimeout = window.setTimeout(() => progressContainer.classList.add('hidden'), 500);
+        });
+        return sourceIngestionQueue;
+      }
+
+      async function makeFileSource(file) {
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (!supportedExtensions.has(extension)) {
+          throw new Error(`${file.name} is not a supported file type.`);
+        }
+        const content = extension === 'txt'
+          ? await file.text()
+          : `Preview of ${file.name} (${getFileType(file.name)}). Text extraction is simulated for this file type.`;
+        return createSource({
+          name: file.name,
+          type: getFileType(file.name),
+          content,
+          metadata: `${formatFileSize(file.size)} · ${file.type || 'File'}`,
+        });
+      }
+
+      async function handleFiles(fileCollection) {
+        const files = Array.from(fileCollection);
+        if (files.length === 0) return;
+        try {
+          const sources = await Promise.all(files.map(makeFileSource));
+          await ingestSources(sources);
+        } catch (error) {
+          setSourceFeedback(error instanceof Error ? error.message : 'Unable to process the selected files.');
+        } finally {
+          fileInput.value = '';
+        }
+      }
+
+      function addWebLink(event) {
+        event.preventDefault();
+        const linkInput = document.querySelector('#website-link-input');
+        const url = linkInput.value.trim();
+        if (!url) {
+          linkInput.focus();
+          return;
+        }
+        const source = createSource({
+          name: url.replace(/^https?:\/\//i, '').replace(/\/$/, ''),
+          type: 'URL',
+          content: `Website URL: ${url}\nWebsite text extraction is simulated; the submitted URL is provided as source context.`,
+          metadata: url,
+        });
+        linkInput.value = '';
+        void ingestSources([source]);
+      }
+
+      document.querySelector('#focus-source-button').addEventListener('click', () => {
+        dropZone.focus();
+      });
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          fileInput.click();
+        }
+      });
+      fileInput.addEventListener('change', () => void handleFiles(fileInput.files));
+      dropZone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropZone.classList.add('border-[#A21942]', 'bg-red-50');
+      });
+      dropZone.addEventListener('dragleave', (event) => {
+        if (!dropZone.contains(event.relatedTarget)) {
+          dropZone.classList.remove('border-[#A21942]', 'bg-red-50');
+        }
+      });
+      dropZone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropZone.classList.remove('border-[#A21942]', 'bg-red-50');
+        void handleFiles(event.dataTransfer.files);
+      });
+      document.querySelector('#website-link-form').addEventListener('submit', addWebLink);
+      document.querySelector('#add-source-button').addEventListener('click', () => {
+        const sourceInput = document.querySelector('#new-source-input');
+        const sourceText = sourceInput.value.trim();
+        if (!sourceText) {
+          sourceInput.focus();
+          return;
+        }
+        void ingestSources([createSource({
+          name: sourceText.split('\n', 1)[0].slice(0, 80) || 'Text source',
+          type: 'TXT',
+          content: sourceText,
+          metadata: `${sourceText.length} characters · Pasted text`,
+        })]);
+        sourceInput.value = '';
+      });
+
+      document.querySelector('#close-source-preview').addEventListener('click', () => previewModal.close());
+      previewModal.addEventListener('click', (event) => {
+        if (event.target === previewModal) previewModal.close();
+      });
+
+      const chatHistory = document.querySelector('#chat-history');
+      const contentPreview = document.querySelector('#content-preview');
+      const quizTitleValue = 'Quiz: Software Development Fundamentals';
+      const quizQuestionValue = 'Which practice helps teams deliver reliable software more frequently?';
+      const quizOptionValues = [
+        'Continuous integration and automated testing',
+        'Delaying code reviews until release',
+        'Combining all changes directly in production',
+        'Avoiding feedback from users',
+      ];
+
+      function renderQuizPreview() {
+        const quizTitle = document.createElement('input');
+        quizTitle.id = 'quiz-title';
+        quizTitle.type = 'text';
+        quizTitle.value = quizTitleValue;
+        quizTitle.className = 'mb-6 w-full border-b border-gray-300 text-2xl font-bold focus:outline-none';
+        quizTitle.setAttribute('aria-label', 'Quiz title');
+
+        const questionCard = document.createElement('article');
+        questionCard.id = 'quiz-question-card';
+        questionCard.className = 'rounded-lg border border-gray-200 p-4';
+        const questionRow = document.createElement('div');
+        questionRow.className = 'mb-4 flex items-start gap-3';
+        const questionInput = document.createElement('input');
+        questionInput.id = 'quiz-question';
+        questionInput.type = 'text';
+        questionInput.value = quizQuestionValue;
+        questionInput.className = 'min-w-0 flex-1 border-b border-gray-200 py-2 text-base font-semibold focus:border-[#A21942] focus:outline-none';
+        questionInput.setAttribute('aria-label', 'Quiz question');
+
+        const deleteButton = document.createElement('button');
+        deleteButton.id = 'delete-quiz-question';
+        deleteButton.type = 'button';
+        deleteButton.className = 'rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#A21942]';
+        deleteButton.setAttribute('aria-label', 'Delete question');
+        deleteButton.textContent = 'Delete';
+        questionRow.append(questionInput, deleteButton);
+
+        const options = document.createElement('fieldset');
+        options.id = 'quiz-options';
+        options.className = 'space-y-3';
+        const legend = document.createElement('legend');
+        legend.className = 'sr-only';
+        legend.textContent = 'Answer options. Select the correct answer.';
+        options.append(legend);
+
+        quizOptionValues.forEach((value, index) => {
+          const letter = String.fromCharCode(65 + index);
+          const row = document.createElement('label');
+          row.className = 'flex items-center gap-3 rounded-md border border-gray-200 px-3 py-2';
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'correct-answer';
+          radio.value = letter;
+          radio.checked = index === 0;
+          radio.className = 'size-4 accent-[#A21942]';
+          radio.setAttribute('aria-label', `Mark option ${letter} correct`);
+          const letterLabel = document.createElement('span');
+          letterLabel.className = 'w-5 shrink-0 text-sm font-semibold text-gray-500';
+          letterLabel.textContent = letter;
+          const answer = document.createElement('input');
+          answer.type = 'text';
+          answer.value = value;
+          answer.className = 'min-w-0 flex-1 border-0 bg-transparent text-sm focus:outline-none focus:ring-0';
+          answer.setAttribute('aria-label', `Option ${letter}`);
+          row.append(radio, letterLabel, answer);
+          options.append(row);
+        });
+
+        questionCard.append(questionRow, options);
+        contentPreview.replaceChildren(quizTitle, questionCard);
+      }
+
+      function renderSlidesPreview(slideContent) {
+        if (!Array.isArray(slideContent) || slideContent.length === 0) {
+          throw new Error('The AI response did not include any slides.');
+        }
+
+        const slideElements = slideContent.map((slide, index) => {
+          if (!slide || typeof slide.title !== 'string' || !Array.isArray(slide.bullets)) {
+            throw new Error(`Slide ${index + 1} is missing a title or bullet list.`);
+          }
+
+          const slideElement = document.createElement('section');
+          slideElement.className = 'mb-6 flex aspect-video w-full flex-col justify-center rounded-lg border border-gray-200 bg-white p-8 shadow-sm';
+          const title = document.createElement('h2');
+          title.dataset.previewTitle = 'true';
+          title.className = 'text-2xl font-bold text-gray-800';
+          title.textContent = slide.title;
+
+          const bullets = document.createElement('ul');
+          bullets.className = 'mt-4 list-disc space-y-2 pl-6 text-lg text-gray-600';
+          slide.bullets.forEach((bullet) => {
+            if (typeof bullet !== 'string') {
+              throw new Error(`Slide ${index + 1} contains an invalid bullet.`);
+            }
+            const item = document.createElement('li');
+            item.textContent = bullet;
+            bullets.append(item);
+          });
+
+          slideElement.append(title, bullets);
+          return slideElement;
+        });
+
+        contentPreview.replaceChildren(...slideElements);
+      }
+
+      function appendChatMessage(message, isAssistant = false) {
+        const row = document.createElement('div');
+        if (isAssistant) {
+          row.className = 'flex items-start gap-3';
+          const icon = document.createElement('span');
+          icon.className = 'grid size-8 shrink-0 place-items-center rounded-full bg-[#A21942] text-xs font-bold text-white';
+          icon.setAttribute('aria-label', 'EduGenAI');
+          icon.textContent = 'AI';
+          row.append(icon);
+        } else {
+          row.className = 'flex justify-end';
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = isAssistant
+          ? 'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm leading-6 text-gray-700 shadow-sm'
+          : 'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-gray-200 px-4 py-3 text-sm leading-6 text-gray-800';
+        bubble.textContent = message;
+        row.append(bubble);
+        chatHistory.append(row);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
+
+      contentPreview.addEventListener('click', (event) => {
+        if (event.target.closest('#delete-quiz-question')) {
+          document.querySelector('#quiz-question-card')?.remove();
+        }
+      });
+
+      document.querySelector('#mc-quiz-generator-button').addEventListener('click', renderQuizPreview);
+
+      document.querySelector('#ai-prompt-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const promptInput = document.querySelector('#ai-prompt');
+        const generateButton = document.querySelector('#generate-btn');
+        const spinner = document.querySelector('#loading-spinner');
+        const feedback = document.querySelector('#generate-feedback');
+        const prompt = promptInput.value.trim();
+        if (!prompt) {
+          promptInput.focus();
+          return;
+        }
+
+        appendChatMessage(prompt);
+        promptInput.value = '';
+        feedback.textContent = '';
+        feedback.classList.add('hidden');
+        generateButton.disabled = true;
+        spinner.classList.remove('hidden');
+        try {
+          const sourceContext = window.knowledgeSources.map((source) => (
+            `Source: ${source.name} (${source.type})\n${source.content}`
+          )).join('\n\n');
+          const response = await window.fetchOpenRouterResponse([
+            {
+              role: 'system',
+              content: 'You are an AI generator. You MUST respond in pure JSON format without markdown. Format: {"type": "slides", "content": [{"title": "Slide 1", "bullets": ["A", "B"]}]}',
+            },
+            {
+              role: 'user',
+              content: `Instructor request:\n${prompt}\n\nKnowledge sources:\n${sourceContext || 'No sources have been added.'}`,
+            },
+          ]);
+          const generatedText = response?.choices?.[0]?.message?.content;
+          if (typeof generatedText !== 'string' || !generatedText.trim()) {
+            throw new Error('The AI response did not include generated course content.');
+          }
+          let generatedContent;
+          try {
+            generatedContent = JSON.parse(generatedText);
+          } catch {
+            throw new Error('The AI response was not valid JSON. Please try generating the content again.');
+          }
+          if (generatedContent?.type === 'slides') {
+            renderSlidesPreview(generatedContent.content);
+            appendChatMessage('Slides generated and displayed in the Content Preview Engine.', true);
+          } else {
+            appendChatMessage(generatedText, true);
+          }
+        } catch (error) {
+          feedback.textContent = error instanceof Error ? error.message : 'Unable to generate course content.';
+          feedback.classList.remove('hidden');
+          appendChatMessage(feedback.textContent, true);
+        } finally {
+          generateButton.disabled = false;
+          spinner.classList.add('hidden');
+        }
+      });
+
+      document.querySelectorAll('[data-generator-prompt]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const promptInput = document.querySelector('#ai-prompt');
+          promptInput.value = button.dataset.generatorPrompt;
+          promptInput.focus();
+        });
+      });
+
+      document.querySelector('#save-library-btn').addEventListener('click', () => {
+        const currentTitle = contentPreview.querySelector('#quiz-title, [data-preview-title]');
+        const title = currentTitle instanceof HTMLInputElement ? currentTitle.value.trim() : currentTitle?.textContent.trim();
+        const item = document.createElement('div');
+        item.className = 'rounded-lg border border-gray-200 bg-gray-50 p-3';
+        const itemTitle = document.createElement('p');
+        itemTitle.className = 'release-item-title text-sm font-semibold text-[#262626]';
+        itemTitle.textContent = title || 'Untitled content';
+        const status = document.createElement('span');
+        status.className = 'release-status mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800';
+        status.textContent = 'Status: Unreleased';
+        item.append(itemTitle, status);
+        document.querySelector('#release-list').append(item);
+        window.alert('Saved to Library!');
+      });
+
+      document.querySelector('#schedule-release-btn').addEventListener('click', () => {
+        const dateTimeInput = document.querySelector('#datetime-local');
+        if (!dateTimeInput.value) {
+          window.alert('Please select a date and time.');
+          return;
+        }
+
+        const latestItem = document.querySelector('#release-list').lastElementChild;
+        const status = latestItem?.querySelector('.release-status');
+        if (status) {
+          status.textContent = 'Status: Scheduled';
+          status.classList.remove('bg-amber-100', 'text-amber-800');
+          status.classList.add('bg-emerald-100', 'text-emerald-800');
+        }
+      });
+
+    </script>
   </body>
 </html>
