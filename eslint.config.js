@@ -19,4 +19,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/routes/**/*.{ts,tsx}'],
+    rules: {
+      // TanStack Router file-based routes export the `Route` constant and
+      // define their route components in the same file, which this
+      // fast-refresh rule cannot express. Disable it for route files only.
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

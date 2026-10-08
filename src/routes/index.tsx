@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   Activity,
   ArrowDown,
@@ -27,9 +27,13 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { resolveSignedInRole, type DashboardRole } from '../lib/session'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
+  // Resolve the signed-in role before first paint so the navbar never
+  // flashes the signed-out buttons for an authenticated user.
+  loader: async () => ({ signedInRole: await resolveSignedInRole() }),
 })
 
 interface NavLink {
@@ -92,6 +96,7 @@ function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeAudience, setActiveAudience] = useState<'non-cs' | 'cs'>('non-cs')
   const [demoOpen, setDemoOpen] = useState(false)
+  const { signedInRole } = Route.useLoaderData()
 
   return (
     <div className="min-h-screen overflow-hidden bg-white text-[#262626]">
@@ -99,6 +104,7 @@ function HomePage() {
         mobileMenuOpen={mobileMenuOpen}
         onMenuToggle={() => setMobileMenuOpen((open) => !open)}
         onNavigate={() => setMobileMenuOpen(false)}
+        signedInRole={signedInRole}
       />
       <main>
         <Hero onDemoOpen={() => setDemoOpen(true)} />
@@ -121,9 +127,24 @@ interface NavbarProps {
   mobileMenuOpen: boolean
   onMenuToggle: () => void
   onNavigate: () => void
+  signedInRole: DashboardRole | null
 }
 
-function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
+function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: NavbarProps) {
+  const dashboardHref: '/instructor' | '/student' | '/login' =
+    signedInRole === 'instructor'
+      ? '/instructor'
+      : signedInRole === 'student'
+        ? '/student'
+        : '/login'
+  const secondaryLabel =
+    signedInRole === 'instructor'
+      ? 'Instructor Studio'
+      : signedInRole === 'student'
+        ? 'My Learning Hub'
+        : 'Student Login'
+  const primaryLabel = signedInRole ? 'Open dashboard' : 'Get started'
+
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200/80 bg-white/95 backdrop-blur-xl">
       <nav
@@ -157,18 +178,18 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
         </div>
 
         <div className="hidden items-center gap-2.5 sm:flex">
-          <a
+          <Link
             className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-            href="/login"
+            to={dashboardHref}
           >
-            Student Login
-          </a>
-          <a
+            {secondaryLabel}
+          </Link>
+          <Link
             className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
-            href="/login"
+            to={dashboardHref}
           >
-            Get started <ArrowRight aria-hidden="true" size={15} />
-          </a>
+            {primaryLabel} <ArrowRight aria-hidden="true" size={15} />
+          </Link>
         </div>
 
         <button
@@ -195,20 +216,20 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
               </a>
             ))}
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
-              <a
+              <Link
                 className="rounded-lg border border-gray-200 px-3 py-2.5 text-center text-sm font-semibold text-gray-700"
-                href="/login"
                 onClick={onNavigate}
+                to={dashboardHref}
               >
-                Student Login
-              </a>
-              <a
+                {secondaryLabel}
+              </Link>
+              <Link
                 className="rounded-lg bg-[#A21942] px-3 py-2.5 text-center text-sm font-semibold text-white"
-                href="/login"
                 onClick={onNavigate}
+                to={dashboardHref}
               >
-                Get started
-              </a>
+                {primaryLabel}
+              </Link>
             </div>
           </div>
         </div>

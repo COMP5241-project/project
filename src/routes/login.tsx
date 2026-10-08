@@ -1,18 +1,112 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft, ArrowRight, GraduationCap, LockKeyhole, Mail } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, ArrowRight, GraduationCap, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
+import { useState, useEffect, type FormEvent } from 'react'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { resolveSignedInRole, setCachedSignedInRole } from '../lib/session'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
 })
 
-function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+function getConnectionMessage(error: unknown): string | null {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  const name = error instanceof Error ? error.name : ''
+  if (
+    !navigator.onLine ||
+    name === 'AuthRetryableFetchError' ||
+    ['failed to fetch', 'fetch failed', 'networkerror'].some((text) => message.includes(text))
+  ) {
+    return 'Unable to connect to the sign-in service. Check your internet connection and try again.'
+  }
+  return null
+}
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+function LoginPage() {
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Defense-in-depth: a user who is already signed in should never see the
+  // login form (e.g. clicking a stale "Student Login" link), so redirect
+  // them straight to their dashboard.
+  useEffect(() => {
+    let cancelled = false
+    void resolveSignedInRole().then((role) => {
+      if (cancelled || !role) return
+      void navigate({ to: role === 'instructor' ? '/instructor' : '/student', replace: true })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmitted(true)
+    if (!supabase || isLoading) return
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+
+      if (authError) {
+        const connectionMessage = getConnectionMessage(authError)
+        if (connectionMessage) throw new Error(connectionMessage)
+        if (authError.message.toLowerCase().includes('invalid login credentials')) {
+          throw new Error('Incorrect email or password. Check your credentials and try again.')
+        }
+        throw new Error('Sign-in failed. Please try again later.')
+      }
+
+      const user = authData.user
+      if (!user) {
+        throw new Error('Sign-in failed. Please try again later.')
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, cs_qualified, assessment_completed')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) {
+        if (profileError.code === 'PGRST116') {
+          throw new Error(
+            'Your account role information could not be found. Contact the system administrator.',
+          )
+        }
+        const connectionMessage = getConnectionMessage(profileError)
+        if (connectionMessage) throw new Error(connectionMessage)
+        throw new Error(
+          'Signed in, but unable to retrieve your account role. Check the database configuration and try again.',
+        )
+      }
+
+      if (profile.role === 'student') {
+        setCachedSignedInRole('student')
+        await navigate({ to: '/student' })
+      } else if (profile.role === 'instructor') {
+        setCachedSignedInRole('instructor')
+        await navigate({ to: '/instructor' })
+      } else {
+        throw new Error(
+          'Your account role is not set or is unsupported. Contact the system administrator.',
+        )
+      }
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'An unexpected error occurred. Please try again later.',
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -85,13 +179,23 @@ function LoginPage() {
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-              {submitted && (
+              {!isSupabaseConfigured && (
                 <div
-                  className="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-                  role="status"
+                  className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+                  role="alert"
                 >
-                  Demo sign-in submitted for <span className="font-semibold">{email}</span>.
-                  Authentication is not connected.
+                  The sign-in service is not configured. Check the Supabase environment variables
+                  (<span className="font-semibold">VITE_SUPABASE_URL</span> and{' '}
+                  <span className="font-semibold">VITE_SUPABASE_ANON_KEY</span>).
+                </div>
+              )}
+
+              {error && (
+                <div
+                  className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                  role="alert"
+                >
+                  {error}
                 </div>
               )}
 
@@ -113,7 +217,7 @@ function LoginPage() {
                       name="email"
                       onChange={(event) => {
                         setEmail(event.target.value)
-                        setSubmitted(false)
+                        setError(null)
                       }}
                       placeholder="name@polyu.edu.hk"
                       required
@@ -138,26 +242,41 @@ function LoginPage() {
                       className="w-full rounded-md border border-gray-300 bg-white py-3 pl-10 pr-3.5 text-sm text-[#262626] outline-none transition placeholder:text-gray-400 focus:border-[#A21942] focus:ring-2 focus:ring-[#A21942]/20"
                       id="password"
                       name="password"
-                      onChange={() => setSubmitted(false)}
+                      onChange={(event) => {
+                        setPassword(event.target.value)
+                        setError(null)
+                      }}
                       placeholder="Enter your password"
                       required
                       type="password"
+                      value={password}
                     />
                   </div>
                 </div>
 
                 <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#A21942] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#A21942] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isLoading || !isSupabaseConfigured}
                   type="submit"
                 >
-                  Sign in
-                  <ArrowRight aria-hidden="true" size={16} />
+                  {isLoading ? (
+                    <>
+                      <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+                      Signing in…
+                    </>
+                  ) : (
+                    <>
+                      Sign in
+                      <ArrowRight aria-hidden="true" size={16} />
+                    </>
+                  )}
                 </button>
               </form>
             </div>
 
             <p className="mt-5 text-center text-xs leading-5 text-gray-500">
-              Demo page only. Your details are not sent to a service or stored.
+              Sign in with your PolyU Edu 4.0 account. Credentials are verified securely with
+              Supabase Auth.
             </p>
           </div>
         </div>
