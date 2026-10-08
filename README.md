@@ -102,6 +102,19 @@ To prevent prompt injection, off-topic misuse, or inappropriate content generati
 
 ---
 
+## 🧩 UI Layer Tech Stack
+
+The front-end UI layer is implemented using the following technologies:
+
+* **React 19** — component-based UI development
+* **Vite** — fast frontend build and development tooling
+* **TypeScript** — static typing for safer component and state logic
+* **TanStack Router** — client-side routing for page navigation
+* **Tailwind CSS 4** — utility-first styling and responsive layout
+* **Lucide React** — icon set for interface actions and status indicators
+
+---
+
 ## ⚙️ 3. Development & Formatting Conventions
 
 ### File Structure & Naming
