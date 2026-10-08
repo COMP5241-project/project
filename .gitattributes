@@ -1,0 +1,3 @@
+# Auto-generated file: TanStack Router's codegen always writes LF line endings.
+# Pin it to LF so Git doesn't report it as modified on Windows (autocrlf).
+src/routeTree.gen.ts text eol=lf
