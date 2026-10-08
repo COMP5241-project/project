@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { CircleAlert, GraduationCap, LoaderCircle, LogOut, NotebookPen } from 'lucide-react'
+import { CircleAlert, GraduationCap, House, LoaderCircle, LogOut, NotebookPen } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useProfile } from '../lib/useProfile'
 
@@ -86,16 +86,25 @@ function InstructorPage() {
               PolyU <span className="text-[#A21942]">Edu 4.0</span>
             </span>
           </Link>
-          {state.status === 'ready' && (
-            <button
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
-              onClick={() => void state.signOut()}
-              type="button"
+          <div className="flex items-center gap-2.5">
+            <Link
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+              to="/"
             >
-              <LogOut aria-hidden="true" size={15} />
-              Sign out
-            </button>
-          )}
+              <House aria-hidden="true" size={15} />
+              Home
+            </Link>
+            {state.status === 'ready' && (
+              <button
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                onClick={() => void state.signOut()}
+                type="button"
+              >
+                <LogOut aria-hidden="true" size={15} />
+                Sign out
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
