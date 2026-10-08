@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useSignedInRole, type DashboardRole } from '../lib/useSignedInRole'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -92,6 +93,7 @@ function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeAudience, setActiveAudience] = useState<'non-cs' | 'cs'>('non-cs')
   const [demoOpen, setDemoOpen] = useState(false)
+  const signedInRole = useSignedInRole()
 
   return (
     <div className="min-h-screen overflow-hidden bg-white text-[#262626]">
@@ -99,6 +101,7 @@ function HomePage() {
         mobileMenuOpen={mobileMenuOpen}
         onMenuToggle={() => setMobileMenuOpen((open) => !open)}
         onNavigate={() => setMobileMenuOpen(false)}
+        signedInRole={signedInRole}
       />
       <main>
         <Hero onDemoOpen={() => setDemoOpen(true)} />
@@ -121,9 +124,24 @@ interface NavbarProps {
   mobileMenuOpen: boolean
   onMenuToggle: () => void
   onNavigate: () => void
+  signedInRole: DashboardRole | null
 }
 
-function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
+function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: NavbarProps) {
+  const dashboardHref =
+    signedInRole === 'instructor'
+      ? '/instructor'
+      : signedInRole === 'student'
+        ? '/student'
+        : '/login'
+  const secondaryLabel =
+    signedInRole === 'instructor'
+      ? 'Instructor Studio'
+      : signedInRole === 'student'
+        ? 'My Learning Hub'
+        : 'Student Login'
+  const primaryLabel = signedInRole ? 'Open dashboard' : 'Get started'
+
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200/80 bg-white/95 backdrop-blur-xl">
       <nav
@@ -159,15 +177,15 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
         <div className="hidden items-center gap-2.5 sm:flex">
           <a
             className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-            href="/login"
+            href={dashboardHref}
           >
-            Student Login
+            {secondaryLabel}
           </a>
           <a
             className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
-            href="/login"
+            href={dashboardHref}
           >
-            Get started <ArrowRight aria-hidden="true" size={15} />
+            {primaryLabel} <ArrowRight aria-hidden="true" size={15} />
           </a>
         </div>
 
@@ -197,17 +215,17 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate }: NavbarProps) {
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
               <a
                 className="rounded-lg border border-gray-200 px-3 py-2.5 text-center text-sm font-semibold text-gray-700"
-                href="/login"
+                href={dashboardHref}
                 onClick={onNavigate}
               >
-                Student Login
+                {secondaryLabel}
               </a>
               <a
                 className="rounded-lg bg-[#A21942] px-3 py-2.5 text-center text-sm font-semibold text-white"
-                href="/login"
+                href={dashboardHref}
                 onClick={onNavigate}
               >
-                Get started
+                {primaryLabel}
               </a>
             </div>
           </div>
