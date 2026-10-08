@@ -60,7 +60,7 @@ async function saveQualification(isQualified) {
 
   const { error } = await supabase
     .from('profiles')
-    .update({ cs_qualified: isQualified })
+    .update({ cs_qualified: isQualified, assessment_completed: true })
     .eq('id', user.id);
 
   if (error) throw new Error(`Unable to save your qualification result: ${error.message}`);

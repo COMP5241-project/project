@@ -46,6 +46,22 @@ if (!supabaseUrl || !supabaseKey) {
 } else {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  function redirectToDashboard(profile) {
+    if (profile.role === 'student') {
+      if (profile.assessment_completed === true) {
+        window.location.assign(
+          profile.cs_qualified === true ? '/student-cs.html' : '/student-non-cs.html',
+        );
+      } else {
+        window.location.assign('/student.html');
+      }
+    } else if (profile.role === 'instructor') {
+      window.location.assign('/instructor.html');
+    } else {
+      throw new Error('Your account role is not set or is unsupported. Contact the system administrator.');
+    }
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     feedback.classList.add('hidden');
@@ -69,7 +85,7 @@ if (!supabaseUrl || !supabaseKey) {
       const userId = authData.user.id;
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, cs_qualified')
+        .select('role, cs_qualified, assessment_completed')
         .eq('id', userId)
         .single();
 
@@ -82,17 +98,31 @@ if (!supabaseUrl || !supabaseKey) {
         throw new Error('Signed in, but unable to retrieve your account role. Check the database configuration and try again.');
       }
 
-      if (profile.role === 'student') {
-        window.location.assign(profile.cs_qualified === true ? '/student-cs.html' : '/student.html');
-      } else if (profile.role === 'instructor') {
-        window.location.assign('/instructor.html');
-      } else {
-        throw new Error('Your account role is not set or is unsupported. Contact the system administrator.');
-      }
+      redirectToDashboard(profile);
     } catch (error) {
       showFeedback(error.message || 'An unexpected error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
   });
+
+  // Restore already-signed-in users straight to their dashboard so that
+  // navigating to the home page never looks like a forced sign-out.
+  (async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const sessionUser = sessionData?.session?.user;
+      if (!sessionUser) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, cs_qualified, assessment_completed')
+        .eq('id', sessionUser.id)
+        .single();
+
+      if (profile) redirectToDashboard(profile);
+    } catch {
+      // Stay on the sign-in form if the session or profile cannot be read.
+    }
+  })();
 }
