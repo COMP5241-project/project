@@ -59,7 +59,7 @@ async function request<T>(path: string, body?: object): Promise<T | undefined> {
 }
 
 export async function getCurrentProfile(): Promise<CurrentProfile> {
-  const data = await request<CurrentProfile>('/me')
+  const data = await request<CurrentProfile>('/profiles/me')
   if (!data) throw new ApiError('Unable to load your profile.', 503)
   return data
 }

@@ -2,14 +2,16 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from app.auth import router
 from app.database.supabase import get_supabase
 from app.errors import ApiError
+from app.routers.auth import router as auth_router
+from app.routers.profiles import router as profiles_router
 from app.sessions import clear_session_cookie
 from supabase import Client
 
 app = FastAPI()
-app.include_router(router)
+app.include_router(auth_router)
+app.include_router(profiles_router)
 
 
 @app.middleware("http")

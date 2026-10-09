@@ -104,15 +104,16 @@ def test_auth_login_and_profile_use_private_cookie(client: HttpxClient, auth_cli
     assert "Path=/api" in response.headers["set-cookie"]
     assert response.headers["cache-control"] == "no-store"
     assert client.cookies.get(COOKIE_NAME) != "private-access-token"
-    response = client.get("/api/me")
+    response = client.get("/api/profiles/me")
     assert response.status_code == 200
     auth_client.auth.get_user.assert_called_once_with("private-access-token")
     auth_client.postgrest.auth.assert_called_with("private-access-token")
     auth_client.table.return_value.select.return_value.eq.assert_called_with("id", "student-id")
 
 
+
 def test_auth_missing_session(client: HttpxClient):
-    response = client.get("/api/me")
+    response = client.get("/api/profiles/me")
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "unauthenticated"
 
@@ -159,7 +160,7 @@ def test_auth_profile_failure_preserves_session(client: HttpxClient, auth_client
     session_id = client.cookies.get(COOKIE_NAME)
     session = store.get(session_id)
     auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = data
-    response = client.get("/api/me")
+    response = client.get("/api/profiles/me")
     assert response.status_code == status
     assert response.json()["error"]["code"] == code
     assert store.get(session_id) is session
@@ -178,7 +179,7 @@ def test_auth_invalidated_session_during_profile_load_is_rejected(client: HttpxC
         return result
 
     execute.side_effect = invalidate_during_profile_load
-    response = client.get("/api/me")
+    response = client.get("/api/profiles/me")
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "unauthenticated"
     assert store.get(session_id) is None
@@ -192,7 +193,7 @@ def test_auth_refresh_rotates_tokens(client: HttpxClient, auth_client: Mock, sto
     refreshed = auth_client.auth.refresh_session.return_value.session
     refreshed.access_token = "rotated-access"
     refreshed.refresh_token = "rotated-refresh"
-    response = client.get("/api/me")
+    response = client.get("/api/profiles/me")
     assert response.status_code == 200
     auth_client.auth.refresh_session.assert_called_once_with("private-refresh-token")
     auth_client.auth.get_user.assert_called_with("rotated-access")
@@ -206,7 +207,7 @@ def test_auth_refresh_error_distinguishes_expiry_from_outage(client: HttpxClient
     session_id = client.cookies.get(COOKIE_NAME)
     store.get(session_id).token_expires_at = 0
     auth_client.auth.refresh_session.side_effect = AuthApiError("expired", 400, "refresh_token_not_found") if invalid else RuntimeError("upstream offline")
-    response = client.get("/api/me")
+    response = client.get("/api/profiles/me")
     assert response.status_code == (401 if invalid else 503)
     assert (store.get(session_id) is None) == invalid
     assert "upstream offline" not in response.text
@@ -215,7 +216,7 @@ def test_auth_refresh_error_distinguishes_expiry_from_outage(client: HttpxClient
 def test_auth_absolute_session_expiry(client: HttpxClient, store: SessionStore):
     auth_login(client)
     store.get(client.cookies.get(COOKIE_NAME)).expires_at = 0
-    assert client.get("/api/me").status_code == 401
+    assert client.get("/api/profiles/me").status_code == 401
 
 
 def test_auth_replaced_session_is_removed(client: HttpxClient, store: SessionStore):
@@ -229,7 +230,7 @@ def test_auth_replaced_session_is_removed(client: HttpxClient, store: SessionSto
 def test_auth_rejects_mismatched_user(client: HttpxClient, auth_client: Mock, store: SessionStore):
     auth_login(client)
     auth_client.auth.get_user.return_value.user = SimpleNamespace(id="other-user", email="other@example.com")
-    assert client.get("/api/me").status_code == 401
+    assert client.get("/api/profiles/me").status_code == 401
     assert not store.sessions
 
 
@@ -249,7 +250,7 @@ def test_auth_logout_invalidates_sessions_even_when_revocation_fails(client: Htt
         assert "provider-secret" not in response.text
     assert not store.sessions
     assert COOKIE_NAME not in client.cookies
-    assert client.get("/api/me").status_code == 401
+    assert client.get("/api/profiles/me").status_code == 401
     auth_client.auth.admin.sign_out.assert_called_once_with("private-access-token", "global")
 
 
@@ -267,7 +268,7 @@ def test_auth_refresh_is_serialized(client: HttpxClient, auth_client: Mock, stor
     session_id = client.cookies.get(COOKIE_NAME)
     store.get(session_id).token_expires_at = 0
     with ThreadPoolExecutor(max_workers=2) as executor:
-        responses = list(executor.map(lambda _: client.get("/api/me"), range(2)))
+        responses = list(executor.map(lambda _: client.get("/api/profiles/me"), range(2)))
     assert all(response.status_code == 200 for response in responses)
     auth_client.auth.refresh_session.assert_called_once()
 
@@ -286,7 +287,7 @@ def test_auth_logout_does_not_resurrect_inflight_session(client: HttpxClient, au
 
     auth_client.auth.get_user.side_effect = delayed_user
     with ThreadPoolExecutor(max_workers=1) as executor:
-        pending = executor.submit(client.get, "/api/me")
+        pending = executor.submit(client.get, "/api/profiles/me")
         assert started.wait(5)
         store.remove_user("student-id")
         release.set()
@@ -301,7 +302,7 @@ def test_auth_missing_configuration_does_not_block_local_logout(client: HttpxCli
     assert response.status_code == 503
     assert response.json()["error"]["signed_out"] is True
     assert not store.sessions
-    assert client.get("/api/me").status_code == 401
+    assert client.get("/api/profiles/me").status_code == 401
 
 
 def test_auth_secure_cookie_configuration(client: HttpxClient, monkeypatch):
