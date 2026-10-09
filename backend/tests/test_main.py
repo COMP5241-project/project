@@ -10,9 +10,11 @@ from fastapi.testclient import TestClient
 from httpx import Client as HttpxClient
 
 from app.database.supabase import get_supabase
+from app.hallucination.judge import JudgeUnavailableError, JudgeVerdict, parse_verdict
 from app.identity.auth import get_auth_client, get_optional_auth_client
 from app.identity.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
 from app.main import app
+from app.routers.hallucination import judge
 
 
 @pytest.fixture
@@ -397,3 +399,82 @@ def test_auth_clients_do_not_share_authentication_state(monkeypatch):
         assert second.postgrest.headers["Authorization"] == "Bearer second-user-jwt"
         assert first.options.persist_session is False
         assert first.options.auto_refresh_token is False
+
+
+JUDGE_PAYLOAD = {
+    "challenge_id": "ncs-01", "critique": "This function does not exist.", "tapped_line": 4,
+}
+
+
+def test_hallucination_challenges_hide_answers(client: HttpxClient):
+    response = client.get("/api/hallucination/challenges")
+    assert response.status_code == 200
+    challenges = response.json()
+    assert [item["id"] for item in challenges] == ["ncs-01", "ncs-02", "ncs-03", "ncs-04"]
+    for item in challenges:
+        assert "flaw_line" not in item
+        assert "flaw_summary" not in item
+        assert item["code"] and item["hint_mild"] and item["hint_strong"]
+
+
+def test_hallucination_judge_requires_session(client: HttpxClient, auth_client: Mock):
+    response = client.post("/api/hallucination/judge", json=JUDGE_PAYLOAD)
+    assert response.status_code == 401
+    auth_client.auth.get_user.assert_not_called()
+
+
+def test_hallucination_judge_rejects_unknown_challenge(client: HttpxClient, monkeypatch):
+    auth_login(client)
+    monkeypatch.setattr(
+        "app.routers.hallucination.judge_critique",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("must not be called")),
+    )
+    response = client.post(
+        "/api/hallucination/judge",
+        json={"challenge_id": "ncs-99", "critique": "A long enough critique.", "tapped_line": 0},
+    )
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "challenge_not_found"
+
+
+def test_hallucination_judge_returns_verdict_with_reveal(client: HttpxClient, monkeypatch):
+    auth_login(client)
+    verdict = JudgeVerdict(
+        score=90, rating="sharp", identified=["missing function"],
+        missed=[], feedback="Great detective work.",
+    )
+    monkeypatch.setattr(
+        "app.routers.hallucination.judge_critique",
+        lambda *args, **kwargs: verdict,
+    )
+    response = client.post("/api/hallucination/judge", json=JUDGE_PAYLOAD)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["score"] == 90 and body["rating"] == "sharp"
+    assert body["flaw_line"] == 4
+    assert body["flaw_summary"].startswith("calendar.set_month_name()")
+
+
+def test_hallucination_judge_upstream_failure_is_service_unavailable(client: HttpxClient, monkeypatch):
+    auth_login(client)
+
+    def unavailable(*args, **kwargs):
+        raise JudgeUnavailableError("boom")
+
+    monkeypatch.setattr("app.routers.hallucination.judge_critique", unavailable)
+    response = client.post("/api/hallucination/judge", json=JUDGE_PAYLOAD)
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "judge_unavailable"
+
+
+def test_judge_parse_verdict_is_defensive():
+    verdict = parse_verdict('{"score": 80, "rating": "sharp", "identified": ["a"], "missed": [], "feedback": "Good."}')
+    assert (verdict.score, verdict.rating, verdict.identified, verdict.missed, verdict.feedback) == (
+        80, "sharp", ["a"], [], "Good.",
+    )
+    padded = parse_verdict('Sure! Here is the verdict: {"score": 40, "feedback": "ok"}')
+    assert padded.score == 40 and padded.rating == "novice" and padded.feedback == "ok"
+    with pytest.raises(JudgeUnavailableError):
+        parse_verdict("no json at all")
+    with pytest.raises(JudgeUnavailableError):
+        parse_verdict("[1, 2, 3]")

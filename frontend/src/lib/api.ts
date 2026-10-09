@@ -85,3 +85,51 @@ export interface HallucinationResultInput {
 export async function saveHallucinationResult(input: HallucinationResultInput): Promise<void> {
   await request('/profiles/hallucination-results', input)
 }
+
+/* --- Spot the Hallucination game (challenges + AI judge live on the backend) --- */
+
+export interface HallucinationChallenge {
+  id: string
+  title: string
+  emoji: string
+  language: string
+  category: string
+  scenario: string
+  code: string[]
+  hint_mild: string
+  hint_strong: string
+}
+
+export type DiscernmentRating = 'novice' | 'developing' | 'sharp'
+
+export interface JudgeVerdict {
+  score: number
+  rating: DiscernmentRating
+  identified: string[]
+  missed: string[]
+  feedback: string
+  flaw_line: number
+  flaw_summary: string
+}
+
+/** Loads the playable challenge bank (answer fields stay server-side). */
+export async function getHallucinationChallenges(): Promise<HallucinationChallenge[]> {
+  const data = await request<HallucinationChallenge[]>('/hallucination/challenges')
+  if (!data) throw new ApiError('Unable to load the game. Try again.', 503)
+  return data
+}
+
+/** Grades a critique with the server-side AI tutor. */
+export async function judgeHallucinationCritique(
+  challengeId: string,
+  critique: string,
+  tappedLine: number,
+): Promise<JudgeVerdict> {
+  const data = await request<JudgeVerdict>('/hallucination/judge', {
+    challenge_id: challengeId,
+    critique,
+    tapped_line: tappedLine,
+  })
+  if (!data) throw new ApiError('The AI tutor is unavailable. Try again.', 503)
+  return data
+}
