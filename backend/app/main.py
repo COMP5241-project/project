@@ -17,4 +17,4 @@ def health_check():
         return JSONResponse(content={"status": "ok"})
     except Exception as e:
         print(f"Failed to connect to Supabase: {e}")
-        return JSONResponse(content={"status": "error", "message": str(e)})
+        return JSONResponse(status_code=503,content={"status": "error", "message": str(e)})
