@@ -13,3 +13,6 @@ dependencies = [
     "python-dotenv>=1.2.4",
     "supabase>=2.32.0",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
