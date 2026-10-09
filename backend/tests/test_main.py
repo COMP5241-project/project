@@ -10,7 +10,8 @@ from fastapi.testclient import TestClient
 from httpx import Client as HttpxClient
 
 from app.database.supabase import get_supabase
-from app.auth import COOKIE_NAME, Session, SessionStore, get_auth_client, get_optional_auth_client, get_session_store
+from app.auth import get_auth_client, get_optional_auth_client
+from app.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
 from app.main import app
 
 
@@ -146,6 +147,42 @@ def test_auth_profile_failure_does_not_create_session(client: HttpxClient, auth_
     assert not store.sessions
     assert COOKIE_NAME not in client.cookies
     auth_client.auth.admin.sign_out.assert_called_once_with("private-access-token", "local")
+
+
+@pytest.mark.parametrize("data,status,code", [
+    (None, 404, "profile_missing"),
+    ({"role": "admin"}, 403, "unsupported_role"),
+    ("malformed", 503, "profile_unavailable"),
+])
+def test_auth_profile_failure_preserves_session(client: HttpxClient, auth_client: Mock, store: SessionStore, data, status, code):
+    auth_login(client)
+    session_id = client.cookies.get(COOKIE_NAME)
+    session = store.get(session_id)
+    auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = data
+    response = client.get("/api/me")
+    assert response.status_code == status
+    assert response.json()["error"]["code"] == code
+    assert store.get(session_id) is session
+    assert client.cookies.get(COOKIE_NAME) == session_id
+    auth_client.auth.admin.sign_out.assert_not_called()
+
+
+def test_auth_invalidated_session_during_profile_load_is_rejected(client: HttpxClient, auth_client: Mock, store: SessionStore):
+    auth_login(client)
+    session_id = client.cookies.get(COOKIE_NAME)
+    execute = auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute
+    result = execute.return_value
+
+    def invalidate_during_profile_load():
+        store.remove_user("student-id")
+        return result
+
+    execute.side_effect = invalidate_during_profile_load
+    response = client.get("/api/me")
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "unauthenticated"
+    assert store.get(session_id) is None
+    assert COOKIE_NAME not in client.cookies
 
 
 def test_auth_refresh_rotates_tokens(client: HttpxClient, auth_client: Mock, store: SessionStore):
