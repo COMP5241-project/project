@@ -16,13 +16,14 @@ import {
   Star,
   type LucideIcon,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
-  HALLUCINATION_CHALLENGES,
-} from '../lib/hallucination/challenges'
-import { judgeCritique, type JudgeVerdict } from '../lib/hallucination/judge'
-import { isOpenRouterConfigured } from '../lib/openrouter'
-import { saveHallucinationResult } from '../lib/api'
+  getHallucinationChallenges,
+  judgeHallucinationCritique,
+  saveHallucinationResult,
+  type HallucinationChallenge,
+  type JudgeVerdict,
+} from '../lib/api'
 import { useProfile } from '../lib/useProfile'
 
 export const Route = createFileRoute('/student_/hallucination-game')({
@@ -158,6 +159,8 @@ interface GameProps {
 }
 
 function Game({ csQualified }: GameProps) {
+  const [challenges, setChallenges] = useState<HallucinationChallenge[] | null>(null)
+  const [challengesError, setChallengesError] = useState<string | null>(null)
   const [phase, setPhase] = useState<GamePhase>('intro')
   const [challengeIndex, setChallengeIndex] = useState(0)
   const [selectedLine, setSelectedLine] = useState<number | null>(null)
@@ -171,7 +174,22 @@ function Game({ csQualified }: GameProps) {
   const [lineTappedCorrectly, setLineTappedCorrectly] = useState(false)
   const [results, setResults] = useState<ChallengeResult[]>([])
 
-  const challenge = HALLUCINATION_CHALLENGES[challengeIndex]
+  useEffect(() => {
+    let cancelled = false
+    getHallucinationChallenges()
+      .then((bank) => {
+        if (!cancelled) setChallenges(bank)
+      })
+      .catch((error) => {
+        if (!cancelled)
+          setChallengesError(error instanceof Error ? error.message : 'Unable to load the game.')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const challenge = challenges?.[challengeIndex]
 
   function beginChallenge(index: number) {
     setChallengeIndex(index)
@@ -186,7 +204,7 @@ function Game({ csQualified }: GameProps) {
   }
 
   function handleNext() {
-    if (challengeIndex + 1 < HALLUCINATION_CHALLENGES.length) {
+    if (challenges && challengeIndex + 1 < challenges.length) {
       beginChallenge(challengeIndex + 1)
     } else {
       setPhase('summary')
@@ -200,6 +218,7 @@ function Game({ csQualified }: GameProps) {
 
   async function handleSubmit() {
     if (isJudging) return
+    if (!challenge) return
     if (selectedLine === null) {
       setFormError('First, tap the line that looks suspicious.')
       return
@@ -212,9 +231,10 @@ function Game({ csQualified }: GameProps) {
     setJudgeError(null)
     setIsJudging(true)
     try {
-      const tappedCorrectly = selectedLine === challenge.flawLine
-      const judged = await judgeCritique(challenge, critique.trim(), tappedCorrectly)
-      setLineTappedCorrectly(tappedCorrectly)
+      // The backend checks the tapped line against the hidden flaw and
+      // returns the revealed line in the verdict.
+      const judged = await judgeHallucinationCritique(challenge.id, critique.trim(), selectedLine)
+      setLineTappedCorrectly(selectedLine === judged.flaw_line)
       setVerdict(judged)
       setResults((previous) => [
         ...previous,
@@ -222,7 +242,7 @@ function Game({ csQualified }: GameProps) {
           challengeId: challenge.id,
           score: judged.score,
           rating: judged.rating,
-          lineTappedCorrectly: tappedCorrectly,
+          lineTappedCorrectly: selectedLine === judged.flaw_line,
         },
       ])
       setPhase('verdict')
@@ -238,31 +258,57 @@ function Game({ csQualified }: GameProps) {
     }
   }
 
+  if (!challenge) {
+    if (challengesError) {
+      return (
+        <NoticeCard
+          action={
+            <button
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+              onClick={() => window.location.reload()}
+              type="button"
+            >
+              Try again
+            </button>
+          }
+          message={challengesError}
+          title="Unable to load the game"
+        />
+      )
+    }
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-gray-200 bg-white p-10 text-center shadow-sm">
+        <LoaderCircle aria-hidden="true" className="animate-spin text-[#A21942]" size={28} />
+        <p className="text-sm text-gray-600">Loading the game…</p>
+      </div>
+    )
+  }
+
   if (phase === 'intro') {
-    return <IntroScreen onStart={() => beginChallenge(0)} />
+    return <IntroScreen challengeCount={challenges.length} onStart={() => beginChallenge(0)} />
   }
 
   if (phase === 'verdict' && verdict) {
     return (
       <VerdictScreen
         challenge={challenge}
-        isLast={challengeIndex + 1 >= HALLUCINATION_CHALLENGES.length}
+        isLast={challengeIndex + 1 >= challenges.length}
         lineTappedCorrectly={lineTappedCorrectly}
         onNext={handleNext}
-        tappedLine={selectedLine ?? challenge.flawLine}
+        tappedLine={selectedLine ?? verdict.flaw_line}
         verdict={verdict}
       />
     )
   }
 
   if (phase === 'summary') {
-    return <SummaryScreen csQualified={csQualified} onPlayAgain={restartGame} results={results} />
+    return <SummaryScreen challenges={challenges} csQualified={csQualified} onPlayAgain={restartGame} results={results} />
   }
 
   return (
     <ChallengeScreen
       challenge={challenge}
-      challengeIndex={challengeIndex}
+      challenges={challenges}
       critique={critique}
       formError={formError}
       isJudging={isJudging}
@@ -287,10 +333,11 @@ function Game({ csQualified }: GameProps) {
 
 
 interface IntroScreenProps {
+  challengeCount: number
   onStart: () => void
 }
 
-function IntroScreen({ onStart }: IntroScreenProps) {
+function IntroScreen({ challengeCount, onStart }: IntroScreenProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
       <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
@@ -303,9 +350,9 @@ function IntroScreen({ onStart }: IntroScreenProps) {
         Spot the Hallucination
       </h1>
       <p className="mt-3 text-sm leading-6 text-gray-600">
-        Your overconfident AI intern wrote {HALLUCINATION_CHALLENGES.length} tiny programs — and
-        each one hides exactly one mistake. Tap the suspicious line, explain what is wrong in your
-        own words, and your AI tutor will score your detective work. No coding experience needed.
+        Your overconfident AI intern wrote {challengeCount} tiny programs — and each one hides
+        exactly one mistake. Tap the suspicious line, explain what is wrong in your own words, and
+        your AI tutor will score your detective work. No coding experience needed.
       </p>
       <ul className="mt-5 space-y-3 text-sm text-gray-700">
         <Rule icon={Bot} text="Read a short snippet written by our AI intern." />
@@ -313,18 +360,8 @@ function IntroScreen({ onStart }: IntroScreenProps) {
         <Rule icon={Lightbulb} text="Stuck? Hints are free — they never cost points." />
         <Rule icon={Sparkles} text="Your AI tutor grades your critique and reveals the flaw." />
       </ul>
-      {!isOpenRouterConfigured && (
-        <div
-          className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-          role="alert"
-        >
-          The AI tutor service is not configured. Set VITE_OPENROUTER_API_KEY in your .env file to
-          play.
-        </div>
-      )}
       <button
-        className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={!isOpenRouterConfigured}
+        className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
         onClick={onStart}
         type="button"
       >
@@ -336,8 +373,8 @@ function IntroScreen({ onStart }: IntroScreenProps) {
 
 
 interface ChallengeScreenProps {
-  challenge: (typeof HALLUCINATION_CHALLENGES)[number]
-  challengeIndex: number
+  challenge: HallucinationChallenge
+  challenges: HallucinationChallenge[]
   critique: string
   formError: string | null
   isJudging: boolean
@@ -354,7 +391,7 @@ interface ChallengeScreenProps {
 
 function ChallengeScreen({
   challenge,
-  challengeIndex,
+  challenges,
   critique,
   formError,
   isJudging,
@@ -368,10 +405,11 @@ function ChallengeScreen({
   selectedLine,
   strongHintShown,
 }: ChallengeScreenProps) {
+  const challengeIndex = challenges.findIndex((item) => item.id === challenge.id)
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
       <div className="flex items-center gap-2">
-        {HALLUCINATION_CHALLENGES.map((item, index) => (
+        {challenges.map((item, index) => (
           <span
             aria-hidden="true"
             className={`size-2 rounded-full ${
@@ -385,7 +423,7 @@ function ChallengeScreen({
           />
         ))}
         <span className="ml-2 text-xs font-semibold text-gray-500">
-          Challenge {challengeIndex + 1} of {HALLUCINATION_CHALLENGES.length}
+          Challenge {challengeIndex + 1} of {challenges.length}
         </span>
       </div>
 
@@ -483,11 +521,11 @@ function ChallengeScreen({
               Show me a hint
             </button>
           ) : (
-            <p>{challenge.hintMild}</p>
+            <p>{challenge.hint_mild}</p>
           )}
           {mildHintShown &&
             (strongHintShown ? (
-              <p>{challenge.hintStrong}</p>
+              <p>{challenge.hint_strong}</p>
             ) : (
               <button
                 className="font-semibold text-[#A21942] underline-offset-2 hover:underline"
@@ -531,7 +569,7 @@ function ChallengeScreen({
 }
 
 interface VerdictScreenProps {
-  challenge: (typeof HALLUCINATION_CHALLENGES)[number]
+  challenge: HallucinationChallenge
   isLast: boolean
   lineTappedCorrectly: boolean
   onNext: () => void
@@ -586,7 +624,7 @@ function VerdictScreen({
         ) : (
           <>
             <CircleAlert aria-hidden="true" size={16} />
-            You tapped line {tappedLine + 1}. The suspicious line was {challenge.flawLine + 1}.
+            You tapped line {tappedLine + 1}. The suspicious line was {verdict.flaw_line + 1}.
           </>
         )}
       </p>
@@ -630,7 +668,7 @@ function VerdictScreen({
 
       <div className="mt-5 rounded-md border border-gray-200 bg-[#F8F9FA] p-4">
         <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500">The hidden flaw</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">{challenge.flawSummary}</p>
+        <p className="mt-2 text-sm leading-6 text-gray-700">{verdict.flaw_summary}</p>
       </div>
 
       <button
@@ -645,12 +683,13 @@ function VerdictScreen({
 }
 
 interface SummaryScreenProps {
+  challenges: HallucinationChallenge[]
   csQualified: boolean
   onPlayAgain: () => void
   results: ChallengeResult[]
 }
 
-function SummaryScreen({ csQualified, onPlayAgain, results }: SummaryScreenProps) {
+function SummaryScreen({ challenges, csQualified, onPlayAgain, results }: SummaryScreenProps) {
   const average =
     results.length === 0
       ? 0
@@ -686,7 +725,7 @@ function SummaryScreen({ csQualified, onPlayAgain, results }: SummaryScreenProps
 
       <ul className="mt-5 divide-y divide-gray-100 rounded-md border border-gray-200">
         {results.map((result) => {
-          const challenge = HALLUCINATION_CHALLENGES.find((item) => item.id === result.challengeId)
+          const challenge = challenges.find((item) => item.id === result.challengeId)
           return (
             <li className="flex items-center justify-between gap-3 px-4 py-3" key={result.challengeId}>
               <span className="flex min-w-0 items-center gap-2 text-sm text-gray-700">

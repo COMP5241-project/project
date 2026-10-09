@@ -127,6 +127,8 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
 | POST | `/api/auth/logout` | Clears local sessions and revokes Supabase refresh sessions globally |
 | POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |
+| GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
+| POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
 
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
 Both POST endpoints require `Content-Type: application/json` and an `Origin` header
