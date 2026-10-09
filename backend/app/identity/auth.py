@@ -6,7 +6,7 @@ from httpx import Client as HttpClient
 from supabase import Client
 
 from app.database.supabase import create_user_client
-from app.errors import ApiError
+from app.identity.errors import ApiError
 
 
 def get_optional_auth_client() -> Iterator[Client | None]:

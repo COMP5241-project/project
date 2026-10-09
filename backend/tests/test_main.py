@@ -10,8 +10,8 @@ from fastapi.testclient import TestClient
 from httpx import Client as HttpxClient
 
 from app.database.supabase import get_supabase
-from app.auth import get_auth_client, get_optional_auth_client
-from app.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
+from app.identity.auth import get_auth_client, get_optional_auth_client
+from app.identity.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
 from app.main import app
 
 

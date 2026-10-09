@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
 
-from app.auth import OptionalClientDependency
-from app.profiles import CurrentProfile, load_profile
-from app.sessions import StoreDependency, verified_session
+from app.identity.auth import OptionalClientDependency
+from app.identity.profiles import CurrentProfile, load_profile
+from app.identity.sessions import StoreDependency, verified_session
 
 router = APIRouter(prefix="/api/profiles")
 

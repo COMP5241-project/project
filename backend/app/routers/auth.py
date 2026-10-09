@@ -3,10 +3,10 @@ import os
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 
-from app.auth import ClientDependency, OptionalClientDependency
-from app.errors import ApiError, upstream_error
-from app.profiles import CurrentProfile, load_profile
-from app.sessions import StoreDependency, create_session, end_session, revoke_incomplete_session
+from app.identity.auth import ClientDependency, OptionalClientDependency
+from app.identity.errors import ApiError, upstream_error
+from app.identity.profiles import CurrentProfile, load_profile
+from app.identity.sessions import StoreDependency, create_session, end_session, revoke_incomplete_session
 
 router = APIRouter(prefix="/api/auth")
 

@@ -87,12 +87,15 @@ backend/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py       # FastAPI app, health endpoints, and API error handling
-│   ├── auth.py       # Shared Supabase auth-client dependencies
-│   ├── profiles.py   # Profile response models and profile lookup
-│   ├── sessions.py  # Cookie-backed session lifecycle
+│   ├── identity/
+│   │   ├── __init__.py
+│   │   ├── auth.py       # Shared Supabase auth-client dependencies
+│   │   ├── errors.py     # Identity API errors and upstream auth mapping
+│   │   ├── profiles.py   # Profile response models and profile lookup
+│   │   └── sessions.py   # Cookie-backed session lifecycle
 │   ├── routers/
 │   │   ├── auth.py  # Login and logout endpoints
-│   │   └── me.py    # Current-profile endpoint
+│   │   └── profiles.py # Current-profile endpoint
 │   └── database/
 │       └── supabase.py  # Separate health and request-scoped user clients
 ├── pyproject.toml    # Python version, project details, and dependencies

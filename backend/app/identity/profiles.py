@@ -5,7 +5,7 @@ from postgrest.exceptions import APIError
 from pydantic import BaseModel
 from supabase import Client
 
-from app.errors import ApiError
+from app.identity.errors import ApiError
 
 
 class Profile(BaseModel):

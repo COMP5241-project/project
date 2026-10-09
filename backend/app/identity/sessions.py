@@ -12,7 +12,7 @@ from fastapi import Depends, Request, Response
 from supabase import Client
 from supabase_auth import Session as AuthSession, User
 
-from app.errors import ApiError, upstream_error
+from app.identity.errors import ApiError, upstream_error
 
 logger = logging.getLogger(__name__)
 COOKIE_NAME = "polyu_session"
