@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
@@ -16,13 +17,41 @@ class LoginRequest(BaseModel):
 	password: str = Field(min_length=1, max_length=4096)
 
 
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def normalize_origin(origin: str) -> str:
+	"""Canonicalize an Origin value for allow-list comparison.
+
+	Lowercases scheme and host and drops the scheme's default port. Loopback
+	host spellings (``localhost``, ``127.0.0.1``, ``[::1]``) are collapsed to a
+	single token, so the same local dev server is accepted no matter how the
+	browser resolves ``localhost`` (IPv4 vs IPv6).
+	"""
+	parts = urlsplit(origin.strip().lower())
+	host = parts.hostname or ""
+	if host in _LOOPBACK_HOSTS:
+		host = "loopback"
+	try:
+		port = parts.port
+	except ValueError:
+		port = None
+	if port is None or port == _DEFAULT_PORTS.get(parts.scheme):
+		port = None
+	netloc = host if port is None else f"{host}:{port}"
+	return f"{parts.scheme}://{netloc}"
+
+
 def require_origin(request: Request) -> None:
 	allowed = {
-		origin.strip() for origin in os.getenv(
+		normalize_origin(origin)
+		for origin in os.getenv(
 			"FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-		).split(",") if origin.strip()
+		).split(",")
+		if origin.strip()
 	}
-	if request.headers.get("origin") not in allowed:
+	if normalize_origin(request.headers.get("origin", "")) not in allowed:
 		raise ApiError(403, "invalid_origin", "This request origin is not allowed.")
 	if request.headers.get("content-type", "").split(";", 1)[0].strip() != "application/json":
 		raise ApiError(415, "invalid_content_type", "A JSON request is required.")

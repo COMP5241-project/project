@@ -6,12 +6,14 @@ from app.database.supabase import get_supabase
 from app.identity.errors import ApiError
 from app.routers.auth import router as auth_router
 from app.routers.profiles import router as profiles_router
+from app.routers.results import router as results_router
 from app.identity.sessions import clear_session_cookie
 from supabase import Client
 
 app = FastAPI()
 app.include_router(auth_router)
 app.include_router(profiles_router)
+app.include_router(results_router)
 
 
 @app.middleware("http")

@@ -22,7 +22,7 @@ import {
 } from '../lib/hallucination/challenges'
 import { judgeCritique, type JudgeVerdict } from '../lib/hallucination/judge'
 import { isOpenRouterConfigured } from '../lib/openrouter'
-import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { saveHallucinationResult } from '../lib/api'
 import { useProfile } from '../lib/useProfile'
 
 export const Route = createFileRoute('/student_/hallucination-game')({
@@ -57,13 +57,6 @@ function HallucinationGamePage() {
         <p className="text-sm text-gray-600">Checking your session…</p>
       </div>
     )
-  } else if (state.status === 'not-configured') {
-    content = (
-      <NoticeCard
-        message="The sign-in service is not configured. Check the Supabase environment variables."
-        title="Service not configured"
-      />
-    )
   } else if (state.status === 'unauthenticated') {
     content = (
       <NoticeCard
@@ -93,7 +86,7 @@ function HallucinationGamePage() {
       />
     )
   } else {
-    content = <Game csQualified={state.profile.cs_qualified} profileId={state.profile.id} />
+    content = <Game csQualified={state.profile.cs_qualified} />
   }
 
   return (
@@ -143,35 +136,28 @@ function HallucinationGamePage() {
 
 /** Fire-and-forget persistence — a save failure never blocks gameplay. */
 async function saveResult(
-  profileId: string,
   challengeId: string,
   score: number,
   critique: string,
   feedback: string,
 ): Promise<void> {
-  if (!supabase) return
   try {
-    const { error } = await supabase.from('hallucination_results').insert({
-      user_id: profileId,
+    await saveHallucinationResult({
       challenge_id: challengeId,
       score,
       critique,
       feedback,
     })
-    if (error) {
-      console.warn('Could not save hallucination game result:', error.message)
-    }
   } catch {
     console.warn('Could not save hallucination game result.')
   }
 }
 
 interface GameProps {
-  profileId: string
   csQualified: boolean
 }
 
-function Game({ profileId, csQualified }: GameProps) {
+function Game({ csQualified }: GameProps) {
   const [phase, setPhase] = useState<GamePhase>('intro')
   const [challengeIndex, setChallengeIndex] = useState(0)
   const [selectedLine, setSelectedLine] = useState<number | null>(null)
@@ -240,7 +226,7 @@ function Game({ profileId, csQualified }: GameProps) {
         },
       ])
       setPhase('verdict')
-      void saveResult(profileId, challenge.id, judged.score, critique.trim(), judged.feedback)
+      void saveResult(challenge.id, judged.score, critique.trim(), judged.feedback)
     } catch (error) {
       setJudgeError(
         error instanceof Error
@@ -721,12 +707,10 @@ function SummaryScreen({ csQualified, onPlayAgain, results }: SummaryScreenProps
         })}
       </ul>
 
-      {isSupabaseConfigured && (
-        <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <CircleCheck aria-hidden="true" size={16} />
-          Your results were saved to your learning profile.
-        </p>
-      )}
+      <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <CircleCheck aria-hidden="true" size={16} />
+        Your results were saved to your learning profile.
+      </p>
 
       {csQualified && (
         <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-[#F8F9FA] px-4 py-3 text-sm text-gray-600">

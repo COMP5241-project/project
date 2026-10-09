@@ -73,3 +73,15 @@ export async function login(email: string, password: string): Promise<CurrentPro
 export async function logout(): Promise<void> {
   await request('/auth/logout', {})
 }
+
+export interface HallucinationResultInput {
+  challenge_id: string
+  score: number
+  critique: string
+  feedback: string | null
+}
+
+/** Persists a finished "Spot the Hallucination" attempt for the signed-in user. */
+export async function saveHallucinationResult(input: HallucinationResultInput): Promise<void> {
+  await request('/profiles/hallucination-results', input)
+}

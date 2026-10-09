@@ -126,6 +126,7 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | POST | `/api/auth/login` | Supabase password sign-in; returns email/profile and sets a cookie |
 | GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
 | POST | `/api/auth/logout` | Clears local sessions and revokes Supabase refresh sessions globally |
+| POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |
 
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
 Both POST endpoints require `Content-Type: application/json` and an `Origin` header

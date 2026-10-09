@@ -342,6 +342,47 @@ def test_auth_mutations_require_json(client: HttpxClient):
     assert client.post("/api/auth/logout", content="text").status_code == 415
 
 
+def test_hallucination_result_is_saved_for_signed_in_user(client: HttpxClient, auth_client: Mock):
+    auth_login(client)
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 80, "critique": "The loop stops one short.",
+        "feedback": "Good eye!",
+    })
+    assert response.status_code == 204
+    auth_client.postgrest.auth.assert_called_with("private-access-token")
+    auth_client.table.return_value.insert.assert_called_once_with({
+        "user_id": "student-id", "challenge_id": "off-by-one", "score": 80,
+        "critique": "The loop stops one short.", "feedback": "Good eye!",
+    })
+
+
+def test_hallucination_result_requires_session(client: HttpxClient, auth_client: Mock):
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 80, "critique": "A long enough critique.",
+    })
+    assert response.status_code == 401
+    auth_client.table.return_value.insert.assert_not_called()
+
+
+def test_hallucination_result_validation(client: HttpxClient):
+    auth_login(client)
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 101, "critique": "A long enough critique.",
+    })
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_request"
+
+
+def test_hallucination_result_save_failure_is_service_unavailable(client: HttpxClient, auth_client: Mock):
+    auth_login(client)
+    auth_client.table.return_value.insert.return_value.execute.side_effect = RuntimeError("database unavailable")
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 80, "critique": "A long enough critique.",
+    })
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "result_save_failed"
+
+
 def test_auth_clients_do_not_share_authentication_state(monkeypatch):
     from httpx import Client as HttpClient
     from app.database.supabase import create_user_client
