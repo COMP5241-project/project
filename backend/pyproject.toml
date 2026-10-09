@@ -9,4 +9,5 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "fastapi[standard]>=0.143.0",
+    "supabase>=2.32.0",
 ]
