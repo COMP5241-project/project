@@ -1,28 +1,16 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, ArrowRight, GraduationCap, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
 import { useState, useEffect, type FormEvent } from 'react'
-import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { login } from '../lib/api'
 import { resolveSignedInRole, setCachedSignedInRole } from '../lib/session'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
 })
 
-function getConnectionMessage(error: unknown): string | null {
-  const message = error instanceof Error ? error.message.toLowerCase() : ''
-  const name = error instanceof Error ? error.name : ''
-  if (
-    !navigator.onLine ||
-    name === 'AuthRetryableFetchError' ||
-    ['failed to fetch', 'fetch failed', 'networkerror'].some((text) => message.includes(text))
-  ) {
-    return 'Unable to connect to the sign-in service. Check your internet connection and try again.'
-  }
-  return null
-}
-
 function LoginPage() {
   const navigate = useNavigate()
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -44,60 +32,16 @@ function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!supabase || isLoading) return
+    if (isLoading) return
     setError(null)
     setIsLoading(true)
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-
-      if (authError) {
-        const connectionMessage = getConnectionMessage(authError)
-        if (connectionMessage) throw new Error(connectionMessage)
-        if (authError.message.toLowerCase().includes('invalid login credentials')) {
-          throw new Error('Incorrect email or password. Check your credentials and try again.')
-        }
-        throw new Error('Sign-in failed. Please try again later.')
-      }
-
-      const user = authData.user
-      if (!user) {
-        throw new Error('Sign-in failed. Please try again later.')
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, cs_qualified, assessment_completed')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) {
-        if (profileError.code === 'PGRST116') {
-          throw new Error(
-            'Your account role information could not be found. Contact the system administrator.',
-          )
-        }
-        const connectionMessage = getConnectionMessage(profileError)
-        if (connectionMessage) throw new Error(connectionMessage)
-        throw new Error(
-          'Signed in, but unable to retrieve your account role. Check the database configuration and try again.',
-        )
-      }
-
-      if (profile.role === 'student') {
-        setCachedSignedInRole('student')
-        await navigate({ to: '/student' })
-      } else if (profile.role === 'instructor') {
-        setCachedSignedInRole('instructor')
-        await navigate({ to: '/instructor' })
-      } else {
-        throw new Error(
-          'Your account role is not set or is unsupported. Contact the system administrator.',
-        )
-      }
+      const { profile } = await login(email.trim(), password)
+      setCachedSignedInRole(profile.role)
+      setPassword('')
+      await router.invalidate()
+      await navigate({ to: profile.role === 'instructor' ? '/instructor' : '/student' })
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -179,17 +123,6 @@ function LoginPage() {
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-              {!isSupabaseConfigured && (
-                <div
-                  className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-                  role="alert"
-                >
-                  The sign-in service is not configured. Check the Supabase environment variables
-                  (<span className="font-semibold">VITE_SUPABASE_URL</span> and{' '}
-                  <span className="font-semibold">VITE_SUPABASE_ANON_KEY</span>).
-                </div>
-              )}
-
               {error && (
                 <div
                   className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
@@ -256,7 +189,7 @@ function LoginPage() {
 
                 <button
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#A21942] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942] disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isLoading || !isSupabaseConfigured}
+                  disabled={isLoading}
                   type="submit"
                 >
                   {isLoading ? (

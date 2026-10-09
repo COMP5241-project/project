@@ -17,18 +17,22 @@ npm run dev
 
 Open the local address printed in the terminal (usually `http://localhost:5173`). Keep the terminal running while you use the app. Press `Ctrl+C` to stop it.
 
-## Supabase setup
+## Backend connection
 
-Supabase settings are optional for starting the app. Without them, sign-in and other Supabase features will not work.
+Start FastAPI using `../backend/README.md`. Supabase authentication, token refresh,
+logout, and profile queries run in the backend. The frontend requires no Supabase
+environment variables or SDK. Never put Supabase keys or tokens in frontend code.
 
-To enable those features, create a `.env.local` file in this folder with the project's Supabase URL and public anon key:
+The Vite development and preview servers proxy `/api` to `http://127.0.0.1:8000`.
+Open the app through Vite, not by opening `index.html` directly. If the backend uses
+another address, update both proxies in `vite.config.ts`. If Vite uses another port
+(including preview's default 4173), add its exact origin to `FRONTEND_ORIGINS` in
+`backend/.env` and restart the backend.
 
-```env
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
-
-Ask a teammate for the project's values. Never put a Supabase service role key in frontend code or in this file.
+Sessions use an opaque HttpOnly cookie; Supabase tokens stay on the server. Existing
+browser Supabase sessions do not transfer, so sign in again after this migration.
+Page refresh keeps you signed in, but restarting the backend clears demo sessions.
+A production host must route `/api` to FastAPI and use HTTPS and shared session storage.
 
 ## Useful commands
 
@@ -44,6 +48,6 @@ npm run preview  # Preview the production build locally
 ## Where to find things
 
 - `src/routes/` contains the pages shown in the app.
-- `src/lib/` contains shared helpers and Supabase setup.
+- `src/lib/` contains the typed API adapter, role cache, and profile hook.
 - `src/styles.css` contains global styles.
 - `public/` contains static files such as images and icons.
