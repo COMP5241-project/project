@@ -64,7 +64,8 @@ npm run build
 
 #### B3. Interactive Coding & Review Sandbox (SE & AI Agents)
 * **Prompt Golf Challenge (Non-CS & CS):** Students are given a functional requirement and must prompt an AI coding agent to generate bug-free code using the fewest words possible.
-* **Code Review Boss Battle (CS Track):** The AI generates a Pull Request containing subtle memory leaks or security flaws. The CS student must identify the flaw, reject the PR, and provide constructive code review comments[cite: 1].
+* **Code Review Boss Battle (CS Track):** The AI generates a Pull Request containing subtle memory leaks or security flaws. The CS student must identify the flaw, reject the PR, and provide constructive code review comments.
+* **Spot the Hallucination (non-CS Track):** 4 non-CS-friendly challenges with playful "AI intern" framing (Time-Travel Booking App, Weather Bot With Amnesia, The Playlist That Skips, The Chatbot That Overshares) — bug families: hallucinated API, missing parameter, off-by-one, oversharing.
 * **Embedded Monaco Editor Component:** Dark-themed code editor with syntax highlighting, a live execution output pane, and a "Submit to AI Tutor" button for immediate diagnostic feedback.
 
 ---

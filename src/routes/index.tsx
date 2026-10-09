@@ -858,6 +858,7 @@ function InteractivePreview() {
                   <span className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600">⏱ 25 min</span>
                   <span className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600">Beginner friendly</span>
                   <span className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600">Learn by doing</span>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">🎮 Live mini-game inside</span>
                 </div>
               </div>
               <a

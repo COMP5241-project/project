@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { BookOpen, CircleAlert, CircleCheck, GraduationCap, House, LoaderCircle, LogOut } from 'lucide-react'
+import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, GraduationCap, House, LoaderCircle, Lock, LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useProfile } from '../lib/useProfile'
 
@@ -75,28 +75,73 @@ function StudentPage() {
     )
   } else {
     content = (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
-          <BookOpen aria-hidden="true" size={24} />
-        </span>
-        <p className="mt-6 text-sm font-semibold text-[#A21942]">Student Learning Hub</p>
-        <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
-          Welcome back, {state.email}
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-gray-600">
-          You are on the{' '}
-          <span className="font-semibold text-[#262626]">
-            {state.profile.cs_qualified ? 'CS Major' : 'Non-CS Major'} track
+      <div className="space-y-4">
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+            <BookOpen aria-hidden="true" size={24} />
           </span>
-          . Your personalized skill tree and interactive sandboxes will appear here.
-        </p>
-        <p className="mt-5 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <CircleCheck aria-hidden="true" size={16} />
-          Diagnostic assessment completed — you will not be asked to take it again.
-        </p>
-        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          The gamified learning modules are coming soon.
-        </p>
+          <p className="mt-6 text-sm font-semibold text-[#A21942]">Student Learning Hub</p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+            Welcome back, {state.email}
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            You are on the{' '}
+            <span className="font-semibold text-[#262626]">
+              {state.profile.cs_qualified ? 'CS Major' : 'Non-CS Major'} track
+            </span>
+            . Your personalized skill tree and interactive sandboxes will appear here.
+          </p>
+          <p className="mt-5 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <CircleCheck aria-hidden="true" size={16} />
+            Diagnostic assessment completed — you will not be asked to take it again.
+          </p>
+          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            The gamified learning modules are coming soon.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+            <Bug aria-hidden="true" size={24} />
+          </span>
+          <p className="mt-6 text-sm font-semibold text-[#A21942]">
+            New · Discernment training (4D AI Fluency)
+          </p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+            Spot the Hallucination
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            Your AI intern wrote some code — and every snippet hides one mistake. Tap the suspicious
+            line, explain what&apos;s wrong, and let your AI tutor score your detective work. No
+            coding experience needed.
+          </p>
+          <Link
+            className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+            to="/student/hallucination-game"
+          >
+            Play the game <ArrowRight aria-hidden="true" size={15} />
+          </Link>
+        </div>
+
+        {state.profile.cs_qualified && (
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  CS track · Coming soon
+                </p>
+                <h2 className="mt-2 text-lg font-bold text-[#262626]">Code Review Boss Battle</h2>
+                <p className="mt-1 text-sm leading-6 text-gray-600">
+                  The AI ships a pull request full of subtle flaws. Reject it, and write the review
+                  that proves why.
+                </p>
+              </div>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+                <Lock aria-hidden="true" size={18} />
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

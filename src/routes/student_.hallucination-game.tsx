@@ -1,0 +1,788 @@
+import { Link, createFileRoute } from '@tanstack/react-router'
+import {
+  ArrowRight,
+  Bot,
+  Bug,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  GraduationCap,
+  House,
+  Lightbulb,
+  LoaderCircle,
+  LogOut,
+  MousePointerClick,
+  Sparkles,
+  Star,
+  type LucideIcon,
+} from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import {
+  HALLUCINATION_CHALLENGES,
+} from '../lib/hallucination/challenges'
+import { judgeCritique, type JudgeVerdict } from '../lib/hallucination/judge'
+import { isOpenRouterConfigured } from '../lib/openrouter'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { useProfile } from '../lib/useProfile'
+
+export const Route = createFileRoute('/student_/hallucination-game')({
+  component: HallucinationGamePage,
+})
+
+const MIN_CRITIQUE_LENGTH = 20
+
+type GamePhase = 'intro' | 'playing' | 'verdict' | 'summary'
+
+interface ChallengeResult {
+  challengeId: string
+  score: number
+  rating: JudgeVerdict['rating']
+  lineTappedCorrectly: boolean
+}
+
+function badgeForScore(score: number): { stars: number; label: string } {
+  if (score >= 75) return { stars: 3, label: 'Eagle Eye' }
+  if (score >= 45) return { stars: 2, label: 'Hallucination Hunter' }
+  return { stars: 1, label: 'Trainee Spotter' }
+}
+
+function HallucinationGamePage() {
+  const state = useProfile()
+
+  let content: ReactNode
+  if (state.status === 'loading') {
+    content = (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-gray-200 bg-white p-10 text-center shadow-sm">
+        <LoaderCircle aria-hidden="true" className="animate-spin text-[#A21942]" size={28} />
+        <p className="text-sm text-gray-600">Checking your session…</p>
+      </div>
+    )
+  } else if (state.status === 'not-configured') {
+    content = (
+      <NoticeCard
+        message="The sign-in service is not configured. Check the Supabase environment variables."
+        title="Service not configured"
+      />
+    )
+  } else if (state.status === 'unauthenticated') {
+    content = (
+      <NoticeCard
+        action={
+          <Link className="font-semibold text-[#A21942] hover:underline" to="/login">
+            Back to sign in
+          </Link>
+        }
+        message="You are not signed in, or your session has expired."
+        title="Session required"
+      />
+    )
+  } else if (state.status === 'error') {
+    content = <NoticeCard message={state.message} title="Something went wrong" />
+  } else if (state.profile.role !== 'student') {
+    content = (
+      <NoticeCard
+        action={
+          state.profile.role === 'instructor' ? (
+            <Link className="font-semibold text-[#A21942] hover:underline" to="/instructor">
+              Go to the Instructor Studio
+            </Link>
+          ) : undefined
+        }
+        message={`You are signed in as ${state.email}, but your account role is “${state.profile.role}”. This game is for students.`}
+        title="Student area"
+      />
+    )
+  } else {
+    content = <Game csQualified={state.profile.cs_qualified} profileId={state.profile.id} />
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col bg-[#F8F9FA]">
+      <header className="border-b border-gray-200 bg-white">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4">
+          <Link aria-label="PolyU Edu 4.0 home" className="inline-flex items-center gap-2.5" to="/">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-[#A21942] text-white">
+              <GraduationCap aria-hidden="true" size={20} />
+            </span>
+            <span className="text-sm font-extrabold tracking-tight text-[#262626]">
+              PolyU <span className="text-[#A21942]">Edu 4.0</span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-2.5">
+            <Link
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+              to="/student"
+            >
+              <House aria-hidden="true" size={15} />
+              Learning Hub
+            </Link>
+            {state.status === 'ready' && (
+              <button
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                onClick={() => void state.signOut()}
+                type="button"
+              >
+                <LogOut aria-hidden="true" size={15} />
+                Sign out
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex flex-1 justify-center px-4 py-10 sm:py-12">
+        <div className="w-full max-w-2xl">{content}</div>
+      </div>
+
+      <footer className="pb-6 text-center text-xs text-gray-500">
+        © {new Date().getFullYear()} PolyU Education 4.0
+      </footer>
+    </main>
+  )
+}
+
+/** Fire-and-forget persistence — a save failure never blocks gameplay. */
+async function saveResult(
+  profileId: string,
+  challengeId: string,
+  score: number,
+  critique: string,
+  feedback: string,
+): Promise<void> {
+  if (!supabase) return
+  try {
+    const { error } = await supabase.from('hallucination_results').insert({
+      user_id: profileId,
+      challenge_id: challengeId,
+      score,
+      critique,
+      feedback,
+    })
+    if (error) {
+      console.warn('Could not save hallucination game result:', error.message)
+    }
+  } catch {
+    console.warn('Could not save hallucination game result.')
+  }
+}
+
+interface GameProps {
+  profileId: string
+  csQualified: boolean
+}
+
+function Game({ profileId, csQualified }: GameProps) {
+  const [phase, setPhase] = useState<GamePhase>('intro')
+  const [challengeIndex, setChallengeIndex] = useState(0)
+  const [selectedLine, setSelectedLine] = useState<number | null>(null)
+  const [critique, setCritique] = useState('')
+  const [mildHintShown, setMildHintShown] = useState(false)
+  const [strongHintShown, setStrongHintShown] = useState(false)
+  const [isJudging, setIsJudging] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [judgeError, setJudgeError] = useState<string | null>(null)
+  const [verdict, setVerdict] = useState<JudgeVerdict | null>(null)
+  const [lineTappedCorrectly, setLineTappedCorrectly] = useState(false)
+  const [results, setResults] = useState<ChallengeResult[]>([])
+
+  const challenge = HALLUCINATION_CHALLENGES[challengeIndex]
+
+  function beginChallenge(index: number) {
+    setChallengeIndex(index)
+    setSelectedLine(null)
+    setCritique('')
+    setMildHintShown(false)
+    setStrongHintShown(false)
+    setFormError(null)
+    setJudgeError(null)
+    setVerdict(null)
+    setPhase('playing')
+  }
+
+  function handleNext() {
+    if (challengeIndex + 1 < HALLUCINATION_CHALLENGES.length) {
+      beginChallenge(challengeIndex + 1)
+    } else {
+      setPhase('summary')
+    }
+  }
+
+  function restartGame() {
+    setResults([])
+    beginChallenge(0)
+  }
+
+  async function handleSubmit() {
+    if (isJudging) return
+    if (selectedLine === null) {
+      setFormError('First, tap the line that looks suspicious.')
+      return
+    }
+    if (critique.trim().length < MIN_CRITIQUE_LENGTH) {
+      setFormError(`Tell your AI tutor a little more — at least ${MIN_CRITIQUE_LENGTH} characters.`)
+      return
+    }
+    setFormError(null)
+    setJudgeError(null)
+    setIsJudging(true)
+    try {
+      const tappedCorrectly = selectedLine === challenge.flawLine
+      const judged = await judgeCritique(challenge, critique.trim(), tappedCorrectly)
+      setLineTappedCorrectly(tappedCorrectly)
+      setVerdict(judged)
+      setResults((previous) => [
+        ...previous,
+        {
+          challengeId: challenge.id,
+          score: judged.score,
+          rating: judged.rating,
+          lineTappedCorrectly: tappedCorrectly,
+        },
+      ])
+      setPhase('verdict')
+      void saveResult(profileId, challenge.id, judged.score, critique.trim(), judged.feedback)
+    } catch (error) {
+      setJudgeError(
+        error instanceof Error
+          ? error.message
+          : 'The AI tutor could not grade your critique. Please try again.',
+      )
+    } finally {
+      setIsJudging(false)
+    }
+  }
+
+  if (phase === 'intro') {
+    return <IntroScreen onStart={() => beginChallenge(0)} />
+  }
+
+  if (phase === 'verdict' && verdict) {
+    return (
+      <VerdictScreen
+        challenge={challenge}
+        isLast={challengeIndex + 1 >= HALLUCINATION_CHALLENGES.length}
+        lineTappedCorrectly={lineTappedCorrectly}
+        onNext={handleNext}
+        tappedLine={selectedLine ?? challenge.flawLine}
+        verdict={verdict}
+      />
+    )
+  }
+
+  if (phase === 'summary') {
+    return <SummaryScreen csQualified={csQualified} onPlayAgain={restartGame} results={results} />
+  }
+
+  return (
+    <ChallengeScreen
+      challenge={challenge}
+      challengeIndex={challengeIndex}
+      critique={critique}
+      formError={formError}
+      isJudging={isJudging}
+      judgeError={judgeError}
+      mildHintShown={mildHintShown}
+      onCritiqueChange={(value) => {
+        setCritique(value)
+        setFormError(null)
+      }}
+      onShowMildHint={() => setMildHintShown(true)}
+      onShowStrongHint={() => setStrongHintShown(true)}
+      onSelectLine={(line) => {
+        setSelectedLine(line)
+        setFormError(null)
+      }}
+      onSubmit={() => void handleSubmit()}
+      selectedLine={selectedLine}
+      strongHintShown={strongHintShown}
+    />
+  )
+}
+
+
+interface IntroScreenProps {
+  onStart: () => void
+}
+
+function IntroScreen({ onStart }: IntroScreenProps) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+        <Bug aria-hidden="true" size={24} />
+      </span>
+      <p className="mt-6 text-sm font-semibold text-[#A21942]">
+        Discernment training · 4D AI Fluency
+      </p>
+      <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+        Spot the Hallucination
+      </h1>
+      <p className="mt-3 text-sm leading-6 text-gray-600">
+        Your overconfident AI intern wrote {HALLUCINATION_CHALLENGES.length} tiny programs — and
+        each one hides exactly one mistake. Tap the suspicious line, explain what is wrong in your
+        own words, and your AI tutor will score your detective work. No coding experience needed.
+      </p>
+      <ul className="mt-5 space-y-3 text-sm text-gray-700">
+        <Rule icon={Bot} text="Read a short snippet written by our AI intern." />
+        <Rule icon={MousePointerClick} text="Tap the one line that looks suspicious." />
+        <Rule icon={Lightbulb} text="Stuck? Hints are free — they never cost points." />
+        <Rule icon={Sparkles} text="Your AI tutor grades your critique and reveals the flaw." />
+      </ul>
+      {!isOpenRouterConfigured && (
+        <div
+          className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          role="alert"
+        >
+          The AI tutor service is not configured. Set VITE_OPENROUTER_API_KEY in your .env file to
+          play.
+        </div>
+      )}
+      <button
+        className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={!isOpenRouterConfigured}
+        onClick={onStart}
+        type="button"
+      >
+        Start the challenge <ArrowRight aria-hidden="true" size={15} />
+      </button>
+    </div>
+  )
+}
+
+
+interface ChallengeScreenProps {
+  challenge: (typeof HALLUCINATION_CHALLENGES)[number]
+  challengeIndex: number
+  critique: string
+  formError: string | null
+  isJudging: boolean
+  judgeError: string | null
+  mildHintShown: boolean
+  onCritiqueChange: (value: string) => void
+  onShowMildHint: () => void
+  onShowStrongHint: () => void
+  onSelectLine: (line: number) => void
+  onSubmit: () => void
+  selectedLine: number | null
+  strongHintShown: boolean
+}
+
+function ChallengeScreen({
+  challenge,
+  challengeIndex,
+  critique,
+  formError,
+  isJudging,
+  judgeError,
+  mildHintShown,
+  onCritiqueChange,
+  onShowMildHint,
+  onShowStrongHint,
+  onSelectLine,
+  onSubmit,
+  selectedLine,
+  strongHintShown,
+}: ChallengeScreenProps) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="flex items-center gap-2">
+        {HALLUCINATION_CHALLENGES.map((item, index) => (
+          <span
+            aria-hidden="true"
+            className={`size-2 rounded-full ${
+              index < challengeIndex
+                ? 'bg-emerald-500'
+                : index === challengeIndex
+                  ? 'bg-[#A21942]'
+                  : 'bg-gray-200'
+            }`}
+            key={item.id}
+          />
+        ))}
+        <span className="ml-2 text-xs font-semibold text-gray-500">
+          Challenge {challengeIndex + 1} of {HALLUCINATION_CHALLENGES.length}
+        </span>
+      </div>
+
+      <div className="mt-5 flex items-start justify-between gap-3">
+        <h1 className="text-xl font-extrabold tracking-tight text-[#262626]">
+          {challenge.emoji} {challenge.title}
+        </h1>
+        <span className="shrink-0 rounded-full bg-[#FBF1F4] px-3 py-1 text-xs font-semibold text-[#801333]">
+          {challenge.category}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-gray-600">{challenge.scenario}</p>
+
+      <div className="mt-5 overflow-hidden rounded-lg border border-gray-200 bg-[#262626] shadow-sm">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+          <span className="flex items-center gap-2 text-xs font-medium text-gray-300">
+            <Bot aria-hidden="true" size={13} />
+            AI intern&apos;s code · {challenge.language}
+          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Tap a line
+          </span>
+        </div>
+        <div aria-label="Code snippet — tap the suspicious line" className="p-3" role="group">
+          {challenge.code.map((line, index) => {
+            const isSelected = selectedLine === index
+            return (
+              <button
+                aria-pressed={isSelected}
+                className={`flex w-full items-start gap-3 rounded-md px-2 py-1 text-left font-mono text-xs leading-6 transition-colors ${
+                  isSelected ? 'bg-[#A21942]/25 ring-1 ring-[#A21942]' : 'hover:bg-white/10'
+                }`}
+                key={`${challenge.id}-line-${index}`}
+                onClick={() => onSelectLine(index)}
+                type="button"
+              >
+                <span
+                  className={`w-5 shrink-0 select-none text-right ${
+                    isSelected ? 'text-[#F3A9BE]' : 'text-gray-500'
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span className={isSelected ? 'text-white' : 'text-gray-200'}>
+                  {line.length === 0 ? '\u00A0' : line}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <p aria-live="polite" className="mt-2 text-xs text-gray-500">
+        {selectedLine === null
+          ? 'Tap the line you do not trust, then explain yourself below.'
+          : `Line ${selectedLine + 1} selected — now explain why it looks wrong.`}
+      </p>
+
+      <div className="mt-4">
+        <label className="mb-1.5 block text-sm font-medium text-[#262626]" htmlFor="critique">
+          Your critique
+        </label>
+        <textarea
+          className="min-h-28 w-full rounded-md border border-gray-300 bg-white p-3.5 text-sm text-[#262626] outline-none transition placeholder:text-gray-400 focus:border-[#A21942] focus:ring-2 focus:ring-[#A21942]/20"
+          id="critique"
+          onChange={(event) => onCritiqueChange(event.target.value)}
+          placeholder="What looks wrong here, and what could go wrong because of it? Plain language is perfect — no jargon needed."
+          value={critique}
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          {critique.trim().length} characters (minimum {MIN_CRITIQUE_LENGTH})
+        </p>
+      </div>
+
+      {formError && (
+        <div
+          className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          role="alert"
+        >
+          {formError}
+        </div>
+      )}
+
+      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="flex items-center gap-2 font-semibold">
+          <Lightbulb aria-hidden="true" size={15} />
+          Stuck? Hints are free.
+        </p>
+        <div className="mt-2 space-y-2">
+          {!mildHintShown ? (
+            <button
+              className="font-semibold text-[#A21942] underline-offset-2 hover:underline"
+              onClick={onShowMildHint}
+              type="button"
+            >
+              Show me a hint
+            </button>
+          ) : (
+            <p>{challenge.hintMild}</p>
+          )}
+          {mildHintShown &&
+            (strongHintShown ? (
+              <p>{challenge.hintStrong}</p>
+            ) : (
+              <button
+                className="font-semibold text-[#A21942] underline-offset-2 hover:underline"
+                onClick={onShowStrongHint}
+                type="button"
+              >
+                I&apos;m still stuck
+              </button>
+            ))}
+        </div>
+      </div>
+
+      {judgeError && (
+        <div
+          className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          role="alert"
+        >
+          {judgeError}
+        </div>
+      )}
+
+      <button
+        className="mt-5 inline-flex items-center gap-2 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isJudging}
+        onClick={onSubmit}
+        type="button"
+      >
+        {isJudging ? (
+          <>
+            <LoaderCircle aria-hidden="true" className="animate-spin" size={15} />
+            Your AI tutor is reading…
+          </>
+        ) : (
+          <>
+            Submit to AI tutor <ArrowRight aria-hidden="true" size={15} />
+          </>
+        )}
+      </button>
+    </div>
+  )
+}
+
+interface VerdictScreenProps {
+  challenge: (typeof HALLUCINATION_CHALLENGES)[number]
+  isLast: boolean
+  lineTappedCorrectly: boolean
+  onNext: () => void
+  tappedLine: number
+  verdict: JudgeVerdict
+}
+
+function VerdictScreen({
+  challenge,
+  isLast,
+  lineTappedCorrectly,
+  onNext,
+  tappedLine,
+  verdict,
+}: VerdictScreenProps) {
+  const badge = badgeForScore(verdict.score)
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <p className="text-sm font-semibold text-[#A21942]">Your AI tutor&apos;s verdict</p>
+      <div className="mt-4 flex items-center gap-4">
+        <div className="flex items-center gap-1" aria-label={`${badge.stars} of 3 stars`}>
+          {[0, 1, 2].map((index) => (
+            <Star
+              aria-hidden="true"
+              className={index < badge.stars ? 'text-amber-400' : 'text-gray-200'}
+              fill="currentColor"
+              key={index}
+              size={30}
+            />
+          ))}
+        </div>
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#262626]">{badge.label}</h1>
+          <p className="text-sm text-gray-500">
+            Score {verdict.score}/100 · {challenge.title}
+          </p>
+        </div>
+      </div>
+
+      <p
+        className={`mt-5 inline-flex items-center gap-2 rounded-md border px-4 py-3 text-sm ${
+          lineTappedCorrectly
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            : 'border-amber-200 bg-amber-50 text-amber-800'
+        }`}
+      >
+        {lineTappedCorrectly ? (
+          <>
+            <CircleCheck aria-hidden="true" size={16} />
+            You tapped line {tappedLine + 1} — that was the suspicious one. Nice instincts.
+          </>
+        ) : (
+          <>
+            <CircleAlert aria-hidden="true" size={16} />
+            You tapped line {tappedLine + 1}. The suspicious line was {challenge.flawLine + 1}.
+          </>
+        )}
+      </p>
+
+      <p className="mt-4 text-sm leading-6 text-gray-700">{verdict.feedback}</p>
+
+      {verdict.identified.length > 0 && (
+        <div className="mt-5">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+            What you caught
+          </h2>
+          <ul className="mt-2 space-y-2">
+            {verdict.identified.map((point) => (
+              <li className="flex items-start gap-2 text-sm text-gray-700" key={point}>
+                <Check aria-hidden="true" className="mt-0.5 shrink-0 text-emerald-600" size={15} />
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {verdict.missed.length > 0 && (
+        <div className="mt-4">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-amber-700">
+            Worth adding next time
+          </h2>
+          <ul className="mt-2 space-y-2">
+            {verdict.missed.map((point) => (
+              <li className="flex items-start gap-2 text-sm text-gray-700" key={point}>
+                <CircleAlert
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0 text-amber-500"
+                  size={15}
+                />
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-5 rounded-md border border-gray-200 bg-[#F8F9FA] p-4">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500">The hidden flaw</h2>
+        <p className="mt-2 text-sm leading-6 text-gray-700">{challenge.flawSummary}</p>
+      </div>
+
+      <button
+        className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+        onClick={onNext}
+        type="button"
+      >
+        {isLast ? 'See your results' : 'Next challenge'} <ArrowRight aria-hidden="true" size={15} />
+      </button>
+    </div>
+  )
+}
+
+interface SummaryScreenProps {
+  csQualified: boolean
+  onPlayAgain: () => void
+  results: ChallengeResult[]
+}
+
+function SummaryScreen({ csQualified, onPlayAgain, results }: SummaryScreenProps) {
+  const average =
+    results.length === 0
+      ? 0
+      : Math.round(results.reduce((total, result) => total + result.score, 0) / results.length)
+  const badge = badgeForScore(average)
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+        <Bug aria-hidden="true" size={24} />
+      </span>
+      <p className="mt-6 text-sm font-semibold text-[#A21942]">Case closed, detective</p>
+      <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+        You earned the “{badge.label}” badge
+      </h1>
+      <div className="mt-4 flex items-center gap-3">
+        <div className="flex items-center gap-1" aria-label={`${badge.stars} of 3 stars`}>
+          {[0, 1, 2].map((index) => (
+            <Star
+              aria-hidden="true"
+              className={index < badge.stars ? 'text-amber-400' : 'text-gray-200'}
+              fill="currentColor"
+              key={index}
+              size={26}
+            />
+          ))}
+        </div>
+        <p className="text-sm text-gray-600">
+          Average score <span className="font-semibold text-[#262626]">{average}/100</span> across{' '}
+          {results.length} challenges
+        </p>
+      </div>
+
+      <ul className="mt-5 divide-y divide-gray-100 rounded-md border border-gray-200">
+        {results.map((result) => {
+          const challenge = HALLUCINATION_CHALLENGES.find((item) => item.id === result.challengeId)
+          return (
+            <li className="flex items-center justify-between gap-3 px-4 py-3" key={result.challengeId}>
+              <span className="flex min-w-0 items-center gap-2 text-sm text-gray-700">
+                <span aria-hidden="true">{challenge?.emoji ?? '🐛'}</span>
+                <span className="truncate">{challenge?.title ?? result.challengeId}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 text-xs text-gray-500">
+                {result.lineTappedCorrectly && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+                    <Check aria-hidden="true" size={11} />
+                    line
+                  </span>
+                )}
+                <span className="font-semibold text-[#262626]">{result.score}/100</span>
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
+      {isSupabaseConfigured && (
+        <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <CircleCheck aria-hidden="true" size={16} />
+          Your results were saved to your learning profile.
+        </p>
+      )}
+
+      {csQualified && (
+        <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-[#F8F9FA] px-4 py-3 text-sm text-gray-600">
+          Hungry for a real fight? <span className="font-semibold text-[#262626]">Code Review Boss Battle</span> —
+          reject the AI&apos;s flawed pull request. CS track · Coming soon.
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <Link
+          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+          to="/student"
+        >
+          Back to Learning Hub <ArrowRight aria-hidden="true" size={15} />
+        </Link>
+        <button
+          className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+          onClick={onPlayAgain}
+          type="button"
+        >
+          Play again
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Rule({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-[#FBF1F4] text-[#A21942]">
+        <Icon aria-hidden="true" size={14} />
+      </span>
+      <span>{text}</span>
+    </li>
+  )
+}
+
+function NoticeCard({
+  action,
+  message,
+  title,
+}: {
+  action?: ReactNode
+  message: string
+  title: string
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+        <CircleAlert aria-hidden="true" size={24} />
+      </span>
+      <h1 className="mt-5 text-2xl font-extrabold tracking-tight text-[#262626]">{title}</h1>
+      <p className="mt-3 text-sm leading-6 text-gray-600">{message}</p>
+      {action ? <p className="mt-5">{action}</p> : null}
+    </div>
+  )
+}
+
