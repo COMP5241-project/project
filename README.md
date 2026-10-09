@@ -115,6 +115,18 @@ The front-end UI layer is implemented using the following technologies:
 
 ---
 
+## ⚙️ Backend Tech Stack
+
+The backend API is implemented using the following technologies:
+
+* **Python 3.14+** — backend application language
+* **FastAPI** — web framework for building the API
+* **uv** — Python project and dependency management
+
+The backend is currently a starter API with a single greeting endpoint. Database access, authentication, and AI features have not yet been added.
+
+---
+
 ## ⚙️ 3. Development & Formatting Conventions
 
 ### File Structure & Naming
