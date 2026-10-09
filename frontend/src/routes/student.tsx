@@ -18,13 +18,6 @@ function StudentPage() {
         <p className="text-sm text-gray-600">Checking your session…</p>
       </div>
     )
-  } else if (state.status === 'not-configured') {
-    content = (
-      <NoticeCard
-        message="The sign-in service is not configured. Check the Supabase environment variables."
-        title="Service not configured"
-      />
-    )
   } else if (state.status === 'unauthenticated') {
     content = (
       <NoticeCard
@@ -124,10 +117,15 @@ function StudentPage() {
             {state.status === 'ready' && (
               <button
                 className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                disabled={state.isSigningOut}
                 onClick={() => void state.signOut()}
                 type="button"
               >
-                <LogOut aria-hidden="true" size={15} />
+                {state.isSigningOut ? (
+                  <LoaderCircle aria-hidden="true" className="animate-spin" size={15} />
+                ) : (
+                  <LogOut aria-hidden="true" size={15} />
+                )}
                 Sign out
               </button>
             )}
@@ -136,7 +134,14 @@ function StudentPage() {
       </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-xl">{content}</div>
+        <div className="w-full max-w-xl">
+          {state.signOutError && (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+              {state.signOutError}
+            </p>
+          )}
+          {content}
+        </div>
       </div>
 
       <footer className="pb-6 text-center text-xs text-gray-500">
