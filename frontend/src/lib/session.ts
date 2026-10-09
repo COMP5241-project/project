@@ -1,6 +1,6 @@
-import { supabase } from './supabase'
+import { ApiError, getCurrentProfile, type DashboardRole } from './api'
 
-export type DashboardRole = 'student' | 'instructor'
+export type { DashboardRole } from './api'
 
 /**
  * Module-level cache of the signed-in user's role for the current SPA
@@ -9,6 +9,8 @@ export type DashboardRole = 'student' | 'instructor'
  */
 let cachedRole: DashboardRole | null | undefined
 let inFlight: Promise<DashboardRole | null> | null = null
+let generation = 0
+let cachedAt = 0
 
 /** Read the cached role synchronously, if it has been resolved already. */
 export function getCachedSignedInRole(): DashboardRole | null | undefined {
@@ -20,54 +22,49 @@ export function getCachedSignedInRole(): DashboardRole | null | undefined {
  * signed-in role (login flow, dashboard profile load, sign-out).
  */
 export function setCachedSignedInRole(role: DashboardRole | null): void {
+  generation += 1
+  inFlight = null
   cachedRole = role
+  cachedAt = Date.now()
 }
 
-function isDashboardRole(value: unknown): value is DashboardRole {
-  return value === 'student' || value === 'instructor'
+export function resetCachedSignedInRole(): void {
+  generation += 1
+  inFlight = null
+  cachedRole = undefined
 }
 
-/**
- * Resolve the signed-in user's role: read the cached Supabase session from
- * storage (no network round-trip), then the user's `profiles` row. Returns
- * `null` when Supabase is not configured, no session exists, or the role is
- * missing/unsupported. Results are cached and concurrent calls are
- * deduplicated, so repeated navigation within the SPA resolves instantly.
- */
 export function resolveSignedInRole(): Promise<DashboardRole | null> {
-  if (cachedRole !== undefined) {
+  if (cachedRole !== undefined && Date.now() - cachedAt < 30_000) {
     return Promise.resolve(cachedRole)
   }
   if (inFlight) {
     return inFlight
   }
 
+  const requestGeneration = generation
   const pending = (async (): Promise<DashboardRole | null> => {
     try {
-      if (!supabase) return null
-
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      const user = sessionData.session?.user
-      if (sessionError || !user) return null
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      if (profileError || !isDashboardRole(profile.role)) return null
-
-      return profile.role
-    } catch {
-      return null
+      const { profile } = await getCurrentProfile()
+      if (generation === requestGeneration) {
+        cachedRole = profile.role
+        cachedAt = Date.now()
+      }
+      return cachedRole ?? null
+    } catch (error) {
+      if (generation !== requestGeneration) return cachedRole ?? null
+      if (error instanceof ApiError && error.status === 401) {
+        cachedRole = null
+        cachedAt = Date.now()
+      } else {
+        cachedRole = undefined
+      }
+      return cachedRole ?? null
     } finally {
-      inFlight = null
+      if (generation === requestGeneration) inFlight = null
     }
   })()
 
   inFlight = pending
-  void pending.then((role) => {
-    cachedRole = role
-  })
   return pending
 }

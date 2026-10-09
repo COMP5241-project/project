@@ -31,10 +31,9 @@ Below is the complete feature breakdown mapping out user workflows, AI triggers,
 ### Module A: Authentication & Diagnostic Onboarding
 
 #### A1. Role-Based Authentication & Router
-* **User Flow:** User enters their PolyU email address on `index.html`.
-* **Validation & Routing:**
-  * `@connect.polyu.hk` (e.g., `26001399g@connect.polyu.hk`) -> Sets `userRole: "student"` in `localStorage` and opens Onboarding Modal or redirects to `student.html`.
-  * `@polyu.edu.hk` (e.g., `richard.lui@polyu.edu.hk`) -> Sets `userRole: "instructor"` in `localStorage` and redirects to `instructor.html`.
+* **User Flow:** User enters email and password on `/login`; FastAPI verifies them with Supabase Auth.
+* **Validation & Routing:** The backend returns the authenticated user's `profiles.role`. Students go to `/student`; instructors go to `/instructor`. Email domains and browser storage do not determine roles.
+* **Sessions:** An opaque HttpOnly cookie identifies the backend session. Supabase access/refresh tokens stay server-side. Assessment flags control the existing student dashboard views.
 
 #### A2. Diagnostic Debugging Assessment (Background Profiling)
 * **Objective:** Automatically determine whether a student should follow the **CS Major Track** or **Non-CS Major Track** without filling out manual survey forms.
@@ -106,7 +105,7 @@ To prevent prompt injection, off-topic misuse, or inappropriate content generati
 
 The front-end UI layer is implemented using the following technologies:
 
-The frontend application code and its Vite configuration are in `frontend/`. Route screens are in `frontend/src/routes/`, and shared Supabase and session utilities are in `frontend/src/lib/`.
+The frontend application code and its Vite configuration are in `frontend/`. Route screens are in `frontend/src/routes/`, and shared API and session utilities are in `frontend/src/lib/`. The frontend does not use the Supabase SDK directly.
 
 * **React 19** — component-based UI development
 * **Vite** — fast frontend build and development tooling
@@ -127,7 +126,7 @@ The backend application code is in `backend/app/`; its dependencies and Python p
 * **FastAPI** — web framework for building the API
 * **uv** — Python project and dependency management
 
-The backend is currently a starter API with a single greeting endpoint. Database access, authentication, and AI features have not yet been added.
+The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, and user-scoped profile queries. AI and assessment-submission endpoints are not yet implemented.
 
 ---
 
@@ -139,10 +138,11 @@ The backend is currently a starter API with a single greeting endpoint. Database
 * `frontend/src/main.tsx` — App bootstrap and top-level rendering.
 * `frontend/src/routes/` — TanStack Router screens, including the home, login, student, and instructor routes.
 * `frontend/src/routeTree.gen.ts` — Generated route tree used by TanStack Router.
-* `frontend/src/lib/` — Shared session, Supabase client, and profile utilities.
+* `frontend/src/lib/` — Shared API adapter, role cache, and profile utilities.
 * `frontend/src/styles.css` — Global styles and Tailwind CSS import.
 * `frontend/public/` — Static frontend assets.
-* `backend/app/main.py` — FastAPI application and its current greeting endpoint.
+* `backend/app/main.py` — FastAPI application, API error handling, greeting, and health endpoints.
+* `backend/app/auth.py` — Supabase authentication, cookie sessions, and profile endpoints.
 * `backend/pyproject.toml` — Backend project settings and dependencies; `backend/uv.lock` locks dependency versions.
 * `supabase/migrations/` — SQL migrations for the Supabase database.
 * `state/` — Project state files.
@@ -155,3 +155,21 @@ npm run dev
 ```
 
 Tailwind CSS is integrated with Vite and imported in `frontend/src/styles.css`. Router setup and page composition are in `frontend/src/main.tsx` and `frontend/src/routes/`. See `backend/README.md` for backend setup and development commands.
+
+### Backend Authentication Setup
+
+Configure `SUPABASE_URL` and `SUPABASE_KEY` (public anon/publishable) in `backend/.env`,
+using the authentication settings in `.env.example`. No frontend Supabase environment
+variables are required. Run these commands in a separate terminal:
+
+```powershell
+cd backend
+uv sync
+uv run fastapi dev app/main.py
+```
+
+Open `http://localhost:5173`; Vite forwards `/api` to `http://127.0.0.1:8000`.
+If the frontend uses another port, update `FRONTEND_ORIGINS` in `backend/.env`.
+Use one backend process: the demo store is in memory and a backend restart requires
+signing in again. Production requires HTTPS, secure cookies, shared session storage,
+and a same-origin API reverse proxy. Existing frontend-SDK sessions do not migrate.
