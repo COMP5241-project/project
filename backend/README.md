@@ -87,7 +87,15 @@ backend/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py       # FastAPI app, health endpoints, and API error handling
-│   ├── auth.py       # Authentication, cookie sessions, and profile API
+│   ├── identity/
+│   │   ├── __init__.py
+│   │   ├── auth.py       # Shared Supabase auth-client dependencies
+│   │   ├── errors.py     # Identity API errors and upstream auth mapping
+│   │   ├── profiles.py   # Profile response models and profile lookup
+│   │   └── sessions.py   # Cookie-backed session lifecycle
+│   ├── routers/
+│   │   ├── auth.py  # Login and logout endpoints
+│   │   └── profiles.py # Current-profile endpoint
 │   └── database/
 │       └── supabase.py  # Separate health and request-scoped user clients
 ├── pyproject.toml    # Python version, project details, and dependencies
@@ -116,7 +124,7 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | GET | `/` | Greeting |
 | GET | `/health` | Supabase database connectivity |
 | POST | `/api/auth/login` | Supabase password sign-in; returns email/profile and sets a cookie |
-| GET | `/api/me` | Validates/refreshes the session and returns email/profile |
+| GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
 | POST | `/api/auth/logout` | Clears local sessions and revokes Supabase refresh sessions globally |
 
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
@@ -135,7 +143,7 @@ Each request has its own Supabase client; the shared health client is never sign
 - The browser receives only a random, host-only `polyu_session` cookie with HttpOnly,
 	SameSite=Lax, and Path=/api. Supabase tokens stay in backend memory. Passwords are
 	forwarded to Supabase Auth and never stored.
-- Sessions expire after 24 hours. Expiring access tokens refresh on `/api/me` with
+- Sessions expire after 24 hours. Expiring access tokens refresh on `/api/profiles/me` with
 	per-session locking. Invalid sessions return 401; temporary upstream failures return 503.
 - Logout invalidates this user's local sessions even if Supabase revocation fails.
 	A 503 with `signed_out: true` means local sign-out succeeded but global revocation
