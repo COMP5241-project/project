@@ -125,6 +125,34 @@ def test_auth_rejects_untrusted_origin(client: HttpxClient, auth_client: Mock, o
     auth_client.auth.sign_in_with_password.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "origin",
+    ["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173", "http://LOCALHOST:5173"],
+)
+def test_auth_accepts_all_loopback_origin_spellings(
+    client: HttpxClient, monkeypatch: pytest.MonkeyPatch, origin: str
+):
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.com", "password": "secret-password"},
+        headers={"Origin": origin},
+    )
+    assert response.status_code == 200
+
+
+def test_auth_rejects_wrong_port_origin(
+    client: HttpxClient, auth_client: Mock, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    response = client.post(
+        "/api/auth/login", json={"email": "x", "password": "secret"},
+        headers={"Origin": "http://localhost:5174"},
+    )
+    assert response.status_code == 403
+    auth_client.auth.sign_in_with_password.assert_not_called()
+
+
 def test_auth_invalid_request_does_not_echo_password(client: HttpxClient):
     response = client.post("/api/auth/login", json={"email": "", "password": "secret-password"})
     assert response.status_code == 422
@@ -312,6 +340,47 @@ def test_auth_secure_cookie_configuration(client: HttpxClient, monkeypatch):
 
 def test_auth_mutations_require_json(client: HttpxClient):
     assert client.post("/api/auth/logout", content="text").status_code == 415
+
+
+def test_hallucination_result_is_saved_for_signed_in_user(client: HttpxClient, auth_client: Mock):
+    auth_login(client)
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 80, "critique": "The loop stops one short.",
+        "feedback": "Good eye!",
+    })
+    assert response.status_code == 204
+    auth_client.postgrest.auth.assert_called_with("private-access-token")
+    auth_client.table.return_value.insert.assert_called_once_with({
+        "user_id": "student-id", "challenge_id": "off-by-one", "score": 80,
+        "critique": "The loop stops one short.", "feedback": "Good eye!",
+    })
+
+
+def test_hallucination_result_requires_session(client: HttpxClient, auth_client: Mock):
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 80, "critique": "A long enough critique.",
+    })
+    assert response.status_code == 401
+    auth_client.table.return_value.insert.assert_not_called()
+
+
+def test_hallucination_result_validation(client: HttpxClient):
+    auth_login(client)
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 101, "critique": "A long enough critique.",
+    })
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_request"
+
+
+def test_hallucination_result_save_failure_is_service_unavailable(client: HttpxClient, auth_client: Mock):
+    auth_login(client)
+    auth_client.table.return_value.insert.return_value.execute.side_effect = RuntimeError("database unavailable")
+    response = client.post("/api/profiles/hallucination-results", json={
+        "challenge_id": "off-by-one", "score": 80, "critique": "A long enough critique.",
+    })
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "result_save_failed"
 
 
 def test_auth_clients_do_not_share_authentication_state(monkeypatch):
