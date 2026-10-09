@@ -123,6 +123,34 @@ def test_auth_rejects_untrusted_origin(client: HttpxClient, auth_client: Mock, o
     auth_client.auth.sign_in_with_password.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "origin",
+    ["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173", "http://LOCALHOST:5173"],
+)
+def test_auth_accepts_all_loopback_origin_spellings(
+    client: HttpxClient, monkeypatch: pytest.MonkeyPatch, origin: str
+):
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.com", "password": "secret-password"},
+        headers={"Origin": origin},
+    )
+    assert response.status_code == 200
+
+
+def test_auth_rejects_wrong_port_origin(
+    client: HttpxClient, auth_client: Mock, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    response = client.post(
+        "/api/auth/login", json={"email": "x", "password": "secret"},
+        headers={"Origin": "http://localhost:5174"},
+    )
+    assert response.status_code == 403
+    auth_client.auth.sign_in_with_password.assert_not_called()
+
+
 def test_auth_invalid_request_does_not_echo_password(client: HttpxClient):
     response = client.post("/api/auth/login", json={"email": "", "password": "secret-password"})
     assert response.status_code == 422

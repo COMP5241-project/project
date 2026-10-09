@@ -121,7 +121,10 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
 Both POST endpoints require `Content-Type: application/json` and an `Origin` header
-matching `FRONTEND_ORIGINS`. Use the frontend's same-origin `/api` proxy; CORS is not
+matching `FRONTEND_ORIGINS`. Origins are normalized before comparison, so the local
+loopback spellings `localhost`, `127.0.0.1`, and `[::1]` are treated as the same
+origin (the browser picks whichever `localhost` resolves to); scheme and port are
+still matched strictly. Use the frontend's same-origin `/api` proxy; CORS is not
 enabled. Calls from Swagger must satisfy these origin requirements too.
 Responses contain no Supabase tokens and use `Cache-Control: no-store`.
 Errors return `{"error":{"code":"...","message":"...","signed_out":false}}`.
