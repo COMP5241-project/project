@@ -16,7 +16,14 @@ import {
   Star,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import {
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  ViewTransition,
+  type ReactNode,
+} from 'react'
 import {
   getHallucinationChallenges,
   judgeHallucinationCritique,
@@ -25,6 +32,11 @@ import {
   type JudgeVerdict,
 } from '../lib/api'
 import { useProfile } from '../lib/useProfile'
+import {
+  SpotterCharacter,
+  type SpotterBubble,
+  type SpotterMood,
+} from '../components/SpotterCharacter'
 
 export const Route = createFileRoute('/student_/hallucination-game')({
   component: HallucinationGamePage,
@@ -54,7 +66,7 @@ function HallucinationGamePage() {
   if (state.status === 'loading') {
     content = (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-gray-200 bg-white p-10 text-center shadow-sm">
-        <LoaderCircle aria-hidden="true" className="animate-spin text-[#A21942]" size={28} />
+        <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin text-[#A21942]" size={28} />
         <p className="text-sm text-gray-600">Checking your session…</p>
       </div>
     )
@@ -125,7 +137,7 @@ function HallucinationGamePage() {
       </header>
 
       <div className="flex flex-1 justify-center px-4 py-10 sm:py-12">
-        <div className="w-full max-w-2xl">{content}</div>
+        <div className="w-full max-w-4xl">{content}</div>
       </div>
 
       <footer className="pb-6 text-center text-xs text-gray-500">
@@ -192,22 +204,26 @@ function Game({ csQualified }: GameProps) {
   const challenge = challenges?.[challengeIndex]
 
   function beginChallenge(index: number) {
-    setChallengeIndex(index)
-    setSelectedLine(null)
-    setCritique('')
-    setMildHintShown(false)
-    setStrongHintShown(false)
-    setFormError(null)
-    setJudgeError(null)
-    setVerdict(null)
-    setPhase('playing')
+    // Wrapped in startTransition so the <ViewTransition> around the phase
+    // content can animate the outgoing and incoming screens.
+    startTransition(() => {
+      setChallengeIndex(index)
+      setSelectedLine(null)
+      setCritique('')
+      setMildHintShown(false)
+      setStrongHintShown(false)
+      setFormError(null)
+      setJudgeError(null)
+      setVerdict(null)
+      setPhase('playing')
+    })
   }
 
   function handleNext() {
     if (challenges && challengeIndex + 1 < challenges.length) {
       beginChallenge(challengeIndex + 1)
     } else {
-      setPhase('summary')
+      startTransition(() => setPhase('summary'))
     }
   }
 
@@ -245,7 +261,7 @@ function Game({ csQualified }: GameProps) {
           lineTappedCorrectly: selectedLine === judged.flaw_line,
         },
       ])
-      setPhase('verdict')
+      startTransition(() => setPhase('verdict'))
       void saveResult(challenge.id, judged.score, critique.trim(), judged.feedback)
     } catch (error) {
       setJudgeError(
@@ -278,18 +294,16 @@ function Game({ csQualified }: GameProps) {
     }
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-gray-200 bg-white p-10 text-center shadow-sm">
-        <LoaderCircle aria-hidden="true" className="animate-spin text-[#A21942]" size={28} />
+        <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin text-[#A21942]" size={28} />
         <p className="text-sm text-gray-600">Loading the game…</p>
       </div>
     )
   }
 
-  if (phase === 'intro') {
-    return <IntroScreen challengeCount={challenges.length} onStart={() => beginChallenge(0)} />
-  }
-
-  if (phase === 'verdict' && verdict) {
-    return (
+  const screen =
+    phase === 'intro' ? (
+      <IntroScreen challengeCount={challenges.length} onStart={() => beginChallenge(0)} />
+    ) : phase === 'verdict' && verdict ? (
       <VerdictScreen
         challenge={challenge}
         isLast={challengeIndex + 1 >= challenges.length}
@@ -298,36 +312,49 @@ function Game({ csQualified }: GameProps) {
         tappedLine={selectedLine ?? verdict.flaw_line}
         verdict={verdict}
       />
+    ) : phase === 'summary' ? (
+      <SummaryScreen
+        challenges={challenges}
+        csQualified={csQualified}
+        onPlayAgain={restartGame}
+        results={results}
+      />
+    ) : (
+      <ChallengeScreen
+        challenge={challenge}
+        challenges={challenges}
+        critique={critique}
+        formError={formError}
+        isJudging={isJudging}
+        judgeError={judgeError}
+        mildHintShown={mildHintShown}
+        onCritiqueChange={(value) => {
+          setCritique(value)
+          setFormError(null)
+        }}
+        onShowMildHint={() => setMildHintShown(true)}
+        onShowStrongHint={() => setStrongHintShown(true)}
+        onSelectLine={(line) => {
+          setSelectedLine(line)
+          setFormError(null)
+        }}
+        onSubmit={() => void handleSubmit()}
+        selectedLine={selectedLine}
+        strongHintShown={strongHintShown}
+      />
     )
-  }
 
-  if (phase === 'summary') {
-    return <SummaryScreen challenges={challenges} csQualified={csQualified} onPlayAgain={restartGame} results={results} />
-  }
-
+  // key={phase}-{challengeIndex} forces a fresh enter/exit cycle on every
+  // screen change — the game's "scene switch".
   return (
-    <ChallengeScreen
-      challenge={challenge}
-      challenges={challenges}
-      critique={critique}
-      formError={formError}
-      isJudging={isJudging}
-      judgeError={judgeError}
-      mildHintShown={mildHintShown}
-      onCritiqueChange={(value) => {
-        setCritique(value)
-        setFormError(null)
-      }}
-      onShowMildHint={() => setMildHintShown(true)}
-      onShowStrongHint={() => setStrongHintShown(true)}
-      onSelectLine={(line) => {
-        setSelectedLine(line)
-        setFormError(null)
-      }}
-      onSubmit={() => void handleSubmit()}
-      selectedLine={selectedLine}
-      strongHintShown={strongHintShown}
-    />
+    <ViewTransition
+      default="none"
+      enter="phase-in"
+      exit="phase-out"
+      key={`${phase}-${challengeIndex}`}
+    >
+      {screen}
+    </ViewTransition>
   )
 }
 
@@ -339,10 +366,15 @@ interface IntroScreenProps {
 
 function IntroScreen({ challengeCount, onStart }: IntroScreenProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-      <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
-        <Bug aria-hidden="true" size={24} />
-      </span>
+    <div className="mx-auto w-full max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="flex items-start justify-between gap-4">
+        <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+          <Bug aria-hidden="true" size={24} />
+        </span>
+        <div className="w-24 shrink-0">
+          <SpotterCharacter mood="idle" />
+        </div>
+      </div>
       <p className="mt-6 text-sm font-semibold text-[#A21942]">
         Discernment training · 4D AI Fluency
       </p>
@@ -406,164 +438,223 @@ function ChallengeScreen({
   strongHintShown,
 }: ChallengeScreenProps) {
   const challengeIndex = challenges.findIndex((item) => item.id === challenge.id)
+
+  // Spotter's "thinking" beat: a short pause so the hint feels earned,
+  // not instant.
+  const [thinking, setThinking] = useState(false)
+  const thinkingTimer = useRef<number | null>(null)
+  useEffect(() => {
+    return () => {
+      if (thinkingTimer.current !== null) window.clearTimeout(thinkingTimer.current)
+    }
+  }, [])
+
+  function askHint(reveal: () => void) {
+    if (thinking) return
+    setThinking(true)
+    thinkingTimer.current = window.setTimeout(() => {
+      reveal()
+      setThinking(false)
+    }, 450)
+  }
+
+  const spotterMood: SpotterMood =
+    thinking || isJudging ? 'thinking' : mildHintShown || strongHintShown ? 'hint' : 'idle'
+
+  const spotterBubble: SpotterBubble = thinking
+    ? {
+        title: 'Hmm…',
+        content: (
+          <span className="inline-flex items-center gap-2">
+            <span className="sr-only">Thinking…</span>
+            <span aria-hidden="true" className="inline-flex items-end gap-1">
+              <span className="dot-pulse size-1.5 rounded-full bg-[#A21942]" />
+              <span
+                className="dot-pulse size-1.5 rounded-full bg-[#A21942]"
+                style={{ animationDelay: '0.15s' }}
+              />
+              <span
+                className="dot-pulse size-1.5 rounded-full bg-[#A21942]"
+                style={{ animationDelay: '0.3s' }}
+              />
+            </span>
+          </span>
+        ),
+      }
+    : strongHintShown
+      ? { content: challenge.hint_strong }
+      : mildHintShown
+        ? {
+            content: challenge.hint_mild,
+            ctaLabel: 'I\'m still stuck',
+            onCta: () => askHint(onShowStrongHint),
+          }
+        : {
+            title: 'Stuck? Hints are free.',
+            content: 'Tap me or the bubble to get a nudge — hints never cost points.',
+            ctaLabel: 'Want some hints?',
+            onCta: () => askHint(onShowMildHint),
+          }
+
+  const spotterOnCharacterClick = strongHintShown
+    ? undefined
+    : mildHintShown
+      ? () => askHint(onShowStrongHint)
+      : () => askHint(onShowMildHint)
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-      <div className="flex items-center gap-2">
-        {challenges.map((item, index) => (
-          <span
-            aria-hidden="true"
-            className={`size-2 rounded-full ${
-              index < challengeIndex
-                ? 'bg-emerald-500'
-                : index === challengeIndex
-                  ? 'bg-[#A21942]'
-                  : 'bg-gray-200'
-            }`}
-            key={item.id}
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex items-center gap-2">
+          {challenges.map((item, index) => (
+            <span
+              aria-hidden="true"
+              className={`size-2 rounded-full ${
+                index < challengeIndex
+                  ? 'bg-emerald-500'
+                  : index === challengeIndex
+                    ? 'bg-[#A21942]'
+                    : 'bg-gray-200'
+              }`}
+              key={item.id}
+            />
+          ))}
+          <span className="ml-2 text-xs font-semibold text-gray-500">
+            Challenge {challengeIndex + 1} of {challenges.length}
+          </span>
+        </div>
+
+        <div className="mt-5 flex items-start justify-between gap-3">
+          <h1 className="text-xl font-extrabold tracking-tight text-[#262626]">
+            {challenge.emoji} {challenge.title}
+          </h1>
+          <span className="shrink-0 rounded-full bg-[#FBF1F4] px-3 py-1 text-xs font-semibold text-[#801333]">
+            {challenge.category}
+          </span>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-gray-600">{challenge.scenario}</p>
+
+        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-5">
+          <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-[#262626] shadow-sm sm:min-w-0 sm:flex-1">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <span className="flex items-center gap-2 text-xs font-medium text-gray-300">
+                <Bot aria-hidden="true" size={13} />
+                AI intern&apos;s code · {challenge.language}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                Tap a line
+              </span>
+            </div>
+            <div aria-label="Code snippet — tap the suspicious line" className="p-3" role="group">
+              {challenge.code.map((line, index) => {
+                const isSelected = selectedLine === index
+                return (
+                  <button
+                    aria-pressed={isSelected}
+                    className={`w-full rounded-md px-2 py-1 text-left transition-colors ${
+                      isSelected
+                        ? 'tap-pulse bg-[#A21942]/25 ring-1 ring-[#A21942]'
+                        : 'hover:bg-white/10'
+                    }`}
+                    key={`${challenge.id}-line-${index}`}
+                    onClick={() => onSelectLine(index)}
+                    type="button"
+                  >
+                    <span
+                      className="code-line-in flex items-start gap-3 font-mono text-xs leading-6"
+                      style={{ animationDelay: `${Math.min(index * 90, 900)}ms` }}
+                    >
+                      <span
+                        className={`w-5 shrink-0 select-none text-right ${
+                          isSelected ? 'text-[#F3A9BE]' : 'text-gray-500'
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      <span className={isSelected ? 'text-white' : 'text-gray-200'}>
+                        {line.length === 0 ? '\u00A0' : line}
+                      </span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            {isJudging ? (
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                <div className="scan-sweep absolute inset-x-0 top-0 h-14 bg-emerald-300/15" />
+              </div>
+            ) : null}
+          </div>
+          {/* Hint buddy sits beside the code (bottom-right on desktop, just
+              under the code on mobile) so a stuck player finds it where they
+              are already looking. The wide column gives the thinking bubble
+              room to overlap the code card. */}
+          <div className="flex w-full items-center justify-center sm:w-56 sm:shrink-0 sm:items-end">
+            <SpotterCharacter
+              bubble={spotterBubble}
+              mood={spotterMood}
+              onCharacterClick={spotterOnCharacterClick}
+            />
+          </div>
+        </div>
+        <p aria-live="polite" className="mt-2 text-xs text-gray-500">
+          {selectedLine === null
+            ? 'Tap the line you do not trust, then explain yourself below.'
+            : `Line ${selectedLine + 1} selected — now explain why it looks wrong.`}
+        </p>
+
+        <div className="mt-4">
+          <label className="mb-1.5 block text-sm font-medium text-[#262626]" htmlFor="critique">
+            Your critique
+          </label>
+          <textarea
+            className="min-h-28 w-full rounded-md border border-gray-300 bg-white p-3.5 text-sm text-[#262626] outline-none transition placeholder:text-gray-400 focus:border-[#A21942] focus:ring-2 focus:ring-[#A21942]/20"
+            id="critique"
+            onChange={(event) => onCritiqueChange(event.target.value)}
+            placeholder="What looks wrong here, and what could go wrong because of it? Plain language is perfect — no jargon needed."
+            value={critique}
           />
-        ))}
-        <span className="ml-2 text-xs font-semibold text-gray-500">
-          Challenge {challengeIndex + 1} of {challenges.length}
-        </span>
-      </div>
-
-      <div className="mt-5 flex items-start justify-between gap-3">
-        <h1 className="text-xl font-extrabold tracking-tight text-[#262626]">
-          {challenge.emoji} {challenge.title}
-        </h1>
-        <span className="shrink-0 rounded-full bg-[#FBF1F4] px-3 py-1 text-xs font-semibold text-[#801333]">
-          {challenge.category}
-        </span>
-      </div>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{challenge.scenario}</p>
-
-      <div className="mt-5 overflow-hidden rounded-lg border border-gray-200 bg-[#262626] shadow-sm">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-          <span className="flex items-center gap-2 text-xs font-medium text-gray-300">
-            <Bot aria-hidden="true" size={13} />
-            AI intern&apos;s code · {challenge.language}
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Tap a line
-          </span>
+          <p className="mt-1 text-xs text-gray-500">
+            {critique.trim().length} characters (minimum {MIN_CRITIQUE_LENGTH})
+          </p>
         </div>
-        <div aria-label="Code snippet — tap the suspicious line" className="p-3" role="group">
-          {challenge.code.map((line, index) => {
-            const isSelected = selectedLine === index
-            return (
-              <button
-                aria-pressed={isSelected}
-                className={`flex w-full items-start gap-3 rounded-md px-2 py-1 text-left font-mono text-xs leading-6 transition-colors ${
-                  isSelected ? 'bg-[#A21942]/25 ring-1 ring-[#A21942]' : 'hover:bg-white/10'
-                }`}
-                key={`${challenge.id}-line-${index}`}
-                onClick={() => onSelectLine(index)}
-                type="button"
-              >
-                <span
-                  className={`w-5 shrink-0 select-none text-right ${
-                    isSelected ? 'text-[#F3A9BE]' : 'text-gray-500'
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <span className={isSelected ? 'text-white' : 'text-gray-200'}>
-                  {line.length === 0 ? '\u00A0' : line}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      <p aria-live="polite" className="mt-2 text-xs text-gray-500">
-        {selectedLine === null
-          ? 'Tap the line you do not trust, then explain yourself below.'
-          : `Line ${selectedLine + 1} selected — now explain why it looks wrong.`}
-      </p>
 
-      <div className="mt-4">
-        <label className="mb-1.5 block text-sm font-medium text-[#262626]" htmlFor="critique">
-          Your critique
-        </label>
-        <textarea
-          className="min-h-28 w-full rounded-md border border-gray-300 bg-white p-3.5 text-sm text-[#262626] outline-none transition placeholder:text-gray-400 focus:border-[#A21942] focus:ring-2 focus:ring-[#A21942]/20"
-          id="critique"
-          onChange={(event) => onCritiqueChange(event.target.value)}
-          placeholder="What looks wrong here, and what could go wrong because of it? Plain language is perfect — no jargon needed."
-          value={critique}
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          {critique.trim().length} characters (minimum {MIN_CRITIQUE_LENGTH})
-        </p>
-      </div>
-
-      {formError && (
-        <div
-          className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          {formError}
-        </div>
-      )}
-
-      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="flex items-center gap-2 font-semibold">
-          <Lightbulb aria-hidden="true" size={15} />
-          Stuck? Hints are free.
-        </p>
-        <div className="mt-2 space-y-2">
-          {!mildHintShown ? (
-            <button
-              className="font-semibold text-[#A21942] underline-offset-2 hover:underline"
-              onClick={onShowMildHint}
-              type="button"
-            >
-              Show me a hint
-            </button>
-          ) : (
-            <p>{challenge.hint_mild}</p>
-          )}
-          {mildHintShown &&
-            (strongHintShown ? (
-              <p>{challenge.hint_strong}</p>
-            ) : (
-              <button
-                className="font-semibold text-[#A21942] underline-offset-2 hover:underline"
-                onClick={onShowStrongHint}
-                type="button"
-              >
-                I&apos;m still stuck
-              </button>
-            ))}
-        </div>
-      </div>
-
-      {judgeError && (
-        <div
-          className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          {judgeError}
-        </div>
-      )}
-
-      <button
-        className="mt-5 inline-flex items-center gap-2 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={isJudging}
-        onClick={onSubmit}
-        type="button"
-      >
-        {isJudging ? (
-          <>
-            <LoaderCircle aria-hidden="true" className="animate-spin" size={15} />
-            Your AI tutor is reading…
-          </>
-        ) : (
-          <>
-            Submit to AI tutor <ArrowRight aria-hidden="true" size={15} />
-          </>
+        {formError && (
+          <div
+            className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+          >
+            {formError}
+          </div>
         )}
-      </button>
+
+        {judgeError && (
+          <div
+            className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+          >
+            {judgeError}
+          </div>
+        )}
+
+        <button
+          className="mt-5 inline-flex items-center gap-2 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333] disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isJudging}
+          onClick={onSubmit}
+          type="button"
+        >
+          {isJudging ? (
+            <>
+              <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" size={15} />
+              Your AI tutor is reading…
+            </>
+          ) : (
+            <>
+              Submit to AI tutor <ArrowRight aria-hidden="true" size={15} />
+            </>
+          )}
+        </button>
+      </div>
     </div>
   )
 }
@@ -587,25 +678,42 @@ function VerdictScreen({
 }: VerdictScreenProps) {
   const badge = badgeForScore(verdict.score)
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+    <div className="mx-auto w-full max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
       <p className="text-sm font-semibold text-[#A21942]">Your AI tutor&apos;s verdict</p>
-      <div className="mt-4 flex items-center gap-4">
-        <div className="flex items-center gap-1" aria-label={`${badge.stars} of 3 stars`}>
-          {[0, 1, 2].map((index) => (
-            <Star
-              aria-hidden="true"
-              className={index < badge.stars ? 'text-amber-400' : 'text-gray-200'}
-              fill="currentColor"
-              key={index}
-              size={30}
-            />
-          ))}
+      <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex items-center gap-1" aria-label={`${badge.stars} of 3 stars`}>
+            {[0, 1, 2].map((index) => (
+              <span
+                className={index < badge.stars ? 'star-pop inline-flex' : 'inline-flex'}
+                key={index}
+                style={index < badge.stars ? { animationDelay: `${250 + index * 150}ms` } : undefined}
+              >
+                <Star
+                  aria-hidden="true"
+                  className={index < badge.stars ? 'text-amber-400' : 'text-gray-200'}
+                  fill="currentColor"
+                  size={30}
+                />
+              </span>
+            ))}
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#262626]">{badge.label}</h1>
+            <p className="text-sm text-gray-500">
+              Score {verdict.score}/100 · {challenge.title}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#262626]">{badge.label}</h1>
-          <p className="text-sm text-gray-500">
-            Score {verdict.score}/100 · {challenge.title}
-          </p>
+        <div className="w-full shrink-0 sm:w-44">
+          <SpotterCharacter
+            mood={lineTappedCorrectly ? 'celebrate' : 'shrug'}
+            bubble={
+              lineTappedCorrectly
+                ? { title: 'Nice instincts!', content: 'Sharp eye — the full breakdown is below.' }
+                : { title: 'Good try —', content: `The sneaky line was ${verdict.flaw_line + 1}.` }
+            }
+          />
         </div>
       </div>
 
@@ -613,7 +721,7 @@ function VerdictScreen({
         className={`mt-5 inline-flex items-center gap-2 rounded-md border px-4 py-3 text-sm ${
           lineTappedCorrectly
             ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            : 'border-amber-200 bg-amber-50 text-amber-800'
+            : 'shake-x border-amber-200 bg-amber-50 text-amber-800'
         }`}
       >
         {lineTappedCorrectly ? (
@@ -697,10 +805,18 @@ function SummaryScreen({ challenges, csQualified, onPlayAgain, results }: Summar
   const badge = badgeForScore(average)
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-      <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
-        <Bug aria-hidden="true" size={24} />
-      </span>
+    <div className="mx-auto w-full max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="flex items-start justify-between gap-4">
+        <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+          <Bug aria-hidden="true" size={24} />
+        </span>
+        <div className="w-full shrink-0 sm:w-36">
+          <SpotterCharacter
+            mood="celebrate"
+            bubble={{ title: 'Case closed!', content: 'Great detective work, detective.' }}
+          />
+        </div>
+      </div>
       <p className="mt-6 text-sm font-semibold text-[#A21942]">Case closed, detective</p>
       <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
         You earned the “{badge.label}” badge
@@ -708,13 +824,18 @@ function SummaryScreen({ challenges, csQualified, onPlayAgain, results }: Summar
       <div className="mt-4 flex items-center gap-3">
         <div className="flex items-center gap-1" aria-label={`${badge.stars} of 3 stars`}>
           {[0, 1, 2].map((index) => (
-            <Star
-              aria-hidden="true"
-              className={index < badge.stars ? 'text-amber-400' : 'text-gray-200'}
-              fill="currentColor"
+            <span
+              className={index < badge.stars ? 'star-pop inline-flex' : 'inline-flex'}
               key={index}
-              size={26}
-            />
+              style={index < badge.stars ? { animationDelay: `${200 + index * 150}ms` } : undefined}
+            >
+              <Star
+                aria-hidden="true"
+                className={index < badge.stars ? 'text-amber-400' : 'text-gray-200'}
+                fill="currentColor"
+                size={26}
+              />
+            </span>
           ))}
         </div>
         <p className="text-sm text-gray-600">
