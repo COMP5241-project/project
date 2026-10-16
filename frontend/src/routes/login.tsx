@@ -23,7 +23,11 @@ function LoginPage() {
     let cancelled = false
     void resolveSignedInRole().then((role) => {
       if (cancelled || !role) return
-      void navigate({ to: role === 'instructor' ? '/instructor' : '/student', replace: true })
+      if (role === 'instructor') {
+        window.location.replace('/instructor.html')
+      } else {
+        void navigate({ to: '/student', replace: true })
+      }
     })
     return () => {
       cancelled = true
@@ -41,7 +45,11 @@ function LoginPage() {
       setCachedSignedInRole(profile.role)
       setPassword('')
       await router.invalidate()
-      await navigate({ to: profile.role === 'instructor' ? '/instructor' : '/student' })
+      if (profile.role === 'instructor') {
+        window.location.assign('/instructor.html')
+      } else {
+        await navigate({ to: '/student' })
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error

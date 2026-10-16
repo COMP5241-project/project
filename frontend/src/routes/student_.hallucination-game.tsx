@@ -89,9 +89,9 @@ function HallucinationGamePage() {
       <NoticeCard
         action={
           state.profile.role === 'instructor' ? (
-            <Link className="font-semibold text-[#A21942] hover:underline" to="/instructor">
+            <a className="font-semibold text-[#A21942] hover:underline" href="/instructor.html">
               Go to the Instructor Studio
-            </Link>
+            </a>
           ) : undefined
         }
         message={`You are signed in as ${state.email}, but your account role is “${state.profile.role}”. This game is for students.`}
@@ -929,4 +929,3 @@ function NoticeCard({
     </div>
   )
 }
-

@@ -6,6 +6,8 @@ from app.database.supabase import get_supabase
 from app.identity.errors import ApiError
 from app.routers.auth import router as auth_router
 from app.routers.hallucination import router as hallucination_router
+from app.routers.instructor import router as instructor_router
+from app.routers.materials import router as materials_router
 from app.routers.profiles import router as profiles_router
 from app.routers.results import router as results_router
 from app.identity.sessions import clear_session_cookie
@@ -16,6 +18,8 @@ app.include_router(auth_router)
 app.include_router(profiles_router)
 app.include_router(results_router)
 app.include_router(hallucination_router)
+app.include_router(instructor_router)
+app.include_router(materials_router)
 
 
 @app.middleware("http")

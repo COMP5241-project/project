@@ -32,7 +32,7 @@ Below is the complete feature breakdown mapping out user workflows, AI triggers,
 
 #### A1. Role-Based Authentication & Router
 * **User Flow:** User enters email and password on `/login`; FastAPI verifies them with Supabase Auth.
-* **Validation & Routing:** The backend returns the authenticated user's `profiles.role`. Students go to `/student`; instructors go to `/instructor`. Email domains and browser storage do not determine roles.
+* **Validation & Routing:** The backend returns the authenticated user's `profiles.role`. Students go to `/student`; instructors go to `/instructor.html`. That instructor page checks the backend session and role before showing the studio. Email domains and browser storage do not determine roles.
 * **Sessions:** An opaque HttpOnly cookie identifies the backend session. Supabase access/refresh tokens stay server-side. Assessment flags control the existing student dashboard views.
 
 #### A2. Diagnostic Debugging Assessment (Background Profiling)
@@ -74,15 +74,15 @@ npm run build
 #### C1. Multi-Source Material Ingestion
 * **Inputs:** Instructors can paste raw lecture notes, text summaries, or reference URLs into the studio form[cite: 1].
 
-#### C2. GenAI Course & Web Slides Generator
-* **AI Engine:** Sends source materials to OpenRouter API (GPT-4o / Claude 3.5 Sonnet).
-* **Output Format (Structured JSON):** Converts source text into a multi-part mini-course:
-  * **Interactive Web Slides:** Slide deck containing titles, key takeaways, bullet points, and AI narrator scripts.
-  * **Interactive Sandbox Activity:** Auto-generated role-play prompt or prompt golf task.
-  * **Knowledge Check:** Auto-generated 3-question multiple-choice quiz with explanations.
+#### C2. GenAI Slides & Quiz Generator
+* **AI Engine:** Sends instructor prompts and source context to the backend-only OpenRouter integration.
+* **Structured output:** Slide decks include editable slide text and diagram/photo visuals. Multiple-choice quizzes use a separate question/options/correct-answer/explanation schema rather than being represented as slides.
 
 #### C3. Content CMS & Manual Editing
-* **Form-Based Editor:** Instructors can review the AI-generated slides and quizzes in an editable form, manually tweaking text, adjusting quiz options, or modifying the AI NPC's persona before publishing[cite: 1].
+* **Slide editor:** 16:9 WYSIWYG canvas, inline text editing, slide thumbnails, reordering, duplication, deletion, and text formatting controls.
+* **Quiz builder:** Edit questions, answers, option order, and correct answers; student preview offers instant answer feedback and explanations.
+* **File-scoped AI conversations:** Each resource maintains its own messages and sends its current JSON structure when requesting a revision.
+* **Local persistence:** Resources are saved in browser storage; server-backed sharing and publishing are not implemented yet.
 
 #### C4. Course Publishing & Roster Analytics
 * **Publishing Pipeline:** Clicking "Publish Course" updates the course status from `draft` to `published`, making it instantly visible on the student dashboard.
@@ -127,7 +127,7 @@ The backend application code is in `backend/app/`; its dependencies and Python p
 * **FastAPI** — web framework for building the API
 * **uv** — Python project and dependency management
 
-The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, and user-scoped profile queries. AI and assessment-submission endpoints are not yet implemented.
+The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, and instructor-only AI course generation. Assessment-submission endpoints are not yet implemented.
 
 ---
 

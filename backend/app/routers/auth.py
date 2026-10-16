@@ -43,7 +43,7 @@ def normalize_origin(origin: str) -> str:
 	return f"{parts.scheme}://{netloc}"
 
 
-def require_origin(request: Request) -> None:
+def require_trusted_origin(request: Request) -> None:
 	allowed = {
 		normalize_origin(origin)
 		for origin in os.getenv(
@@ -51,8 +51,18 @@ def require_origin(request: Request) -> None:
 		).split(",")
 		if origin.strip()
 	}
+	codespace_name = os.getenv("CODESPACE_NAME", "").strip()
+	forwarding_domain = os.getenv("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "").strip()
+	if codespace_name and forwarding_domain:
+		allowed.add(normalize_origin(
+			f"https://{codespace_name}-5173.{forwarding_domain}"
+		))
 	if normalize_origin(request.headers.get("origin", "")) not in allowed:
 		raise ApiError(403, "invalid_origin", "This request origin is not allowed.")
+
+
+def require_origin(request: Request) -> None:
+	require_trusted_origin(request)
 	if request.headers.get("content-type", "").split(";", 1)[0].strip() != "application/json":
 		raise ApiError(415, "invalid_content_type", "A JSON request is required.")
 

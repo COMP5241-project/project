@@ -129,10 +129,18 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |
 | GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
 | POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
+| POST | `/api/instructor/generate` | Generates or revises slide decks and multiple-choice quizzes for instructors |
+| GET | `/api/materials` | Loads the signed-in instructor's saved materials and material-scoped sources |
+| POST | `/api/materials` | Creates an instructor material |
+| PATCH | `/api/materials/{id}` | Saves material content and chat history |
+| DELETE | `/api/materials/{id}` | Deletes a material, its sources, and its stored files |
+| POST | `/api/materials/{id}/sources` | Adds pasted text, an imported URL, or a TXT/PDF/PPTX file |
+| DELETE | `/api/materials/{id}/sources/{source_id}` | Removes one source and its stored file |
 
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
-Both POST endpoints require `Content-Type: application/json` and an `Origin` header
-matching `FRONTEND_ORIGINS`. Origins are normalized before comparison, so the local
+Mutating JSON endpoints require `Content-Type: application/json`; the material file-upload
+endpoint uses `multipart/form-data`. Mutating requests require an `Origin` header matching
+`FRONTEND_ORIGINS`. Origins are normalized before comparison, so the local
 loopback spellings `localhost`, `127.0.0.1`, and `[::1]` are treated as the same
 origin (the browser picks whichever `localhost` resolves to); scheme and port are
 still matched strictly. Use the frontend's same-origin `/api` proxy; CORS is not
@@ -143,6 +151,30 @@ Errors return `{"error":{"code":"...","message":"...","signed_out":false}}`.
 Profiles contain `id`, `email`, `role`, `cs_qualified`, and `assessment_completed`.
 Queries use the verified user's JWT so existing row-level security remains effective.
 Each request has its own Supabase client; the shared health client is never signed in.
+Course generation requires the `instructor` profile role and accepts `artifact_type`
+(`slides` or `quiz`), a `prompt`, optional `source_context`, and optional
+`existing_content`/`revision_prompt` for file-scoped revisions. Prompts mentioning a quiz,
+MC, or multiple choice are routed to the quiz schema even when the requested artifact type
+is slides. Quiz responses contain structured questions with options, a correct answer index,
+and an optional explanation. Slide responses include optional per-slide theme colors which
+are applied in the instructor preview.
+Configure `OPENROUTER_API_KEY` on the backend; optionally set `OPENROUTER_COURSE_MODEL`
+to override the shared OpenRouter model. The API key is never sent to the browser. Instructor
+materials and extracted source text are stored in Supabase Postgres under the authenticated
+account. Uploaded TXT, PDF, and PPTX files are stored in the private `instructor-materials`
+bucket and accessed through short-lived signed URLs. URL sources are fetched once and their
+extracted text is stored with the material.
+Apply all migrations in `../supabase/migrations/`, including the materials migration, before
+using these endpoints.
+When using the Supabase Dashboard, run
+`../supabase/migrations/20261015000000_create_instructor_materials.sql` in the project's
+SQL Editor. If the API returns `materials_not_configured`, this migration has not been
+applied (or Supabase has not refreshed its schema cache); apply it and retry.
+If the tables already exist but file uploads report a missing
+`instructor-materials` bucket, run
+`../supabase/migrations/20261015164500_configure_instructor_material_storage.sql` in
+the SQL Editor. This migration only creates/configures the private bucket and its
+owner-scoped storage policy.
 
 ## Session Security And Limitations
 
