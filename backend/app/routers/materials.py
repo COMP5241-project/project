@@ -7,7 +7,7 @@ from collections.abc import Generator
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from typing import Any, Literal
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from fastapi import APIRouter, Depends, Request
 from httpx import Client as HttpClient
@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)
 MAX_SOURCE_BYTES = 5 * 1024 * 1024
 MAX_SOURCE_TEXT = 100_000
 BUCKET_NAME = "instructor-materials"
+# Descriptive, crawler-convention User-Agent. Some sites (e.g. Wikipedia)
+# reject requests from server IPs unless the UA follows the
+# ``Name/Version (contact-url; contact-email)`` convention, so override
+# SOURCE_FETCH_USER_AGENT with the deployment's real contact details.
+SOURCE_FETCH_USER_AGENT = os.getenv(
+    "SOURCE_FETCH_USER_AGENT",
+    "EduGenAI-SourceFetcher/1.0 (https://example.org; sources@example.org) python-httpx",
+)
 SourceType = Literal["file", "url", "text"]
 MaterialType = Literal["slides", "quiz", "flashcards", "summary"]
 
@@ -260,30 +268,58 @@ def _extract_file_text(filename: str, content_type: str, data: bytes) -> str:
     return text
 
 
-def _fetch_url_text(url: str) -> str:
-    parsed = urlsplit(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
-        raise ApiError(422, "invalid_source_url", "Use a public HTTP or HTTPS URL.")
+def _assert_public_host(hostname: str, port: int) -> None:
+    """Resolve ``hostname`` and reject any private/local/mapped address.
+
+    Called for the initial URL and again for every redirect target so a
+    public URL cannot 302 to an internal host (SSRF via redirect).
+    """
     try:
-        addresses = socket.getaddrinfo(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
-        if not addresses or any(
-            not ipaddress.ip_address(address[4][0]).is_global for address in addresses
-        ):
-            raise ApiError(422, "invalid_source_url", "Private or local network URLs cannot be imported.")
+        addresses = socket.getaddrinfo(hostname, port)
+    except socket.gaierror:
+        raise ApiError(422, "invalid_source_url", "The source URL host could not be resolved.") from None
+    if not addresses or any(
+        not ipaddress.ip_address(address[4][0]).is_global for address in addresses
+    ):
+        raise ApiError(422, "invalid_source_url", "Private or local network URLs cannot be imported.")
+
+
+def _fetch_url_text(url: str) -> str:
+    max_redirects = 5
+    headers = {
+        "Accept": "text/html, text/plain",
+        "User-Agent": SOURCE_FETCH_USER_AGENT,
+    }
+    try:
         with HttpClient(timeout=10, follow_redirects=False, trust_env=False) as http_client:
-            with http_client.stream("GET", url, headers={"Accept": "text/html, text/plain"}) as response:
-                if response.status_code != 200:
-                    raise ApiError(422, "source_fetch_failed", "The source URL could not be imported.")
-                media_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
-                chunks: list[bytes] = []
-                total = 0
-                for chunk in response.iter_bytes():
-                    total += len(chunk)
-                    if total > MAX_SOURCE_BYTES:
-                        raise ApiError(413, "source_too_large", "The source URL content exceeds the 5 MB limit.")
-                    chunks.append(chunk)
-                body = b"".join(chunks)
-                text = body.decode(response.encoding or "utf-8", errors="replace")
+            current_url = url
+            for _ in range(max_redirects + 1):
+                parsed = urlsplit(current_url)
+                if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+                    raise ApiError(422, "invalid_source_url", "Use a public HTTP or HTTPS URL.")
+                _assert_public_host(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
+                with http_client.stream("GET", current_url, headers=headers) as response:
+                    if response.status_code in {301, 302, 303, 307, 308}:
+                        location = response.headers.get("location")
+                        if not location:
+                            raise ApiError(422, "source_fetch_failed", "The source URL could not be imported.")
+                        current_url = urljoin(current_url, location)
+                        continue
+                    if response.status_code != 200:
+                        raise ApiError(422, "source_fetch_failed", "The source URL could not be imported.")
+                    media_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+                    chunks: list[bytes] = []
+                    total = 0
+                    for chunk in response.iter_bytes():
+                        total += len(chunk)
+                        if total > MAX_SOURCE_BYTES:
+                            raise ApiError(413, "source_too_large", "The source URL content exceeds the 5 MB limit.")
+                        chunks.append(chunk)
+                    body = b"".join(chunks)
+                    text = body.decode(response.encoding or "utf-8", errors="replace")
+                    break
+            else:
+                raise ApiError(422, "source_fetch_failed", "The source URL could not be imported.")
         if media_type == "text/plain":
             pass
         elif media_type == "text/html":
@@ -292,7 +328,7 @@ def _fetch_url_text(url: str) -> str:
             text = "".join(parser.parts)
         elif media_type == "application/pdf" or (
             media_type == "application/octet-stream"
-            and urlsplit(url).path.lower().endswith(".pdf")
+            and urlsplit(current_url).path.lower().endswith(".pdf")
         ):
             text = _extract_file_text("source.pdf", "application/pdf", body)
         else:
