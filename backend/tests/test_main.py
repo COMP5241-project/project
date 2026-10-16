@@ -183,6 +183,34 @@ def test_auth_accepts_current_codespaces_frontend_origin(
     assert response.status_code == 200
 
 
+def test_auth_accepts_any_forwarded_codespaces_frontend_port(
+    client: HttpxClient, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173")
+    monkeypatch.setenv("CODESPACE_NAME", "example-codespace")
+    monkeypatch.setenv("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.com", "password": "secret-password"},
+        headers={"Origin": "https://example-codespace-5180.app.github.dev"},
+    )
+    assert response.status_code == 200
+
+
+def test_auth_accepts_explicit_https_default_port_for_codespaces_origin(
+    client: HttpxClient, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173")
+    monkeypatch.setenv("CODESPACE_NAME", "example-codespace")
+    monkeypatch.setenv("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.com", "password": "secret-password"},
+        headers={"Origin": "https://example-codespace-5173.app.github.dev:443"},
+    )
+    assert response.status_code == 200
+
+
 def test_auth_rejects_other_codespaces_frontend_origin(
     client: HttpxClient, auth_client: Mock, monkeypatch: pytest.MonkeyPatch
 ):

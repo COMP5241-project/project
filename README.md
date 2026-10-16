@@ -169,7 +169,8 @@ uv sync
 uv run fastapi dev app/main.py
 ```
 
-Open `http://localhost:5173`; Vite forwards `/api` to `http://127.0.0.1:8000`.
+Open `http://localhost:5173` (or the forwarded port 5173 URL in Codespaces);
+Vite forwards `/api` to `http://127.0.0.1:8000`.
 If the frontend uses another port, update `FRONTEND_ORIGINS` in `backend/.env`.
 Use one backend process: the demo store is in memory and a backend restart requires
 signing in again. Production requires HTTPS, secure cookies, shared session storage,
