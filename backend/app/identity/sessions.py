@@ -114,6 +114,11 @@ def verified_session(request: Request, client: Client | None,
         raise ApiError(401, "unauthenticated", "Sign in to continue.", clear_cookie=True)
     if client is None:
         raise ApiError(503, "service_unavailable", "The sign-in service is unavailable.")
+    # Hold the session lock only across the short token refresh/verification
+    # step below. It must not be held across the `yield`: otherwise the
+    # endpoint's long-running work (e.g. the ~15s OpenRouter generate call)
+    # would block every other request on this session — notably the autosave
+    # PATCH the frontend fires alongside a prompt — for the whole duration.
     with session.lock:
         if store.get(session_id) is not session:
             raise ApiError(401, "unauthenticated", "Sign in to continue.", clear_cookie=True)
@@ -133,9 +138,9 @@ def verified_session(request: Request, client: Client | None,
             if failure.status == 401:
                 store.remove(session_id)
             raise failure from None
-        yield session, verified.user
-        if store.get(session_id) is not session:
-            raise ApiError(401, "unauthenticated", "Sign in again.", clear_cookie=True)
+    yield session, verified.user
+    if store.get(session_id) is not session:
+        raise ApiError(401, "unauthenticated", "Sign in again.", clear_cookie=True)
 
 
 def end_session(request: Request, response: Response, store: SessionStore,
