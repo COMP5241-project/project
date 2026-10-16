@@ -15,7 +15,9 @@ npm install
 npm run dev
 ```
 
-Open the local address printed in the terminal (usually `http://localhost:5173`). Keep the terminal running while you use the app. Press `Ctrl+C` to stop it.
+Open the local address printed in the terminal (usually `http://localhost:5173`;
+in Codespaces, open the forwarded port 5173 URL). Keep the terminal running
+while you use the app. Press `Ctrl+C` to stop it.
 
 ## Backend connection
 

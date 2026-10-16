@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import {
   Activity,
   ArrowDown,
@@ -131,9 +131,9 @@ interface NavbarProps {
 }
 
 function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: NavbarProps) {
-  const dashboardHref: '/instructor' | '/student' | '/login' =
+  const dashboardHref: '/instructor.html' | '/student' | '/login' =
     signedInRole === 'instructor'
-      ? '/instructor'
+      ? '/instructor.html'
       : signedInRole === 'student'
         ? '/student'
         : '/login'
@@ -178,18 +178,18 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
         </div>
 
         <div className="hidden items-center gap-2.5 sm:flex">
-          <Link
+          <a
             className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-            to={dashboardHref}
+            href={dashboardHref}
           >
             {secondaryLabel}
-          </Link>
-          <Link
+          </a>
+          <a
             className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
-            to={dashboardHref}
+            href={dashboardHref}
           >
             {primaryLabel} <ArrowRight aria-hidden="true" size={15} />
-          </Link>
+          </a>
         </div>
 
         <button
@@ -216,20 +216,20 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
               </a>
             ))}
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
-              <Link
+              <a
                 className="rounded-lg border border-gray-200 px-3 py-2.5 text-center text-sm font-semibold text-gray-700"
                 onClick={onNavigate}
-                to={dashboardHref}
+                href={dashboardHref}
               >
                 {secondaryLabel}
-              </Link>
-              <Link
+              </a>
+              <a
                 className="rounded-lg bg-[#A21942] px-3 py-2.5 text-center text-sm font-semibold text-white"
                 onClick={onNavigate}
-                to={dashboardHref}
+                href={dashboardHref}
               >
                 {primaryLabel}
-              </Link>
+              </a>
             </div>
           </div>
         </div>

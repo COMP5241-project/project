@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { CircleAlert, GraduationCap, House, LoaderCircle, LogOut, NotebookPen } from 'lucide-react'
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useProfile } from '../lib/useProfile'
 
@@ -9,6 +10,13 @@ export const Route = createFileRoute('/instructor')({
 
 function InstructorPage() {
   const state = useProfile()
+  const instructorSignedIn = state.status === 'ready' && state.profile.role === 'instructor'
+
+  useEffect(() => {
+    if (instructorSignedIn) {
+      window.location.replace('/instructor.html')
+    }
+  }, [instructorSignedIn])
 
   let content: ReactNode
   if (state.status === 'loading') {

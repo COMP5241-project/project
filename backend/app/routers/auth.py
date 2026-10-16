@@ -1,4 +1,5 @@
 import os
+import re
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -43,7 +44,7 @@ def normalize_origin(origin: str) -> str:
 	return f"{parts.scheme}://{netloc}"
 
 
-def require_origin(request: Request) -> None:
+def require_trusted_origin(request: Request) -> None:
 	allowed = {
 		normalize_origin(origin)
 		for origin in os.getenv(
@@ -51,8 +52,30 @@ def require_origin(request: Request) -> None:
 		).split(",")
 		if origin.strip()
 	}
+	codespace_name = os.getenv("CODESPACE_NAME", "").strip()
+	forwarding_domain = os.getenv("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "").strip()
+	if codespace_name and forwarding_domain:
+		origin = request.headers.get("origin", "")
+		parts = urlsplit(origin.strip().lower())
+		host = parts.hostname or ""
+		codespace_host = (
+			rf"{re.escape(codespace_name.lower())}-(?P<port>\d+)\."
+			rf"{re.escape(forwarding_domain.lower())}"
+		)
+		codespace_match = re.fullmatch(codespace_host, host)
+		if (
+			parts.scheme == "https"
+			and parts.port in (None, _DEFAULT_PORTS["https"])
+			and codespace_match is not None
+			and 1 <= int(codespace_match.group("port")) <= 65535
+		):
+			allowed.add(normalize_origin(origin))
 	if normalize_origin(request.headers.get("origin", "")) not in allowed:
 		raise ApiError(403, "invalid_origin", "This request origin is not allowed.")
+
+
+def require_origin(request: Request) -> None:
+	require_trusted_origin(request)
 	if request.headers.get("content-type", "").split(";", 1)[0].strip() != "application/json":
 		raise ApiError(415, "invalid_content_type", "A JSON request is required.")
 

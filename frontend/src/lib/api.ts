@@ -33,15 +33,21 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, body?: object): Promise<T | undefined> {
+async function request<T>(
+  path: string,
+  body?: object | FormData,
+  method = body === undefined ? 'GET' : 'POST',
+): Promise<T | undefined> {
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
+      method,
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: body === undefined || body instanceof FormData
+        ? undefined
+        : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     })
   } catch {
     throw new ApiError('Unable to connect to the sign-in service. Check your connection and try again.', 0)
@@ -72,6 +78,162 @@ export async function login(email: string, password: string): Promise<CurrentPro
 
 export async function logout(): Promise<void> {
   await request('/auth/logout', {})
+}
+
+export interface GeneratedCourseContent {
+  type: 'slides'
+  content: GeneratedSlide[]
+}
+
+export interface GeneratedQuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctAnswerIndex: number
+  explanation?: string
+}
+
+export interface GeneratedQuizContent {
+  type: 'quiz'
+  questions: GeneratedQuizQuestion[]
+}
+
+export type GeneratedArtifactContent = GeneratedCourseContent | GeneratedQuizContent
+
+export interface GeneratedSlide {
+  title: string
+  bullets: string[]
+  visual: {
+    kind: 'diagram' | 'photo'
+    description: string
+    steps: string[]
+  }
+  theme?: SlideTheme
+}
+
+export interface SlideTheme {
+  background: string
+  textColor: string
+  accentColor: string
+  cardBackground?: string
+}
+
+export type SourceType = 'file' | 'url' | 'text'
+
+export interface SourceItem {
+  id: string
+  materialId: string
+  type: SourceType
+  name: string
+  rawContent?: string
+  fileUrl?: string
+  sourceUrl?: string
+  createdAt: string
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
+
+export type MaterialType = 'slides' | 'quiz' | 'flashcards' | 'summary'
+
+export interface Material {
+  id: string
+  userId: string
+  title: string
+  type: MaterialType
+  sources: SourceItem[]
+  data: GeneratedArtifactContent
+  chatHistory: ChatMessage[]
+  updatedAt: string
+  createdAt: string
+}
+
+export async function fetchUserMaterials(): Promise<Material[]> {
+  const data = await request<Material[]>('/materials')
+  if (!data) throw new ApiError('Unable to load your saved materials.', 503)
+  return data
+}
+
+export async function createMaterial(
+  material: Pick<Material, 'id' | 'title' | 'type' | 'data' | 'chatHistory'>,
+): Promise<Material> {
+  const data = await request<Material>('/materials', {
+    id: material.id,
+    title: material.title,
+    type: material.type,
+    data: material.data,
+    chatHistory: material.chatHistory,
+  })
+  if (!data) throw new ApiError('Unable to create this material.', 503)
+  return data
+}
+
+export async function updateMaterial(
+  materialId: string,
+  changes: Pick<Material, 'title' | 'data' | 'chatHistory'>,
+): Promise<Material> {
+  const data = await request<Material>(
+    `/materials/${encodeURIComponent(materialId)}`,
+    changes,
+    'PATCH',
+  )
+  if (!data) throw new ApiError('Unable to save this material.', 503)
+  return data
+}
+
+export async function deleteMaterial(materialId: string): Promise<void> {
+  await request(`/materials/${encodeURIComponent(materialId)}`, {}, 'DELETE')
+}
+
+export async function createMaterialSource(
+  materialId: string,
+  input: { type: 'text'; name: string; rawContent: string } |
+    { type: 'url'; name: string; sourceUrl: string } |
+    { type: 'file'; file: File },
+): Promise<SourceItem> {
+  const body = input.type === 'file'
+    ? (() => {
+        const form = new FormData()
+        form.set('file', input.file)
+        return form
+      })()
+    : input
+  const data = await request<SourceItem>(
+    `/materials/${encodeURIComponent(materialId)}/sources`,
+    body,
+  )
+  if (!data) throw new ApiError('Unable to save this source.', 503)
+  return data
+}
+
+export async function deleteMaterialSource(materialId: string, sourceId: string): Promise<void> {
+  await request(
+    `/materials/${encodeURIComponent(materialId)}/sources/${encodeURIComponent(sourceId)}`,
+    {},
+    'DELETE',
+  )
+}
+
+export async function generateCourseContent(
+  artifactType: 'slides' | 'quiz',
+  prompt: string,
+  sourceContext: string,
+  revisionPrompt = '',
+  existingContent?: GeneratedArtifactContent,
+): Promise<GeneratedArtifactContent> {
+  const data = await request<GeneratedArtifactContent>('/instructor/generate', {
+    artifact_type: artifactType,
+    prompt,
+    source_context: sourceContext,
+    revision_prompt: revisionPrompt,
+    existing_content: existingContent,
+  })
+  if (!data) throw new ApiError('Unable to generate course content. Try again.', 503)
+  return data
 }
 
 export interface HallucinationResultInput {
