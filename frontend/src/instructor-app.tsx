@@ -29,6 +29,7 @@ import { createRoot } from 'react-dom/client'
 import {
   createMaterial,
   createMaterialSource,
+  deleteMaterial,
   deleteMaterialSource,
   fetchUserMaterials,
   generateCourseContent,
@@ -337,6 +338,27 @@ function useWorkspace() {
     return artifact
   }, [userId])
 
+  const removeMaterial = useCallback(async (materialId: string) => {
+    // Cancel any pending autosave so it cannot PATCH a deleted material.
+    const timer = saveTimers.current.get(materialId)
+    if (timer !== undefined) {
+      window.clearTimeout(timer)
+      saveTimers.current.delete(materialId)
+    }
+    saveQueues.current.delete(materialId)
+    try {
+      await deleteMaterial(materialId)
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete this material.')
+      throw deleteError
+    }
+    const remaining = artifacts.filter((artifact) => artifact.id !== materialId)
+    setArtifacts(remaining)
+    if (activeMaterialId === materialId) {
+      setActiveMaterialId(remaining[0]?.id ?? null)
+    }
+  }, [artifacts, activeMaterialId, setError])
+
   return {
     artifacts,
     setArtifacts,
@@ -347,6 +369,7 @@ function useWorkspace() {
     scheduleSave,
     saveNow,
     create,
+    removeMaterial,
     activeMaterialId,
     setActiveMaterialId,
   }
@@ -354,13 +377,15 @@ function useWorkspace() {
 
 export function InstructorApp() {
   const workspace = useWorkspace()
-  const { artifacts, setArtifacts, isLoading, error: workspaceError } = workspace
+  const { artifacts, setArtifacts, isLoading, error: workspaceError, removeMaterial } = workspace
   const { activeMaterialId: activeArtifactId, setActiveMaterialId: setActiveArtifactId } = workspace
   const [slideSelection, setSlideSelection] = useState({ artifactId: null as string | null, index: 0 })
   const [prompt, setPrompt] = useState('')
-  const [newMaterialKind, setNewMaterialKind] = useState<ArtifactKind>('slides')
+  // Explicit chip choice; null means "follow the active resource's kind".
+  const [chipChoice, setChipChoice] = useState<ArtifactKind | null>(null)
   const [feedback, setFeedback] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [quizMode, setQuizMode] = useState<'edit' | 'preview'>('edit')
   const [quizAnswers, setQuizAnswers] = useState<Record<string, Record<string, number>>>({})
   const stageRef = useRef<HTMLDivElement>(null)
@@ -369,8 +394,11 @@ export function InstructorApp() {
   const [slideScale, setSlideScale] = useState(1)
 
   const activeArtifact = artifacts.find((artifact) => artifact.id === activeArtifactId) ?? null
-  const selectedKind = activeArtifact?.kind ?? newMaterialKind
-  const setSelectedKind = setNewMaterialKind
+  // The chips control the kind the next prompt targets. Choosing the other
+  // kind while a resource is open genuinely retargets the next prompt at a
+  // new resource of that kind (see submitPrompt); selecting or creating a
+  // resource clears the explicit choice so the chips follow its kind again.
+  const selectedKind = chipChoice ?? activeArtifact?.kind ?? 'slides'
   const activeSlides = activeArtifact?.content?.type === 'slides' ? activeArtifact.content.content : []
   const activeSlideIndex = slideSelection.artifactId === activeArtifactId ? slideSelection.index : 0
   const activeSlide = activeSlides[activeSlideIndex]
@@ -443,12 +471,29 @@ export function InstructorApp() {
     try {
       const artifact = await workspace.create(kind)
       setActiveArtifactId(artifact.id)
-      setSelectedKind(kind)
+      setChipChoice(null)
       setFeedback('')
       return artifact
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Unable to create this material.')
       return null
+    }
+  }
+
+  async function deleteArtifact(artifact: Artifact) {
+    if (deletingId) return
+    const confirmed = window.confirm(
+      `Delete "${artifact.title}"? This permanently removes the resource and its sources.`,
+    )
+    if (!confirmed) return
+    setDeletingId(artifact.id)
+    setFeedback('')
+    try {
+      await removeMaterial(artifact.id)
+    } catch {
+      // removeMaterial already surfaces the failure through the workspace alert.
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -462,7 +507,7 @@ export function InstructorApp() {
     }
 
     const requestedKind = isQuizPrompt(text) ? 'quiz' : selectedKind
-    if (requestedKind !== selectedKind) setSelectedKind(requestedKind)
+    if (requestedKind !== selectedKind) setChipChoice(requestedKind)
     setPrompt('')
     setFeedback('')
     setIsSending(true)
@@ -820,17 +865,31 @@ export function InstructorApp() {
             <h2 className="mb-2 text-sm font-semibold">My resources</h2>
             <div className="space-y-1 overflow-y-auto" aria-busy={isLoading}>
               {artifacts.map((artifact) => (
-                <button
-                  className={`w-full truncate rounded-md px-2.5 py-2 text-left text-xs transition-colors ${artifact.id === activeArtifactId ? 'bg-[#A21942]/10 font-semibold text-[#A21942]' : 'hover:bg-gray-100'}`}
+                <div
+                  className={`group flex items-center rounded-md transition-colors ${artifact.id === activeArtifactId ? 'bg-[#A21942]/10' : 'hover:bg-gray-100'}`}
                   key={artifact.id}
-                  onClick={() => {
-                    setActiveArtifactId(artifact.id)
-                    setSelectedKind(artifact.kind)
-                  }}
-                  type="button"
                 >
-                  {artifact.kind === 'quiz' ? 'Quiz · ' : 'Slides · '}{artifact.title}
-                </button>
+                  <button
+                    className={`min-w-0 flex-1 truncate px-2.5 py-2 text-left text-xs ${artifact.id === activeArtifactId ? 'font-semibold text-[#A21942]' : ''}`}
+                    onClick={() => {
+                      setActiveArtifactId(artifact.id)
+                      setChipChoice(null)
+                    }}
+                    type="button"
+                  >
+                    {artifact.kind === 'quiz' ? 'Quiz · ' : 'Slides · '}{artifact.title}
+                  </button>
+                  <button
+                    aria-label={`Delete ${artifact.title}`}
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#A21942]/30 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={isLoading || deletingId !== null}
+                    onClick={() => void deleteArtifact(artifact)}
+                    title="Delete this resource"
+                    type="button"
+                  >
+                    <Trash2 aria-hidden="true" size={13} />
+                  </button>
+                </div>
               ))}
               {isLoading && <p className="text-xs text-gray-500">Loading saved materials…</p>}
               {!isLoading && artifacts.length === 0 && (
@@ -1178,8 +1237,8 @@ export function InstructorApp() {
           </div>
           <div className="border-t border-gray-200 p-3">
             <div className="mb-2 flex gap-1">
-              <button className={`rounded-full border px-2.5 py-1 text-[11px] ${selectedKind === 'slides' ? 'border-[#A21942] bg-[#A21942]/5 text-[#A21942]' : 'border-gray-200 text-gray-600'}`} onClick={() => setSelectedKind('slides')} type="button">Slides</button>
-              <button className={`rounded-full border px-2.5 py-1 text-[11px] ${selectedKind === 'quiz' ? 'border-[#A21942] bg-[#A21942]/5 text-[#A21942]' : 'border-gray-200 text-gray-600'}`} onClick={() => setSelectedKind('quiz')} type="button">MC Quiz</button>
+              <button className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${selectedKind === 'slides' ? 'border-[#A21942] bg-[#A21942]/5 text-[#A21942]' : 'border-gray-200 text-gray-600 hover:border-[#A21942]/50 hover:text-[#A21942]'}`} title="Target slide decks" type="button" onClick={() => setChipChoice('slides')}>Slides</button>
+              <button className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${selectedKind === 'quiz' ? 'border-[#A21942] bg-[#A21942]/5 text-[#A21942]' : 'border-gray-200 text-gray-600 hover:border-[#A21942]/50 hover:text-[#A21942]'}`} title="Target MC quizzes" type="button" onClick={() => setChipChoice('quiz')}>MC Quiz</button>
             </div>
             <form className="flex items-end gap-2" onSubmit={(event) => void submitPrompt(event)}>
               <textarea
@@ -1192,7 +1251,13 @@ export function InstructorApp() {
                     void submitPrompt()
                   }
                 }}
-                placeholder={activeContentCount ? 'Prompt a change to this file…' : 'Create a resource from your sources…'}
+                placeholder={
+                  activeArtifact && selectedKind !== activeArtifact.kind
+                    ? `This will create a new ${selectedKind === 'quiz' ? 'MC quiz' : 'slide deck'}…`
+                    : activeContentCount
+                      ? 'Prompt a change to this file…'
+                      : 'Create a resource from your sources…'
+                }
                 ref={promptRef}
                 value={prompt}
               />
