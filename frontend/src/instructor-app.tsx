@@ -386,6 +386,7 @@ export function InstructorApp() {
   const [feedback, setFeedback] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Artifact | null>(null)
   const [quizMode, setQuizMode] = useState<'edit' | 'preview'>('edit')
   const [quizAnswers, setQuizAnswers] = useState<Record<string, Record<string, number>>>({})
   const stageRef = useRef<HTMLDivElement>(null)
@@ -480,12 +481,15 @@ export function InstructorApp() {
     }
   }
 
-  async function deleteArtifact(artifact: Artifact) {
+  function requestDeleteArtifact(artifact: Artifact) {
     if (deletingId) return
-    const confirmed = window.confirm(
-      `Delete "${artifact.title}"? This permanently removes the resource and its sources.`,
-    )
-    if (!confirmed) return
+    setDeleteTarget(artifact)
+  }
+
+  async function confirmDeleteArtifact() {
+    const artifact = deleteTarget
+    if (!artifact || deletingId) return
+    setDeleteTarget(null)
     setDeletingId(artifact.id)
     setFeedback('')
     try {
@@ -883,7 +887,7 @@ export function InstructorApp() {
                     aria-label={`Delete ${artifact.title}`}
                     className="grid size-7 shrink-0 place-items-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#A21942]/30 disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={isLoading || deletingId !== null}
-                    onClick={() => void deleteArtifact(artifact)}
+                    onClick={() => requestDeleteArtifact(artifact)}
                     title="Delete this resource"
                     type="button"
                   >
@@ -1270,6 +1274,89 @@ export function InstructorApp() {
             )}
           </div>
         </aside>
+      </div>
+
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          message={`"${deleteTarget.title}" will be permanently removed along with its sources. This can't be undone.`}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDeleteArtifact()}
+        />
+      )}
+    </div>
+  )
+}
+
+function ConfirmDeleteDialog({
+  message,
+  onCancel,
+  onConfirm,
+}: {
+  message: string
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const latest = useRef({ onCancel, onConfirm })
+  useEffect(() => {
+    latest.current = { onCancel, onConfirm }
+  })
+
+  // Runs once per open: move focus to Cancel (the safe default) and handle
+  // Escape. The keydown listener reads the latest callbacks through a ref so
+  // parent re-renders never steal focus or re-subscribe.
+  useEffect(() => {
+    cancelRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        latest.current.onCancel()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-[#262626]/60 p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) latest.current.onCancel()
+      }}
+      role="presentation"
+    >
+      <div
+        aria-describedby="delete-dialog-message"
+        aria-labelledby="delete-dialog-title"
+        className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl"
+        role="alertdialog"
+      >
+        <span aria-hidden="true" className="grid size-12 place-items-center rounded-full bg-red-50 text-[#A21942]">
+          <Trash2 size={22} />
+        </span>
+        <h2 className="mt-4 text-lg font-bold tracking-tight text-[#262626]" id="delete-dialog-title">
+          Delete this resource?
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-gray-600" id="delete-dialog-message">
+          {message}
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            onClick={onCancel}
+            ref={cancelRef}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+            onClick={onConfirm}
+            type="button"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   )
