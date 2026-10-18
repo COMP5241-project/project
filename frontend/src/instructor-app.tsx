@@ -7,6 +7,8 @@ import {
   ArrowUp,
   Bold,
   Bookmark,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   FilePlus2,
   Image,
@@ -27,6 +29,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
+  ApiError,
   createMaterial,
   createMaterialSource,
   deleteMaterial,
@@ -89,8 +92,21 @@ function resolveSlideTheme(theme?: SlideTheme): SlideTheme {
   }
 }
 
+const MAX_SAVE_ATTEMPTS = 3
+
 function isQuizPrompt(prompt: string): boolean {
-  return /\b(?:quiz|mc)\b|multiple[\s-]+choice/i.test(prompt)
+  // "MC Quiz" still matches via the word "quiz"; standalone "mc" was
+  // removed because it misfired on unrelated slide prompts.
+  return /\bquiz\b|multiple[\s-]+choice/i.test(prompt)
+}
+
+/** Maps generation failures to a message that describes the actual cause. */
+function generationErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return 'Your session has expired. Please sign in again.'
+    if (error.status === 503) return 'Generation is temporarily unavailable. Please try again in a moment.'
+  }
+  return error instanceof Error ? error.message : 'Unable to generate this resource.'
 }
 
 export function IconButton({
@@ -234,6 +250,7 @@ function useWorkspace() {
   const [error, setError] = useState('')
   const saveTimers = useRef(new Map<string, number>())
   const saveQueues = useRef(new Map<string, Promise<void>>())
+  const saveAttempts = useRef(new Map<string, number>())
 
   useEffect(() => {
     const pendingTimers = saveTimers.current
@@ -284,13 +301,27 @@ function useWorkspace() {
   const scheduleSave = useCallback((artifact: Artifact) => {
     const oldTimer = saveTimers.current.get(artifact.id)
     if (oldTimer !== undefined) window.clearTimeout(oldTimer)
-    const timer = window.setTimeout(() => {
-      saveTimers.current.delete(artifact.id)
-      void persist(artifact).catch((saveError: unknown) => {
-        setError(saveError instanceof Error ? saveError.message : 'Unable to save this material.')
-      })
-    }, 700)
-    saveTimers.current.set(artifact.id, timer)
+    saveAttempts.current.set(artifact.id, 0)
+    const attemptSave = (delayMs: number) => {
+      const timer = window.setTimeout(async () => {
+        saveTimers.current.delete(artifact.id)
+        try {
+          await persist(artifact)
+          saveAttempts.current.delete(artifact.id)
+          setError('')
+        } catch (saveError: unknown) {
+          const attempts = (saveAttempts.current.get(artifact.id) ?? 0) + 1
+          saveAttempts.current.set(artifact.id, attempts)
+          setError(saveError instanceof Error ? saveError.message : 'Unable to save this material.')
+          // Transient failures (e.g. a Supabase blip) used to drop the
+          // autosave permanently; retry a few times before giving up.
+          if (attempts < MAX_SAVE_ATTEMPTS) attemptSave(attempts === 1 ? 1500 : 5000)
+        }
+      }, delayMs)
+      saveTimers.current.set(artifact.id, timer)
+    }
+    // First attempt runs after the debounce; retries use their own delays.
+    attemptSave(700)
   }, [persist])
 
   const saveNow = useCallback(async (artifact: Artifact) => {
@@ -393,6 +424,7 @@ export function InstructorApp() {
   const slideViewportRef = useRef<HTMLDivElement>(null)
   const promptRef = useRef<HTMLTextAreaElement>(null)
   const [slideScale, setSlideScale] = useState(1)
+  const [isPresenting, setIsPresenting] = useState(false)
 
   const activeArtifact = artifacts.find((artifact) => artifact.id === activeArtifactId) ?? null
   // The chips control the kind the next prompt targets. Choosing the other
@@ -427,6 +459,14 @@ export function InstructorApp() {
   }, [activeArtifactId, activeArtifact?.kind, activeSlides.length])
 
   useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsPresenting(document.fullscreenElement === stageRef.current)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  useEffect(() => {
     if (activeArtifact?.kind !== 'slides' || activeSlides.length === 0) return
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target
@@ -434,11 +474,12 @@ export function InstructorApp() {
         target instanceof HTMLElement &&
         (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
       ) return
-      if (
-        target instanceof HTMLElement &&
-        document.fullscreenElement !== stageRef.current &&
-        target.closest('button, a, [role="button"]')
-      ) return
+      const isControl =
+        target instanceof HTMLElement && target.closest('button, a, [role="button"]') !== null
+      // Let focused controls keep their activation keys (Enter/Space) so
+      // thumbnails and toolbar buttons still activate normally; arrow keys
+      // always drive slide navigation, whether or not a control has focus.
+      if (isControl && ['Enter', ' ', 'Spacebar'].includes(event.key)) return
 
       const forward = ['ArrowRight', 'ArrowDown', 'Enter', ' ', 'Spacebar'].includes(event.key)
       const backward = ['ArrowLeft', 'ArrowUp', 'Backspace'].includes(event.key)
@@ -601,7 +642,7 @@ export function InstructorApp() {
       })
       setSlideSelection({ artifactId, index: 0 })
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to generate this resource.'
+      const message = generationErrorMessage(error)
       setFeedback(message)
       if (artifactId) updateArtifact(artifactId, (artifact) => ({
         ...artifact,
@@ -836,8 +877,9 @@ export function InstructorApp() {
           <IconButton icon={FilePlus2} label="New slide deck" disabled={isLoading} onClick={() => void createAndSelectArtifact('slides')} />
           <IconButton icon={MessageSquare} label="New quiz" disabled={isLoading} onClick={() => void createAndSelectArtifact('quiz')} />
           <IconButton
+            disabled={activeArtifact?.kind !== 'slides' || isLoading}
             icon={Maximize2}
-            label="Toggle fullscreen"
+            label={activeArtifact?.kind === 'slides' ? 'Present slide deck' : 'Present slide deck (slides only)'}
             onClick={() => {
               if (document.fullscreenElement) void document.exitFullscreen()
               else void stageRef.current?.requestFullscreen()
@@ -1096,23 +1138,79 @@ export function InstructorApp() {
                         </div>
                       </article>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-1">
-                        <IconButton icon={Shapes} label="Use diagram" onClick={() => updateSlide(activeSlideIndex, { visual: { ...activeSlide.visual, kind: 'diagram' } })} />
-                        <label className="grid size-9 cursor-pointer place-items-center rounded-md border border-gray-200 bg-white text-gray-600 hover:text-[#A21942]" title="Upload photo">
-                          <Image aria-hidden="true" size={16} />
-                          <span className="sr-only">Upload photo</span>
-                          <input accept="image/*" className="sr-only" onChange={(event) => {
-                            const file = event.target.files?.[0]
-                            if (file) void uploadSlideImage(file).catch((error: unknown) => setFeedback(error instanceof Error ? error.message : 'Unable to upload photo.'))
-                            event.target.value = ''
-                          }} type="file" />
-                        </label>
-                        <IconButton icon={ArrowUp} label="Move slide earlier" disabled={activeSlideIndex === 0} onClick={() => reorderSlide(activeSlideIndex, activeSlideIndex - 1)} />
-                        <IconButton icon={ArrowDown} label="Move slide later" disabled={activeSlideIndex >= activeSlides.length - 1} onClick={() => reorderSlide(activeSlideIndex, activeSlideIndex + 1)} />
+                    {isPresenting ? (
+                      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                        <IconButton
+                          icon={ChevronLeft}
+                          label="Previous slide"
+                          disabled={activeSlideIndex === 0}
+                          onClick={() => selectSlide(activeSlideIndex - 1)}
+                        />
+                        <span className="min-w-14 text-center text-sm font-semibold tabular-nums text-gray-700">
+                          {activeSlideIndex + 1} / {activeSlides.length}
+                        </span>
+                        <IconButton
+                          icon={ChevronRight}
+                          label="Next slide"
+                          disabled={activeSlideIndex >= activeSlides.length - 1}
+                          onClick={() => selectSlide(activeSlideIndex + 1)}
+                        />
+                        <span aria-hidden="true" className="mx-1 h-6 border-l border-gray-300" />
+                        <button
+                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-[#A21942] hover:text-[#A21942] focus:outline-none focus:ring-2 focus:ring-[#A21942]/30"
+                          onClick={() => {
+                            if (document.fullscreenElement) void document.exitFullscreen()
+                          }}
+                          type="button"
+                        >
+                          <X aria-hidden="true" size={15} />
+                          Exit
+                        </button>
+                        <span className="text-xs text-gray-400">← → to change slide · Esc to exit</span>
                       </div>
-                      <span className="text-xs text-gray-500">Click any slide text or visual to edit it inline.</span>
-                    </div>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-1" role="group" aria-label="Slide navigation">
+                            <IconButton
+                              icon={ChevronLeft}
+                              label="Previous slide"
+                              disabled={activeSlideIndex === 0}
+                              onClick={() => selectSlide(activeSlideIndex - 1)}
+                            />
+                            <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-gray-600">
+                              {activeSlideIndex + 1} / {activeSlides.length}
+                            </span>
+                            <IconButton
+                              icon={ChevronRight}
+                              label="Next slide"
+                              disabled={activeSlideIndex >= activeSlides.length - 1}
+                              onClick={() => selectSlide(activeSlideIndex + 1)}
+                            />
+                          </div>
+                          <span aria-hidden="true" className="h-6 border-l border-gray-200" />
+                          <div className="flex items-center gap-1" role="group" aria-label="Slide tools">
+                            <IconButton icon={Shapes} label="Use diagram" onClick={() => updateSlide(activeSlideIndex, { visual: { ...activeSlide.visual, kind: 'diagram' } })} />
+                            <label className="grid size-9 cursor-pointer place-items-center rounded-md border border-gray-200 bg-white text-gray-600 hover:text-[#A21942]" title="Upload photo">
+                              <Image aria-hidden="true" size={16} />
+                              <span className="sr-only">Upload photo</span>
+                              <input accept="image/*" className="sr-only" onChange={(event) => {
+                                const file = event.target.files?.[0]
+                                if (file) void uploadSlideImage(file).catch((error: unknown) => setFeedback(error instanceof Error ? error.message : 'Unable to upload photo.'))
+                                event.target.value = ''
+                              }} type="file" />
+                            </label>
+                          </div>
+                          <span aria-hidden="true" className="h-6 border-l border-gray-200" />
+                          <div className="flex items-center gap-1" role="group" aria-label="Reorder slides">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Reorder</span>
+                            <IconButton icon={ArrowUp} label="Move this slide earlier in the deck" disabled={activeSlideIndex === 0} onClick={() => reorderSlide(activeSlideIndex, activeSlideIndex - 1)} />
+                            <IconButton icon={ArrowDown} label="Move this slide later in the deck" disabled={activeSlideIndex >= activeSlides.length - 1} onClick={() => reorderSlide(activeSlideIndex, activeSlideIndex + 1)} />
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-500">Click slide text to edit · Switch slides with ← → or the chevron buttons</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="m-auto max-w-sm p-8 text-center">
