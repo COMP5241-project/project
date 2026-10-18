@@ -27,6 +27,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
+  ApiError,
   createMaterial,
   createMaterialSource,
   deleteMaterial,
@@ -89,8 +90,21 @@ function resolveSlideTheme(theme?: SlideTheme): SlideTheme {
   }
 }
 
+const MAX_SAVE_ATTEMPTS = 3
+
 function isQuizPrompt(prompt: string): boolean {
-  return /\b(?:quiz|mc)\b|multiple[\s-]+choice/i.test(prompt)
+  // "MC Quiz" still matches via the word "quiz"; standalone "mc" was
+  // removed because it misfired on unrelated slide prompts.
+  return /\bquiz\b|multiple[\s-]+choice/i.test(prompt)
+}
+
+/** Maps generation failures to a message that describes the actual cause. */
+function generationErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return 'Your session has expired. Please sign in again.'
+    if (error.status === 503) return 'Generation is temporarily unavailable. Please try again in a moment.'
+  }
+  return error instanceof Error ? error.message : 'Unable to generate this resource.'
 }
 
 export function IconButton({
@@ -234,6 +248,7 @@ function useWorkspace() {
   const [error, setError] = useState('')
   const saveTimers = useRef(new Map<string, number>())
   const saveQueues = useRef(new Map<string, Promise<void>>())
+  const saveAttempts = useRef(new Map<string, number>())
 
   useEffect(() => {
     const pendingTimers = saveTimers.current
@@ -284,13 +299,27 @@ function useWorkspace() {
   const scheduleSave = useCallback((artifact: Artifact) => {
     const oldTimer = saveTimers.current.get(artifact.id)
     if (oldTimer !== undefined) window.clearTimeout(oldTimer)
-    const timer = window.setTimeout(() => {
-      saveTimers.current.delete(artifact.id)
-      void persist(artifact).catch((saveError: unknown) => {
-        setError(saveError instanceof Error ? saveError.message : 'Unable to save this material.')
-      })
-    }, 700)
-    saveTimers.current.set(artifact.id, timer)
+    saveAttempts.current.set(artifact.id, 0)
+    const attemptSave = (delayMs: number) => {
+      const timer = window.setTimeout(async () => {
+        saveTimers.current.delete(artifact.id)
+        try {
+          await persist(artifact)
+          saveAttempts.current.delete(artifact.id)
+          setError('')
+        } catch (saveError: unknown) {
+          const attempts = (saveAttempts.current.get(artifact.id) ?? 0) + 1
+          saveAttempts.current.set(artifact.id, attempts)
+          setError(saveError instanceof Error ? saveError.message : 'Unable to save this material.')
+          // Transient failures (e.g. a Supabase blip) used to drop the
+          // autosave permanently; retry a few times before giving up.
+          if (attempts < MAX_SAVE_ATTEMPTS) attemptSave(attempts === 1 ? 1500 : 5000)
+        }
+      }, delayMs)
+      saveTimers.current.set(artifact.id, timer)
+    }
+    // First attempt runs after the debounce; retries use their own delays.
+    attemptSave(700)
   }, [persist])
 
   const saveNow = useCallback(async (artifact: Artifact) => {
@@ -601,7 +630,7 @@ export function InstructorApp() {
       })
       setSlideSelection({ artifactId, index: 0 })
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to generate this resource.'
+      const message = generationErrorMessage(error)
       setFeedback(message)
       if (artifactId) updateArtifact(artifactId, (artifact) => ({
         ...artifact,
@@ -836,8 +865,9 @@ export function InstructorApp() {
           <IconButton icon={FilePlus2} label="New slide deck" disabled={isLoading} onClick={() => void createAndSelectArtifact('slides')} />
           <IconButton icon={MessageSquare} label="New quiz" disabled={isLoading} onClick={() => void createAndSelectArtifact('quiz')} />
           <IconButton
+            disabled={activeArtifact?.kind !== 'slides' || isLoading}
             icon={Maximize2}
-            label="Toggle fullscreen"
+            label={activeArtifact?.kind === 'slides' ? 'Present slide deck' : 'Present slide deck (slides only)'}
             onClick={() => {
               if (document.fullscreenElement) void document.exitFullscreen()
               else void stageRef.current?.requestFullscreen()

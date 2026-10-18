@@ -18,7 +18,10 @@ from app.identity.sessions import StoreDependency, verified_session
 
 router = APIRouter(prefix="/api/instructor")
 
-QUIZ_INTENT = re.compile(r"\b(?:quiz|mc)\b|multiple[\s-]+choice", re.IGNORECASE)
+# Kept in sync with `isQuizPrompt` in the instructor app: "MC Quiz" still
+# matches via the word "quiz"; a standalone "mc" was removed because it
+# misfired on unrelated slide prompts.
+QUIZ_INTENT = re.compile(r"\bquiz\b|multiple[\s-]+choice", re.IGNORECASE)
 
 
 class CourseGenerationRequest(BaseModel):
