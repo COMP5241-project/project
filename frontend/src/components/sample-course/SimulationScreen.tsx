@@ -111,6 +111,7 @@ export function SimulationScreen({ decisions, results, onAnswer, onContinue }: S
               className="inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
               onClick={() => {
                 if (index < decisions.length - 1) setIndex(index + 1)
+                else onContinue()
               }}
               type="button"
             >
