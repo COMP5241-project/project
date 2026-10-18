@@ -863,7 +863,7 @@ function InteractivePreview() {
               </div>
               <a
                 className="mt-8 inline-flex w-fit items-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-                href="#get-started"
+                href="/courses/sample"
               >
                 Explore this course <ArrowRight aria-hidden="true" size={16} />
               </a>
@@ -991,7 +991,7 @@ function CTASection() {
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
             <a
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#801333] transition-colors hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              href="#preview"
+              href="/courses/sample"
             >
               I’m a student <ArrowRight aria-hidden="true" size={16} />
             </a>
@@ -1117,7 +1117,7 @@ function DemoDialog({ onClose }: DemoDialogProps) {
           </p>
           <a
             className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-            href="#preview"
+            href="/courses/sample"
             onClick={onClose}
           >
             Explore mini-courses <ArrowRight aria-hidden="true" size={16} />

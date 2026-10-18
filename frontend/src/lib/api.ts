@@ -295,3 +295,136 @@ export async function judgeHallucinationCritique(
   if (!data) throw new ApiError('The AI tutor is unavailable. Try again.', 503)
   return data
 }
+
+/* --- Sample mini-course (public preview with quota-limited AI tutor) --- */
+
+export interface SampleDecisionOption {
+  id: string
+  text: string
+}
+
+export interface SampleDecision {
+  id: string
+  scenario: string
+  question: string
+  options: SampleDecisionOption[]
+}
+
+export interface SampleSlide {
+  id: string
+  title: string
+  bullets: string[]
+  steps: string[]
+}
+
+export interface SampleQuizQuestion {
+  id: string
+  question: string
+  options: string[]
+}
+
+export interface SamplePromptCompare {
+  id: string
+  story: string
+  vague_prompt: string
+  precise_prompt: string
+  vague_outcome: string
+  precise_outcome: string
+  task: string
+}
+
+export interface SampleBotInput {
+  id: string
+  label: string
+  emoji: string
+}
+
+export interface SampleBotGame {
+  moment_id: string
+  title: string
+  intro: string
+  attempts: number
+  flaws_total: number
+  inputs: SampleBotInput[]
+  win_title: string
+  win_message: string
+  lesson_lines: string[]
+  teaser: string
+}
+
+export interface SampleReflection {
+  id: string
+  prompt: string
+}
+
+export interface SampleCourseContent {
+  title: string
+  tagline: string
+  minutes: string
+  tutor_moments: number
+  decisions: SampleDecision[]
+  slides: SampleSlide[]
+  quiz: SampleQuizQuestion[]
+  prompt_compare: SamplePromptCompare
+  bot: SampleBotGame
+  reflection: SampleReflection
+}
+
+/** Loads the public sample course (player view — answer keys stay server-side). */
+export async function getSampleCourseContent(): Promise<SampleCourseContent> {
+  const data = await request<SampleCourseContent>('/sample-course/content')
+  if (!data) throw new ApiError('Unable to load the sample course. Try again.', 503)
+  return data
+}
+
+export type SampleAnswerResult =
+  | { type: 'decision'; correct: boolean; feedback: string }
+  | { type: 'quiz'; correct: boolean; correct_index: number; explanation: string }
+  | { type: 'bot'; kind: 'success' | 'near_miss' | 'flaw'; reaction: string; lesson: string | null }
+
+/** Server-checks a deterministic answer (decision option, quiz index, bot input). */
+export async function submitSampleAnswer(
+  momentId: string,
+  choice: string,
+): Promise<SampleAnswerResult> {
+  const data = await request<SampleAnswerResult>('/sample-course/answer', {
+    moment_id: momentId,
+    choice,
+  })
+  if (!data) throw new ApiError('Unable to check that answer. Try again.', 503)
+  return data
+}
+
+export interface SampleTutorVerdict {
+  score: number
+  feedback: string
+  key_points: string[]
+  remaining_uses: number
+}
+
+/** Asks the quota-limited AI tutor to grade a free-response moment. */
+export async function askSampleTutor(
+  momentId: string,
+  answer: string,
+): Promise<SampleTutorVerdict> {
+  const data = await request<SampleTutorVerdict>('/sample-course/tutor', {
+    moment_id: momentId,
+    answer,
+  })
+  if (!data) throw new ApiError('The AI tutor is unavailable. Try again.', 503)
+  return data
+}
+
+export interface SampleCourseResultInput {
+  overall_score: number
+  simulation_score: number
+  quiz_score: number
+  bot_score: number
+  prompt_compare_score: number | null
+  reflection_score: number | null
+}
+
+/** Persists a completed sample course run for the signed-in student. */
+export async function saveSampleCourseResult(input: SampleCourseResultInput): Promise<void> {
+  await request('/profiles/sample-course-results', input)
+}
