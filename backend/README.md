@@ -166,6 +166,22 @@ bucket and accessed through short-lived signed URLs. URL sources are fetched onc
 extracted text is stored with the material.
 Apply all migrations in `../supabase/migrations/`, including the materials migration, before
 using these endpoints.
+
+The sample mini-course ("Fundamentals of AI-Assisted Software Engineering") is public.
+`GET /api/sample-course/content` returns the player view — answer keys (decision correctness,
+quiz answers/explanations, bot input kinds/lessons, tutor rubrics) stay server-side.
+`POST /api/sample-course/answer` checks deterministic answers (simulation decisions, quiz
+choices, Break-the-Bot inputs) with no LLM call. `POST /api/sample-course/tutor` grades the two
+free-response moments with one OpenRouter call each and is quota-limited: anonymous guests are
+tracked by a random HttpOnly `sample_tour` cookie (Path=/api, SameSite=Lax) and get 2 total
+judgements; signed-in students get 3 judgements per moment; answers must be 20–300 characters;
+a coarse per-IP cap (12/hour) guards against guest-id cycling. Quota state is in-memory and
+resets on backend restart (same single-worker dev limitation as sessions), and a failed LLM
+call refunds the attempt so outages never consume quota.
+`POST /api/profiles/sample-course-results` saves a completed run for signed-in students into
+`sample_course_results` — apply
+`../supabase/migrations/20261018000000_create_sample_course_results.sql` first; guests can play
+but never persist anything.
 When using the Supabase Dashboard, run
 `../supabase/migrations/20261015000000_create_instructor_materials.sql` in the project's
 SQL Editor. If the API returns `materials_not_configured`, this migration has not been

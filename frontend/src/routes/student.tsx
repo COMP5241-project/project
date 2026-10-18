@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, GraduationCap, House, LoaderCircle, Lock, LogOut } from 'lucide-react'
+import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, LoaderCircle, Lock, LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useProfile } from '../lib/useProfile'
 
@@ -113,6 +113,27 @@ function StudentPage() {
             to="/student/hallucination-game"
           >
             Play the game <ArrowRight aria-hidden="true" size={15} />
+          </Link>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+            <Gamepad2 aria-hidden="true" size={24} />
+          </span>
+          <p className="mt-6 text-sm font-semibold text-[#A21942]">Sample mini-course · Open preview</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+            Fundamentals of AI-Assisted Software Engineering
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            A 20-minute taste of the full track: an SDLC simulation, a prompt lab, and the Break
+            the Bot flaw hunt. Anyone can play it without an account — playing it from here saves
+            your result to your profile.
+          </p>
+          <Link
+            className="mt-5 inline-flex items-center gap-1.5 rounded-md border border-[#A21942] bg-white px-4 py-2 text-sm font-medium text-[#A21942] transition-colors hover:bg-[#A21942]/5"
+            to="/courses/sample"
+          >
+            Play the sample <ArrowRight aria-hidden="true" size={15} />
           </Link>
         </div>
 

@@ -143,6 +143,26 @@ def verified_session(request: Request, client: Client | None,
         raise ApiError(401, "unauthenticated", "Sign in again.", clear_cookie=True)
 
 
+@contextmanager
+def optional_verified_session(
+    request: Request, client: Client | None, store: SessionStore,
+) -> Generator[tuple[Session, User] | None, None, None]:
+    """Yield ``(session, user)`` when a valid session exists, else ``None``.
+
+    Same verification as ``verified_session``, but a missing or invalid
+    session is not an error: endpoints that also serve guests fall back to
+    the guest path instead of returning 401. Service-level failures (503)
+    still propagate, exactly like in ``verified_session``.
+    """
+    try:
+        with verified_session(request, client, store) as pair:
+            yield pair
+    except ApiError as error:
+        if error.status != 401:
+            raise
+        yield None
+
+
 def end_session(request: Request, response: Response, store: SessionStore,
                 client: Client | None) -> None:
     session = store.get(request.cookies.get(COOKIE_NAME))

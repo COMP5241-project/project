@@ -50,6 +50,12 @@ npm run build
 ```
 ### Module B: Student Learning Hub & Interactive Sandboxes
 
+#### B0. Public Sample Mini-Course (Implemented)
+* **Objective:** Give any visitor — no account needed — a 20-minute, hands-on taste of the platform and convert them into signed-in students. The landing page's "Explore this course" button leads here.
+* **Content:** A 7-screen guided run: welcome, an SDLC decision simulation, a 5-slide mini-lesson + 3-question quiz, a vague-vs-precise prompt lab, the **Break the Bot** mini-game (find the hidden flaws in a canteen pre-order bot), a reflection, and a scored summary with badges.
+* **Access model:** The course is public; deterministic answers (decisions, quiz, bot inputs) are checked server-side so answer keys never ship to the browser. The AI tutor grades two free-response moments: guests get **2 uses total** (exactly one full run), signed-in students get **3 tries per moment**. Answers are limited to 20–300 characters, with a coarse per-IP safety cap.
+* **Persistence:** Guest progress lives in the browser only (localStorage resume, no personal data); completed runs by signed-in students are saved to `sample_course_results`.
+
 #### B1. Gamified Skill Tree Navigation
 * **Visual Tech-Tree:** Graphical representation of mini-courses (Fundamentals of SE, AI Coding Agents, Soft & Product Skills)[cite: 1].
 * **Gamification Elements:** Locked/unlocked nodes, XP reward counters, completion status indicators, and badges for streak milestones.
@@ -127,7 +133,7 @@ The backend application code is in `backend/app/`; its dependencies and Python p
 * **FastAPI** — web framework for building the API
 * **uv** — Python project and dependency management
 
-The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, and instructor-only AI course generation. Assessment-submission endpoints are not yet implemented.
+The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, the public sample mini-course (with a quota-limited AI tutor), and instructor-only AI course generation. Assessment-submission endpoints are not yet implemented.
 
 ---
 
@@ -138,12 +144,16 @@ The backend provides greeting/health endpoints, Supabase password authentication
 * `frontend/index.html` — Vite app entry point; mounts the React root.
 * `frontend/src/main.tsx` — App bootstrap and top-level rendering.
 * `frontend/src/routes/` — TanStack Router screens, including the home, login, student, and instructor routes.
+* `frontend/src/routes/courses_.sample.tsx` — the public sample mini-course (`/courses/sample`).
+* `frontend/src/components/sample-course/` — sample-course screens and the shared AI tutor moment component.
 * `frontend/src/routeTree.gen.ts` — Generated route tree used by TanStack Router.
 * `frontend/src/lib/` — Shared API adapter, role cache, and profile utilities.
 * `frontend/src/styles.css` — Global styles and Tailwind CSS import.
 * `frontend/public/` — Static frontend assets.
 * `backend/app/main.py` — FastAPI application, API error handling, greeting, and health endpoints.
 * `backend/app/auth.py` — Supabase authentication, cookie sessions, and profile endpoints.
+* `backend/app/sample_course/` — sample mini-course content bank, server-checked answers, quota-limited AI tutor, and guest quota bookkeeping.
+* `backend/app/routers/sample_course.py` — public sample-course endpoints (content, answer, tutor).
 * `backend/pyproject.toml` — Backend project settings and dependencies; `backend/uv.lock` locks dependency versions.
 * `supabase/migrations/` — SQL migrations for the Supabase database.
 * `state/` — Project state files.
