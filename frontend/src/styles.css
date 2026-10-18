@@ -289,7 +289,12 @@
   .bot-glitch,
   .bot-smoke,
   .bot-confetti,
-  .bot-pop {
+  .bot-pop,
+  .whip-sun,
+  .whip-wheel,
+  .whip-clouds,
+  .whip-ground,
+  .whip-bushes {
     animation: none !important;
   }
   .scan-sweep {
@@ -410,4 +415,54 @@
 }
 .bot-pop {
   animation: bot-pop 0.28s ease-out both;
+}
+
+/* ==================================================================
+   WhipScene — Prompt stage animations (A/B whip comparisons)
+   The characters and the whip are animated procedurally in JS
+   (WhipScene.tsx, single master clock); only the seamless stage
+   loops — sun, clouds, road, wheel spin — live in CSS here.
+   ================================================================== */
+
+/* --- shared stage motion --- */
+
+@keyframes whip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.whip-sun {
+  animation: whip-spin 60s linear infinite;
+}
+.whip-wheel {
+  animation: whip-spin 1.2s linear infinite;
+}
+.whip-wheel-fast {
+  animation-duration: 0.8s;
+}
+.whip-clouds {
+  animation: whip-cloud-drift 32s linear infinite;
+}
+@keyframes whip-cloud-drift {
+  to {
+    transform: translateX(-800px);
+  }
+}
+.whip-ground {
+  animation: whip-ground-scroll 1s linear infinite;
+}
+@keyframes whip-ground-scroll {
+  to {
+    transform: translateX(-160px);
+  }
+}
+.whip-bushes {
+  /* Same 160px/s as the road, looping over the bushes' true 800px pattern
+     period so no shape ever switches at the seam. */
+  animation: whip-bush-scroll 5s linear infinite;
+}
+@keyframes whip-bush-scroll {
+  to {
+    transform: translateX(-800px);
+  }
 }

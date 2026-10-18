@@ -1,6 +1,7 @@
 import { ArrowRight, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react'
 import type { SamplePromptCompare, SampleTutorVerdict } from '../../lib/api'
 import { TutorMoment, type TutorMomentState } from './TutorMoment'
+import { WhipScene } from './WhipScene'
 
 interface PromptCompareScreenProps {
   promptCompare: SamplePromptCompare
@@ -45,8 +46,10 @@ export function PromptCompareScreen({
             <p className="mt-3 rounded-lg border border-rose-200 bg-white p-3 font-mono text-xs leading-5 text-gray-700">
               {promptCompare.vague_prompt}
             </p>
+            <div className="mt-3">
+              <WhipScene variant="vague" />
+            </div>
             <p className="mt-3 text-sm leading-6 text-rose-900">{promptCompare.vague_outcome}</p>
-            <p aria-hidden="true" className="mt-3 text-center text-3xl">🚲🧍💥</p>
           </div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
             <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-700">
@@ -56,8 +59,10 @@ export function PromptCompareScreen({
             <p className="mt-3 rounded-lg border border-emerald-200 bg-white p-3 font-mono text-xs leading-5 text-gray-700">
               {promptCompare.precise_prompt}
             </p>
+            <div className="mt-3">
+              <WhipScene variant="precise" />
+            </div>
             <p className="mt-3 text-sm leading-6 text-emerald-900">{promptCompare.precise_outcome}</p>
-            <p aria-hidden="true" className="mt-3 text-center text-3xl">🧍🚴💨✨</p>
           </div>
         </div>
       </div>
