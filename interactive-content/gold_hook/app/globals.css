@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/*
+  PolyU EduGenAI house style (per EDUGENAI-README.md §1):
+  - Primary: PolyU Brick Red  #A21942  (hover #801333)
+  - Ink:     Dark Charcoal    #262626
+  - Page:    Light Grey       #F8F9FA
+  - Lines:   Card borders     #E5E7EB
+  - Success: Progress Green   #10B981
+  Typography: Tailwind default sans (system-ui). No raw hex in components —
+  use the --color-polyu-* tokens below (e.g. `bg-polyu`, `text-polyu-dark`).
+*/
+@theme {
+  --color-polyu: #a21942;
+  --color-polyu-dark: #801333;
+  --color-ink: #262626;
+  --color-page: #f8f9fa;
+  --color-line: #e5e7eb;
+  --color-ok: #10b981;
+  --color-ok-dark: #047857; /* WCAG-AA green for TEXT on white (#10B981 is ~2.4:1) */
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overscroll-behavior: none; /* keep Space / taps from scrolling the page mid-game */
+  background: #f8f9fa;
+  color: #262626;
+}
+
+/* Visible focus for keyboard players (PolyU brick red on light bg). */
+:focus-visible {
+  outline: 3px solid #a21942;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@layer components {
+  /* EduGenAI card: bg-white rounded-lg border gray-200 shadow-sm */
+  .edu-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  /* Primary button per README §1 */
+  .btn-primary {
+    background: #a21942;
+    color: #ffffff;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: background-color 200ms ease;
+  }
+  .btn-primary:hover {
+    background: #801333;
+  }
+
+  /* Secondary button: white, grey border, charcoal text */
+  .btn-secondary {
+    background: #ffffff;
+    color: #262626;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: background-color 200ms ease, border-color 200ms ease;
+  }
+  .btn-secondary:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+
+  /* Success action (progress green #10B981) */
+  .btn-success {
+    background: #10b981;
+    color: #ffffff;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: background-color 200ms ease;
+  }
+  .btn-success:hover {
+    background: #059669;
+  }
+}
+
+/* Respect reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

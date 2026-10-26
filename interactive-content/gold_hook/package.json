@@ -1,0 +1,30 @@
+{
+  "name": "gold-rush-hook-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gold Rush Hook — a Gold Miner-style hook game about the Software Development Lifecycle. Do's are gold; don'ts are stones.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lucide-react": "^1.55.0",
+    "next": "^15.5.27",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zustand": "5.0.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.8",
+    "@types/node": "22.15.3",
+    "@types/react": "19.1.6",
+    "@types/react-dom": "19.1.6",
+    "tailwindcss": "4.1.8",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
