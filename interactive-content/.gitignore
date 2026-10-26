@@ -1,0 +1,17 @@
+# Build output (assembled by build.mjs)
+dist/
+
+# Dependencies
+node_modules/
+
+# Next.js
+gold_hook/.next/
+gold_hook/out/
+gold_hook/tsconfig.tsbuildinfo
+
+# Environment variables (keep real keys out of the repo)
+.env
+
+# OS / editor
+.DS_Store
+Thumbs.db

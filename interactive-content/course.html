@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse available courses from the PolyU EduGenAI COMP5241 learning platform.">
+  <title>Courses — EduGenAI (PolyU)</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary: #A21942;
+      --ink: #262626;
+      --muted: #59616b;
+      --page: #F8F9FA;
+      --line: #E5E7EB;
+      --green: #047857;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--ink);
+      background: var(--page);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    a { color: inherit; }
+    a:focus-visible { outline: 3px solid #D97706; outline-offset: 3px; }
+    .site-header { background: var(--primary); color: #fff; }
+    .header-inner, main, .site-footer {
+      width: min(100% - 2rem, 76rem);
+      margin-inline: auto;
+    }
+    .header-inner {
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand { font-weight: 750; letter-spacing: .02em; }
+    .home-link { font-size: .9rem; font-weight: 650; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    main { flex: 1; padding-block: clamp(2.5rem, 7vw, 5rem); }
+    .intro { max-width: 44rem; margin-bottom: 2rem; }
+    .eyebrow {
+      margin: 0 0 .6rem;
+      color: var(--green);
+      font-size: .78rem;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.12; letter-spacing: -.035em; }
+    .intro > p:last-child { margin: .9rem 0 0; color: var(--muted); font-size: 1.08rem; }
+    .course-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .course-card {
+      min-height: 13rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: clamp(1.25rem, 3vw, 1.75rem);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      box-shadow: 0 2px 8px rgba(38, 38, 38, .04);
+    }
+    .course-card--available { border-top: 4px solid var(--primary); }
+    .course-card--placeholder { background: #FBFBFC; border-style: dashed; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      margin-bottom: .8rem;
+      color: var(--green);
+      font-size: .72rem;
+      font-weight: 750;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .status::before { width: .48rem; height: .48rem; content: ""; border-radius: 50%; background: currentColor; }
+    .course-card--placeholder .status { color: #6B7280; }
+    h2 { margin: 0; font-size: 1.25rem; line-height: 1.3; }
+    .course-card p { margin: .6rem 0 1rem; color: var(--muted); font-size: .95rem; }
+    .course-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      margin-top: auto;
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+    .site-footer { padding-block: 1rem 1.5rem; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 640px) {
+      .header-inner { min-height: 4rem; }
+      .course-grid { grid-template-columns: 1fr; }
+      .course-card { min-height: 11rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="brand">EduGenAI · COMP5241</span>
+      <a class="home-link" href="index.html">Back to home</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Learning catalogue</p>
+      <h1 id="page-title">Available courses</h1>
+      <p>Explore the courses currently available and check back as more learning experiences are added.</p>
+    </section>
+
+    <section class="course-grid" aria-label="Courses">
+      <article class="course-card course-card--available">
+        <span class="status">Available now</span>
+        <h2>COMP5241 — Software Engineering</h2>
+        <p>Explore modern software development with notes on AI-assisted engineering, the software lifecycle, collaboration, development practices, and software testing.</p>
+        <a class="course-link" href="course-overview.html">
+          Explore course overview <span aria-hidden="true">→</span>
+        </a>
+      </article>
+
+      <article class="course-card course-card--placeholder">
+        <span class="status">Coming soon</span>
+        <h2>Future course 1</h2>
+        <p>This course is being prepared. Its course name and introduction will be added when it becomes available.</p>
+      </article>
+      <article class="course-card course-card--placeholder">
+        <span class="status">Coming soon</span>
+        <h2>Future course 2</h2>
+        <p>This course is being prepared. Its course name and introduction will be added when it becomes available.</p>
+      </article>
+      <article class="course-card course-card--placeholder">
+        <span class="status">Coming soon</span>
+        <h2>Future course 3</h2>
+        <p>This course is being prepared. Its course name and introduction will be added when it becomes available.</p>
+      </article>
+      <article class="course-card course-card--placeholder">
+        <span class="status">Coming soon</span>
+        <h2>Future course 4</h2>
+        <p>This course is being prepared. Its course name and introduction will be added when it becomes available.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">PolyU · GenAI-Powered Software Engineering Learning</footer>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "mini-game-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "COMP5241 mini-game prototype: a static landing page, the Gold Rush Hook Next.js game, and two animated SVG demos. Builds into a single dist/ folder for static deployment (e.g. Vercel).",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "npm --prefix gold_hook run typecheck"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
