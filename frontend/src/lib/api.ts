@@ -70,10 +70,36 @@ export async function getCurrentProfile(): Promise<CurrentProfile> {
   return data
 }
 
+export async function completeAssessment(csQualified: boolean): Promise<CurrentProfile> {
+  const data = await request<CurrentProfile>('/profiles/assessment', {
+    cs_qualified: csQualified,
+  })
+  if (!data) throw new ApiError('Unable to save your assessment result.', 503)
+  return data
+}
+
 export async function login(email: string, password: string): Promise<CurrentProfile> {
   const data = await request<CurrentProfile>('/auth/login', { email, password })
   if (!data) throw new ApiError('Sign-in failed. Try again.', 503)
   return data
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await request('/auth/password-reset/request', { email })
+}
+
+export async function verifyPasswordReset(
+  email: string,
+  code: string,
+  password: string,
+  passwordConfirmation: string,
+): Promise<void> {
+  await request('/auth/password-reset/verify', {
+    email,
+    code,
+    password,
+    password_confirmation: passwordConfirmation,
+  })
 }
 
 export async function logout(): Promise<void> {

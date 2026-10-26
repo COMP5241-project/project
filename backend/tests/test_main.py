@@ -127,6 +127,90 @@ def test_auth_login_and_profile_use_private_cookie(client: HttpxClient, auth_cli
     auth_client.table.return_value.select.return_value.eq.assert_called_with("id", "student-id")
 
 
+def test_password_reset_request_sends_email_otp(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/request",
+        json={"email": "student@example.com"},
+    )
+
+    assert response.status_code == 204
+    auth_client.auth.sign_in_with_otp.assert_called_once_with({
+        "email": "student@example.com",
+        "options": {"should_create_user": False},
+    })
+
+
+def test_password_reset_verify_updates_password(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "12345678",
+            "password": "new-password",
+            "password_confirmation": "new-password",
+        },
+    )
+
+    assert response.status_code == 204
+    auth_client.auth.verify_otp.assert_called_once_with({
+        "email": "student@example.com",
+        "token": "12345678",
+        "type": "email",
+    })
+    auth_client.auth.update_user.assert_called_once_with({"password": "new-password"})
+
+
+def test_password_reset_rejects_mismatched_passwords(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "12345678",
+            "password": "new-password",
+            "password_confirmation": "different-password",
+        },
+    )
+
+    assert response.status_code == 422
+    auth_client.auth.verify_otp.assert_not_called()
+    auth_client.auth.update_user.assert_not_called()
+
+
+def test_password_reset_rejects_six_digit_codes(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "123456",
+            "password": "new-password",
+            "password_confirmation": "new-password",
+        },
+    )
+
+    assert response.status_code == 422
+    auth_client.auth.verify_otp.assert_not_called()
+    auth_client.auth.update_user.assert_not_called()
+
+
+def test_password_reset_does_not_update_when_code_verification_fails(
+    client: HttpxClient, auth_client: Mock
+):
+    auth_client.auth.verify_otp.side_effect = RuntimeError("invalid code")
+
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "12345678",
+            "password": "new-password",
+            "password_confirmation": "new-password",
+        },
+    )
+
+    assert response.status_code == 503
+    auth_client.auth.update_user.assert_not_called()
+
+
 
 def test_auth_missing_session(client: HttpxClient):
     response = client.get("/api/profiles/me")

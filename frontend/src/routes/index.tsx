@@ -142,7 +142,7 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
       ? 'Instructor Studio'
       : signedInRole === 'student'
         ? 'My Learning Hub'
-        : 'Student Login'
+        : 'Login'
   const primaryLabel = signedInRole ? 'Open dashboard' : 'Get started'
 
   return (

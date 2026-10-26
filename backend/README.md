@@ -45,6 +45,9 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 SESSION_COOKIE_SECURE=false
 ```
 
+Configure the Supabase Auth email template used for passwordless sign-in to render
+`{{ .Token }}`. The login page uses that six-digit token for password recovery.
+
 Use a public anon/publishable key; no service-role key is required. Never commit real
 credentials. Apply the SQL migrations in `../supabase/migrations/` and provision
 accounts through Supabase Auth. Sign-in does not create accounts. Roles come from
@@ -124,6 +127,8 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | GET | `/` | Greeting |
 | GET | `/health` | Supabase database connectivity |
 | POST | `/api/auth/login` | Supabase password sign-in; returns email/profile and sets a cookie |
+| POST | `/api/auth/password-reset/request` | Sends a six-digit Supabase Auth email code when the account exists |
+| POST | `/api/auth/password-reset/verify` | Verifies the code and updates the account password |
 | GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
 | POST | `/api/auth/logout` | Clears local sessions and revokes Supabase refresh sessions globally |
 | POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |

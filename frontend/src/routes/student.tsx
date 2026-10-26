@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, LoaderCircle, Lock, LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { CsValidationAssessment } from '../components/CsValidationAssessment'
 import { useProfile } from '../lib/useProfile'
 
 export const Route = createFileRoute('/student')({
@@ -47,25 +48,7 @@ function StudentPage() {
       />
     )
   } else if (!state.profile.assessment_completed) {
-    content = (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
-          <CircleAlert aria-hidden="true" size={24} />
-        </span>
-        <p className="mt-6 text-sm font-semibold text-[#A21942]">One more step</p>
-        <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
-          Diagnostic assessment required
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-gray-600">
-          Welcome, <span className="font-semibold">{state.email}</span>! Complete the one-time CS
-          qualification diagnostic assessment so we can place you on the right learning track. You
-          only have to do this once — it will not be repeated on future logins.
-        </p>
-        <p className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          The diagnostic assessment module is coming soon.
-        </p>
-      </div>
-    )
+    content = <CsValidationAssessment onComplete={() => window.location.assign('/student')} />
   } else {
     content = (
       <div className="space-y-4">
