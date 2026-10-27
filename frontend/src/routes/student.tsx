@@ -1,15 +1,42 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, LoaderCircle, Lock, LogOut } from 'lucide-react'
+import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, LoaderCircle, Lock, ListChecks, LogOut, Presentation } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CsValidationAssessment } from '../components/CsValidationAssessment'
+import { fetchPublishedCourses, type PublishedCourseSummary } from '../lib/api'
 import { useProfile } from '../lib/useProfile'
 
 export const Route = createFileRoute('/student')({
   component: StudentPage,
 })
 
+function usePublishedCourses(enabled: boolean) {
+  const [courses, setCourses] = useState<PublishedCourseSummary[] | null>(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    fetchPublishedCourses()
+      .then((data) => {
+        if (!cancelled) setCourses(data)
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load your courses.')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [enabled])
+
+  return { courses, error }
+}
+
 function StudentPage() {
   const state = useProfile()
+  const coursesState = usePublishedCourses(state.status === 'ready' && state.profile.role === 'student')
 
   let content: ReactNode
   if (state.status === 'loading') {
@@ -71,9 +98,58 @@ function StudentPage() {
             <CircleCheck aria-hidden="true" size={16} />
             Diagnostic assessment completed — you will not be asked to take it again.
           </p>
-          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            The gamified learning modules are coming soon.
-          </p>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+            <Presentation aria-hidden="true" size={24} />
+          </span>
+          <p className="mt-6 text-sm font-semibold text-[#A21942]">Your courses</p>
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#262626]">
+            Published by your instructors
+          </h2>
+          {coursesState.courses === null && coursesState.error === '' && (
+            <p className="mt-4 text-sm text-gray-500">Loading your courses…</p>
+          )}
+          {coursesState.error !== '' && (
+            <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+              {coursesState.error}
+            </p>
+          )}
+          {coursesState.courses !== null && coursesState.courses.length === 0 && (
+            <p className="mt-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              No courses have been published yet. Check back soon — your instructors are still
+              preparing them.
+            </p>
+          )}
+          {coursesState.courses !== null && coursesState.courses.length > 0 && (
+            <ul className="mt-4 space-y-3">
+              {coursesState.courses.map((course) => (
+                <li key={course.id}>
+                  <Link
+                    className="group flex items-center justify-between gap-4 rounded-lg border border-gray-200 p-4 transition-colors hover:border-[#A21942]"
+                    to="/courses/$id"
+                    params={{ id: course.id }}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">
+                        {course.type === 'quiz' ? <ListChecks size={18} /> : <Presentation size={18} />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#262626] transition-colors group-hover:text-[#A21942]">
+                          {course.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {course.type === 'quiz' ? 'Quiz' : 'Slide deck'}
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight aria-hidden="true" className="shrink-0 text-gray-400 transition-colors group-hover:text-[#A21942]" size={16} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">

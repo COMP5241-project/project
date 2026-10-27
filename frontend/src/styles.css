@@ -18,6 +18,37 @@
 }
 
 /* ==================================================================
+   Instructor studio — PDF export (print view)
+   "Export as PDF" renders the active deck/quiz into .print-only and
+   calls window.print(); while printing, the rest of the app is hidden
+   and each slide becomes its own 16:9 page. The matching @page rule is
+   injected conditionally by the app (see the .print-only overlay) so
+   other pages keep their normal print paper size.
+   ================================================================== */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .instructor-root > *:not(.print-only) {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-slide {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .print-slide:last-child {
+    page-break-after: auto;
+  }
+}
+
+/* ==================================================================
    Spot the Hallucination — game motion
    Character/element motion is applied to wrapper <div>/<span> nodes,
    never to the <svg> element itself (see
