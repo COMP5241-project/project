@@ -672,12 +672,20 @@ export function InstructorApp() {
   useEffect(() => {
     const viewport = slideViewportRef.current
     if (!viewport || activeArtifact?.kind !== 'slides') return
-    const measure = () => setSlideScale(viewport.clientWidth / SLIDE_WIDTH)
+    const measure = () => {
+      // A ResizeObserver reports zero for an element that has been removed
+      // from the DOM (e.g. when the studio switches to the analytics view);
+      // never scale the canvas down to zero from such a report.
+      const width = viewport.clientWidth
+      if (width > 0) setSlideScale(width / SLIDE_WIDTH)
+    }
     const observer = new ResizeObserver(measure)
     observer.observe(viewport)
     measure()
     return () => observer.disconnect()
-  }, [activeArtifactId, activeArtifact?.kind, activeSlides.length])
+    // Re-runs when returning to the workspace view so the observer re-binds
+    // to the freshly mounted viewport element.
+  }, [activeArtifactId, activeArtifact?.kind, activeSlides.length, studioView])
 
   useEffect(() => {
     const handleFullscreenChange = () => {
