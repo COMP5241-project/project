@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, LoaderCircle, Lock, ListChecks, LogOut, Presentation } from 'lucide-react'
+import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, Library, LoaderCircle, Lock, ListChecks, LogOut, Presentation } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CsValidationAssessment } from '../components/CsValidationAssessment'
@@ -150,6 +150,26 @@ function StudentPage() {
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+            <Library aria-hidden="true" size={24} />
+          </span>
+          <p className="mt-6 text-sm font-semibold text-[#A21942]">Course catalogue · COMP5241</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+            Browse available courses
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            Explore the COMP5241 Software Engineering course: chapter notes in six
+            languages, the Gold Rush Hook SDLC game, and other interactive activities.
+          </p>
+          <a
+            className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+            href="/course.html"
+          >
+            Browse courses <ArrowRight aria-hidden="true" size={15} />
+          </a>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
