@@ -1359,7 +1359,7 @@ export function InstructorApp() {
           <style>{'@page { size: 1280px 720px; margin: 0; }'}</style>
           {activeArtifact.kind === 'slides'
             ? activeSlides.map((slide, index) => (
-                <PrintSlide key={`${activeArtifact.id}-${index}`} slide={slide} />
+                <PrintSlide count={activeSlides.length} index={index} key={`${activeArtifact.id}-${index}`} slide={slide} />
               ))
             : (activeArtifact.content?.type === 'quiz' ? activeArtifact.content.questions : []).map((question, index) => (
                 <PrintQuizQuestion index={index} key={question.id} question={question} title={activeArtifact.title} />
@@ -2032,48 +2032,89 @@ export function InstructorApp() {
   )
 }
 
-/** Read-only 16:9 slide used by the PDF (print) export. */
-function PrintSlide({ slide }: { slide: EditableSlide }) {
+/** Read-only 16:9 slide used by the PDF (print) export.
+ *  Mirrors the on-screen slide canvas 1:1 (same structure, classes, and
+ *  markup) so text wraps and clips exactly like the studio preview. */
+function PrintSlide({ count, index, slide }: { count: number; index: number; slide: EditableSlide }) {
   const theme = resolveSlideTheme(slide.theme)
-  const bullets = slide.bodyMarkup ? slideBulletsFromMarkup(slide.bodyMarkup) : slide.bullets
   return (
-    <div className="print-slide flex flex-col p-16" style={{ backgroundColor: theme.background, color: theme.textColor }}>
-      <h2
-        className="text-5xl font-bold leading-tight"
-        dangerouslySetInnerHTML={{ __html: safeMarkup(slide.titleMarkup ?? initialMarkup(slide.title)) }}
-      />
-      <div className="mt-6 flex flex-1 items-center gap-12">
-        {bullets.length > 0 && (
-          <ul className="flex-1 space-y-3 text-2xl">
-            {bullets.map((bullet, index) => (
-              <li className="list-disc pl-6" key={index}>{bullet}</li>
-            ))}
-          </ul>
-        )}
-        <div
-          className="flex max-w-[55%] flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-8 text-center"
-          style={{ borderColor: theme.accentColor, backgroundColor: theme.cardBackground }}
-        >
-          {slide.visual.kind === 'photo' && slide.imageData ? (
-            <img alt={slide.visual.description} className="max-h-[420px] max-w-full rounded-lg object-contain" src={slide.imageData} />
-          ) : (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {slide.visual.steps.map((step, index) => (
-                <span className="flex items-center gap-2" key={index}>
-                  {index > 0 && (
-                    <span aria-hidden="true" style={{ color: theme.accentColor }}>→</span>
-                  )}
-                  <span
-                    className="rounded-lg border px-3 py-2 text-sm font-semibold"
-                    style={{ borderColor: theme.accentColor }}
-                  >
-                    {step}
-                  </span>
-                </span>
-              ))}
+    <div
+      className="print-slide flex flex-col overflow-hidden"
+      style={{
+        width: SLIDE_WIDTH,
+        height: SLIDE_HEIGHT,
+        backgroundColor: theme.background,
+        color: theme.textColor,
+      }}
+    >
+      <div className="flex h-full flex-col justify-between p-16">
+        <div className="flex min-h-0 flex-col gap-5">
+          <h2
+            className="text-5xl font-bold leading-tight"
+            dangerouslySetInnerHTML={{ __html: safeMarkup(slide.titleMarkup ?? initialMarkup(slide.title)) }}
+            style={{ color: theme.textColor }}
+          />
+          <div className="grid min-h-0 flex-1 grid-cols-2 items-center gap-12 pt-5">
+            <div
+              className="min-h-0 overflow-auto text-2xl leading-relaxed"
+              dangerouslySetInnerHTML={{
+                __html: safeMarkup(slide.bodyMarkup ?? `<ul>${slide.bullets.map((bullet) => `<li>${initialMarkup(bullet).replace(/^<p>|<\/p>$/g, '')}</li>`).join('')}</ul>`),
+              }}
+              style={{ color: theme.textColor }}
+            />
+            <div
+              className="flex max-h-full min-h-0 flex-col items-center justify-center gap-5 overflow-auto rounded-xl border-2 border-dashed p-6 text-center"
+              style={{
+                borderColor: theme.accentColor,
+                backgroundColor: theme.cardBackground,
+                color: theme.textColor,
+              }}
+            >
+              {slide.visual.kind === 'photo' && slide.imageData ? (
+                <img
+                  alt={slide.visual.description}
+                  className="max-h-full max-w-full rounded-lg object-contain"
+                  src={slide.imageData}
+                />
+              ) : (
+                <>
+                  {slide.visual.kind === 'photo'
+                    ? <Image aria-hidden="true" size={28} style={{ color: theme.accentColor }} />
+                    : <Shapes aria-hidden="true" size={28} style={{ color: theme.accentColor }} />}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {slide.visual.steps.map((step, stepIndex) => (
+                      <span className="flex items-center gap-2" key={stepIndex}>
+                        {stepIndex > 0 && (
+                          <ArrowRight aria-hidden="true" size={16} style={{ color: theme.accentColor }} />
+                        )}
+                        <span
+                          className="min-w-12 rounded-lg border px-3 py-2 text-sm font-semibold"
+                          style={{
+                            backgroundColor: theme.background,
+                            borderColor: theme.accentColor,
+                            color: theme.textColor,
+                          }}
+                        >
+                          {step}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+              <p className="max-w-full text-sm" style={{ color: theme.textColor }}>
+                {slide.visual.description}
+              </p>
             </div>
-          )}
+          </div>
         </div>
+        <footer
+          className="flex items-center justify-between border-t pt-2 text-xs"
+          style={{ borderColor: theme.accentColor, color: theme.textColor }}
+        >
+          <span>EduGenAI</span>
+          <span>{index + 1} / {count}</span>
+        </footer>
       </div>
     </div>
   )
