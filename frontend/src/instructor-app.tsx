@@ -9,15 +9,23 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
+  CloudOff,
+  CloudUpload,
   Copy,
+  Download,
   FilePlus2,
+  History,
   Image,
   Italic,
+  Link2,
   List,
   Maximize2,
   MessageSquare,
+  Palette,
   Plus,
   PlusSquare,
+  Redo2,
+  Undo2,
   Send,
   Shapes,
   Sparkles,
@@ -32,13 +40,19 @@ import {
   ApiError,
   createMaterial,
   createMaterialSource,
+  createMaterialVersion,
   deleteMaterial,
   deleteMaterialSource,
+  downloadMaterialPptx,
+  fetchMaterialVersions,
   fetchUserMaterials,
   generateCourseContent,
   getCurrentProfile,
+  restoreMaterialVersion,
+  setMaterialPublished,
   updateMaterial,
   type ChatMessage,
+  type MaterialVersion,
   type GeneratedArtifactContent,
   type GeneratedCourseContent,
   type GeneratedQuizContent,
@@ -49,6 +63,7 @@ import {
   type SlideTheme,
 } from './lib/api'
 import { SourcesPanel } from './components/SourcesPanel'
+import { RosterAnalyticsView } from './components/RosterAnalytics'
 
 type ArtifactKind = 'slides' | 'quiz'
 interface EditableSlide extends GeneratedSlide {
@@ -69,6 +84,8 @@ interface Artifact {
   content: SlideArtifactContent | GeneratedQuizContent | null
   messages: ChatMessage[]
   sources: SourceItem[]
+  published: boolean
+  publishedAt: string | null
   updatedAt: string
   createdAt: string
 }
@@ -92,7 +109,81 @@ function resolveSlideTheme(theme?: SlideTheme): SlideTheme {
   }
 }
 
+interface ThemePreset {
+  id: string
+  name: string
+  theme: SlideTheme
+}
+
+// The palettes mirror the ones the AI course generator is instructed to
+// produce, so a preset and a prompt-generated deck stay visually consistent.
+const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'polyu',
+    name: 'PolyU',
+    theme: { background: '#ffffff', textColor: '#0f172a', accentColor: '#A21942', cardBackground: '#F8FAFC' },
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    theme: { background: '#0B192C', textColor: '#F8FAFC', accentColor: '#38BDF8', cardBackground: '#1E293B' },
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald',
+    theme: { background: '#F0FDF4', textColor: '#14532D', accentColor: '#059669', cardBackground: '#ffffff' },
+  },
+  {
+    id: 'sandstone',
+    name: 'Sandstone',
+    theme: { background: '#FFF7ED', textColor: '#431407', accentColor: '#EA580C', cardBackground: '#ffffff' },
+  },
+  {
+    id: 'slate',
+    name: 'Slate',
+    theme: { background: '#111827', textColor: '#F9FAFB', accentColor: '#F59E0B', cardBackground: '#1F2937' },
+  },
+  {
+    id: 'lavender',
+    name: 'Lavender',
+    theme: { background: '#F5F3FF', textColor: '#312E81', accentColor: '#7C3AED', cardBackground: '#ffffff' },
+  },
+]
+
+/** Normalizes any CSS color (named, rgb(), 3/6-digit hex) to #rrggbb for `<input type="color">`. */
+function normalizeColorForPicker(value: string, fallback: string): string {
+  if (!CSS.supports('color', value)) return fallback
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  if (!context) return fallback
+  context.fillStyle = '#000000'
+  context.fillStyle = value
+  return typeof context.fillStyle === 'string' && context.fillStyle !== 'invalid' ? context.fillStyle : fallback
+}
+
+function themeColorsEqual(a: SlideTheme, b: SlideTheme): boolean {
+  return a.background === b.background
+    && a.textColor === b.textColor
+    && a.accentColor === b.accentColor
+    && (a.cardBackground ?? DEFAULT_SLIDE_THEME.cardBackground) === (b.cardBackground ?? DEFAULT_SLIDE_THEME.cardBackground)
+}
+
 const MAX_SAVE_ATTEMPTS = 3
+// Undo history: rapid successive edits (e.g. typing) coalesce into a single
+// checkpoint once editing settles for HISTORY_SETTLE_MS.
+const HISTORY_LIMIT = 25
+const HISTORY_SETTLE_MS = 800
+
+interface HistoryEntry {
+  past: Artifact[]
+  future: Artifact[]
+  pending: Artifact | null
+  timer: number | undefined
+}
+
+function createHistoryEntry(): HistoryEntry {
+  return { past: [], future: [], pending: null, timer: undefined }
+}
 
 function isQuizPrompt(prompt: string): boolean {
   // "MC Quiz" still matches via the word "quiz"; standalone "mc" was
@@ -211,6 +302,8 @@ function artifactFromMaterial(material: Material): Artifact {
     content: material.data,
     messages: material.chatHistory,
     sources: material.sources,
+    published: material.published,
+    publishedAt: material.publishedAt,
     updatedAt: material.updatedAt,
     createdAt: material.createdAt,
   }
@@ -226,6 +319,8 @@ function createArtifact(kind: ArtifactKind, userId: string): Artifact {
     content: emptyContent(kind),
     messages: [],
     sources: [],
+    published: false,
+    publishedAt: null,
     updatedAt: timestamp,
     createdAt: timestamp,
   }
@@ -251,6 +346,10 @@ function useWorkspace() {
   const saveTimers = useRef(new Map<string, number>())
   const saveQueues = useRef(new Map<string, Promise<void>>())
   const saveAttempts = useRef(new Map<string, number>())
+  const history = useRef(new Map<string, HistoryEntry>())
+  // Render-safe undo/redo availability per resource (ref entries are not read
+  // during render; this summary is the only state read for button states).
+  const [historySummary, setHistorySummary] = useState<Record<string, { canUndo: boolean; canRedo: boolean }>>({})
 
   useEffect(() => {
     const pendingTimers = saveTimers.current
@@ -339,6 +438,96 @@ function useWorkspace() {
     }
   }, [persist])
 
+  const bumpHistorySummary = useCallback((artifactId: string, entry: HistoryEntry) => {
+    setHistorySummary((previous) => ({
+      ...previous,
+      [artifactId]: {
+        canUndo: entry.past.length > 0 || entry.pending !== null,
+        canRedo: entry.future.length > 0,
+      },
+    }))
+  }, [])
+
+  /**
+   * Records the pre-mutation state so it becomes undoable. Rapid edits to the
+   * same resource coalesce: only the state before the first edit of a burst
+   * is kept, committed once the burst settles.
+   */
+  const recordMutation = useCallback((artifactId: string, before: Artifact) => {
+    const entry = history.current.get(artifactId) ?? createHistoryEntry()
+    if (entry.pending === null) {
+      entry.pending = before
+      bumpHistorySummary(artifactId, entry)
+    }
+    history.current.set(artifactId, entry)
+    if (entry.timer !== undefined) window.clearTimeout(entry.timer)
+    entry.timer = window.setTimeout(() => {
+      entry.timer = undefined
+      if (entry.pending !== null) {
+        entry.past.push(entry.pending)
+        if (entry.past.length > HISTORY_LIMIT) entry.past.shift()
+        entry.pending = null
+        entry.future.length = 0
+        bumpHistorySummary(artifactId, entry)
+      }
+    }, HISTORY_SETTLE_MS)
+  }, [bumpHistorySummary])
+
+  /** Commits any in-flight edit burst immediately (e.g. before an AI revision replaces content). */
+  const flushHistory = useCallback((artifactId: string) => {
+    const entry = history.current.get(artifactId)
+    if (!entry || entry.pending === null) return
+    if (entry.timer !== undefined) {
+      window.clearTimeout(entry.timer)
+      entry.timer = undefined
+    }
+    entry.past.push(entry.pending)
+    if (entry.past.length > HISTORY_LIMIT) entry.past.shift()
+    entry.pending = null
+    bumpHistorySummary(artifactId, entry)
+  }, [bumpHistorySummary])
+
+  const restoreArtifact = useCallback((artifact: Artifact) => {
+    const restored = { ...artifact, updatedAt: new Date().toISOString() }
+    setArtifacts((previous) => previous.map((item) => item.id === artifact.id ? restored : item))
+    scheduleSave(restored)
+  }, [scheduleSave])
+
+  const undo = useCallback(() => {
+    const artifactId = activeMaterialId
+    if (!artifactId) return
+    const entry = history.current.get(artifactId)
+    if (!entry || (entry.past.length === 0 && entry.pending === null)) return
+    const current = artifacts.find((artifact) => artifact.id === artifactId)
+    if (!current) return
+    flushHistory(artifactId)
+    const previous = entry.past.pop()
+    if (!previous) return
+    entry.future.push(current)
+    if (entry.future.length > HISTORY_LIMIT) entry.future.shift()
+    restoreArtifact(previous)
+    bumpHistorySummary(artifactId, entry)
+  }, [activeMaterialId, artifacts, bumpHistorySummary, flushHistory, restoreArtifact])
+
+  const redo = useCallback(() => {
+    const artifactId = activeMaterialId
+    if (!artifactId) return
+    const entry = history.current.get(artifactId)
+    if (!entry || entry.future.length === 0) return
+    const current = artifacts.find((artifact) => artifact.id === artifactId)
+    if (!current) return
+    const next = entry.future.pop()
+    if (!next) return
+    entry.past.push(current)
+    if (entry.past.length > HISTORY_LIMIT) entry.past.shift()
+    restoreArtifact(next)
+    bumpHistorySummary(artifactId, entry)
+  }, [activeMaterialId, artifacts, bumpHistorySummary, restoreArtifact])
+
+  const activeSummary = activeMaterialId ? historySummary[activeMaterialId] : undefined
+  const canUndo = activeSummary?.canUndo ?? false
+  const canRedo = activeSummary?.canRedo ?? false
+
   useEffect(() => {
     const handleSaveBeforeSignOut = (event: Event) => {
       const request = event as CustomEvent<{
@@ -377,6 +566,15 @@ function useWorkspace() {
       saveTimers.current.delete(materialId)
     }
     saveQueues.current.delete(materialId)
+    const entry = history.current.get(materialId)
+    if (entry?.timer !== undefined) window.clearTimeout(entry.timer)
+    history.current.delete(materialId)
+    setHistorySummary((previous) => {
+      if (!(materialId in previous)) return previous
+      const next = { ...previous }
+      delete next[materialId]
+      return next
+    })
     try {
       await deleteMaterial(materialId)
     } catch (deleteError) {
@@ -401,6 +599,12 @@ function useWorkspace() {
     saveNow,
     create,
     removeMaterial,
+    recordMutation,
+    flushHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     activeMaterialId,
     setActiveMaterialId,
   }
@@ -420,9 +624,26 @@ export function InstructorApp() {
   const [deleteTarget, setDeleteTarget] = useState<Artifact | null>(null)
   const [quizMode, setQuizMode] = useState<'edit' | 'preview'>('edit')
   const [quizAnswers, setQuizAnswers] = useState<Record<string, Record<string, number>>>({})
+  const [themePanelOpen, setThemePanelOpen] = useState(false)
+  // Which resource the theme panel was opened on, so it closes itself when
+  // the active resource changes.
+  const [themePanelResource, setThemePanelResource] = useState<string | null>(null)
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false)
+  const [historyPanelResource, setHistoryPanelResource] = useState<string | null>(null)
+  const [historyVersions, setHistoryVersions] = useState<MaterialVersion[] | null>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [exportMenuResource, setExportMenuResource] = useState<string | null>(null)
+  const [isPrinting, setIsPrinting] = useState(false)
+  const [isExportingPptx, setIsExportingPptx] = useState(false)
+  const [studioView, setStudioView] = useState<'workspace' | 'analytics'>('workspace')
   const stageRef = useRef<HTMLDivElement>(null)
   const slideViewportRef = useRef<HTMLDivElement>(null)
   const promptRef = useRef<HTMLTextAreaElement>(null)
+  const themeMenuRef = useRef<HTMLDivElement>(null)
+  const historyMenuRef = useRef<HTMLDivElement>(null)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
   const [slideScale, setSlideScale] = useState(1)
   const [isPresenting, setIsPresenting] = useState(false)
 
@@ -451,12 +672,20 @@ export function InstructorApp() {
   useEffect(() => {
     const viewport = slideViewportRef.current
     if (!viewport || activeArtifact?.kind !== 'slides') return
-    const measure = () => setSlideScale(viewport.clientWidth / SLIDE_WIDTH)
+    const measure = () => {
+      // A ResizeObserver reports zero for an element that has been removed
+      // from the DOM (e.g. when the studio switches to the analytics view);
+      // never scale the canvas down to zero from such a report.
+      const width = viewport.clientWidth
+      if (width > 0) setSlideScale(width / SLIDE_WIDTH)
+    }
     const observer = new ResizeObserver(measure)
     observer.observe(viewport)
     measure()
     return () => observer.disconnect()
-  }, [activeArtifactId, activeArtifact?.kind, activeSlides.length])
+    // Re-runs when returning to the workspace view so the observer re-binds
+    // to the freshly mounted viewport element.
+  }, [activeArtifactId, activeArtifact?.kind, activeSlides.length, studioView])
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -465,6 +694,112 @@ export function InstructorApp() {
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
+
+  // The theme panel belongs to the resource it was opened on; if that
+  // resource or its kind changes, close it on this render so it never shows
+  // for the wrong resource.
+  if (themePanelOpen && (themePanelResource !== activeArtifactId || activeArtifact?.kind !== 'slides')) {
+    setThemePanelOpen(false)
+    setThemePanelResource(null)
+  }
+
+  // The versions panel belongs to the resource it was opened on; close it on
+  // this render if the active resource changes.
+  if (historyPanelOpen && historyPanelResource !== activeArtifactId) {
+    setHistoryPanelOpen(false)
+    setHistoryPanelResource(null)
+  }
+
+  // Same rule for the export menu.
+  if (exportMenuOpen && exportMenuResource !== activeArtifactId) {
+    setExportMenuOpen(false)
+    setExportMenuResource(null)
+  }
+
+  useEffect(() => {
+    const undoRedo = workspace.undo
+    const redo = workspace.redo
+    const handleUndoRedo = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return
+      const key = event.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      // Let text fields and contenteditable slides keep their native undo.
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
+      ) return
+      event.preventDefault()
+      if (key === 'y' || event.shiftKey) redo()
+      else undoRedo()
+    }
+    window.addEventListener('keydown', handleUndoRedo)
+    return () => window.removeEventListener('keydown', handleUndoRedo)
+  }, [workspace.undo, workspace.redo])
+
+  useEffect(() => {
+    if (!themePanelOpen) return
+    const menu = themeMenuRef.current
+    const handleOutside = (event: MouseEvent) => {
+      if (menu && !menu.contains(event.target as Node)) setThemePanelOpen(false)
+    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setThemePanelOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [themePanelOpen])
+
+  useEffect(() => {
+    if (!historyPanelOpen) return
+    const menu = historyMenuRef.current
+    const handleOutside = (event: MouseEvent) => {
+      if (menu && !menu.contains(event.target as Node)) setHistoryPanelOpen(false)
+    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setHistoryPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [historyPanelOpen])
+
+  useEffect(() => {
+    if (!exportMenuOpen) return
+    const menu = exportMenuRef.current
+    const handleOutside = (event: MouseEvent) => {
+      if (menu && !menu.contains(event.target as Node)) setExportMenuOpen(false)
+    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExportMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [exportMenuOpen])
+
+  // While a PDF export is armed, trigger the native print dialog once the
+  // print-only overlay has rendered, then disarm when printing finishes.
+  useEffect(() => {
+    if (!isPrinting) return
+    const timer = window.setTimeout(() => window.print(), 150)
+    const handleAfterPrint = () => setIsPrinting(false)
+    window.addEventListener('afterprint', handleAfterPrint)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('afterprint', handleAfterPrint)
+    }
+  }, [isPrinting])
 
   useEffect(() => {
     if (activeArtifact?.kind !== 'slides' || activeSlides.length === 0) return
@@ -504,6 +839,7 @@ export function InstructorApp() {
   function updateArtifact(artifactId: string, update: (artifact: Artifact) => Artifact) {
     const current = artifacts.find((artifact) => artifact.id === artifactId)
     if (!current) return
+    workspace.recordMutation(artifactId, current)
     const updated = update({ ...current, updatedAt: new Date().toISOString() })
     setArtifacts((previous) => previous.map((artifact) => artifact.id === artifactId ? updated : artifact))
     workspace.scheduleSave(updated)
@@ -594,6 +930,24 @@ export function InstructorApp() {
         ...artifact,
         messages: [...artifact.messages, userMessage],
       }))
+      if (isRevision) {
+        // Best-effort server-side checkpoint of the pre-revision content so a
+        // destructive AI rewrite can always be rolled back from History.
+        const revisionTarget = target
+        const withMessage: Artifact = {
+          ...revisionTarget,
+          messages: [...revisionTarget.messages, userMessage],
+          updatedAt: new Date().toISOString(),
+        }
+        void (async () => {
+          try {
+            await workspace.saveNow(withMessage)
+            await createMaterialVersion(revisionTarget.id, 'Before AI revision')
+          } catch {
+            // Snapshotting is best-effort; the generation still proceeds.
+          }
+        })()
+      }
       const response = await generateCourseContent(
         target.kind,
         isRevision ? '' : text,
@@ -604,6 +958,9 @@ export function InstructorApp() {
       if (response.type !== target.kind) {
         throw new Error('The AI returned a different resource type than requested.')
       }
+      // Commit any in-flight manual edits first so undoing the AI revision
+      // restores the deck exactly as it was, one whole step at a time.
+      workspace.flushHistory(artifactId)
       updateArtifact(artifactId, (artifact) => {
         let content: Artifact['content'] = response
         if (response.type === 'slides') {
@@ -670,6 +1027,141 @@ export function InstructorApp() {
       }
       return { ...artifact, content }
     })
+  }
+
+  /** Applies a manual theme to the active slide or the whole deck (autosaves). */
+  function applyTheme(theme: SlideTheme, scope: 'slide' | 'deck') {
+    if (!activeArtifact || activeArtifact.content?.type !== 'slides' || activeSlides.length === 0) return
+    const resolved = resolveSlideTheme(theme)
+    const changed = activeSlides.some((slide, index) =>
+      (scope === 'deck' || index === activeSlideIndex)
+      && !themeColorsEqual(resolveSlideTheme(slide.theme), resolved))
+    if (!changed) return
+    updateArtifact(activeArtifact.id, (artifact) => {
+      if (artifact.content?.type !== 'slides') return artifact
+      const content: SlideArtifactContent = {
+        ...artifact.content,
+        content: artifact.content.content.map((slide, index) =>
+          scope === 'deck' || index === activeSlideIndex ? { ...slide, theme: resolved } : slide,
+        ),
+      }
+      return { ...artifact, content }
+    })
+  }
+
+  function toggleHistoryPanel() {
+    if (historyPanelOpen) {
+      setHistoryPanelOpen(false)
+      return
+    }
+    setHistoryPanelOpen(true)
+    setHistoryPanelResource(activeArtifactId)
+    if (!activeArtifact) return
+    setHistoryLoading(true)
+    setHistoryVersions(null)
+    fetchMaterialVersions(activeArtifact.id)
+      .then((versions) => {
+        setHistoryVersions(versions)
+      })
+      .catch((error: unknown) => {
+        setHistoryVersions([])
+        setFeedback(error instanceof Error ? error.message : 'Unable to load saved versions.')
+      })
+      .finally(() => setHistoryLoading(false))
+  }
+
+  async function snapshotCurrentVersion() {
+    if (!activeArtifact) return
+    try {
+      // Persist the latest editor state first so the snapshot is current.
+      await workspace.saveNow(activeArtifact)
+      const version = await createMaterialVersion(activeArtifact.id, 'Manual snapshot')
+      setHistoryVersions((previous) => [version, ...(previous ?? [])])
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to save a version snapshot.')
+    }
+  }
+
+  async function restoreVersion(version: MaterialVersion) {
+    if (!activeArtifact || isRestoring) return
+    setIsRestoring(true)
+    try {
+      const restored = await restoreMaterialVersion(activeArtifact.id, version.id)
+      // Route through the normal edit funnel so this restore is undoable too.
+      updateArtifact(activeArtifact.id, (artifact) => ({
+        ...artifact,
+        content: restored.data,
+      }))
+      setHistoryPanelOpen(false)
+      setFeedback('Version restored — use Undo to go back to what you had.')
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to restore this version.')
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  function startPrintExport() {
+    setExportMenuOpen(false)
+    if (!activeArtifact || activeContentCount === 0) {
+      setFeedback('Create some content before exporting it.')
+      return
+    }
+    setIsPrinting(true)
+  }
+
+  async function exportPptx() {
+    if (!activeArtifact) return
+    setExportMenuOpen(false)
+    setIsExportingPptx(true)
+    setFeedback('')
+    try {
+      // Persist the latest editor state before the server builds the file.
+      await workspace.saveNow(activeArtifact)
+      await downloadMaterialPptx(activeArtifact.id, activeArtifact.title)
+      setFeedback('PPTX download started.')
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to export this material as PPTX.')
+    } finally {
+      setIsExportingPptx(false)
+    }
+  }
+
+  async function togglePublish() {
+    if (!activeArtifact) return
+    const next = !activeArtifact.published
+    try {
+      const updated = await setMaterialPublished(activeArtifact.id, next)
+      setArtifacts((previous) =>
+        previous.map((artifact) =>
+          artifact.id === updated.id
+            ? { ...artifact, published: updated.published, publishedAt: updated.publishedAt }
+            : artifact,
+        ),
+      )
+      setFeedback(
+        next
+          ? 'Published — students can now open this course from their hub.'
+          : 'Unpublished — students can no longer open this course.',
+      )
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to update this material.')
+    }
+  }
+
+  async function copyStudentLink() {
+    if (!activeArtifact) return
+    const url = `${window.location.origin}/courses/${activeArtifact.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setFeedback(
+        activeArtifact.published
+          ? 'Student link copied to the clipboard.'
+          : 'Link copied — publish this resource first so students can open it.',
+      )
+    } catch {
+      setFeedback(`Student link: ${url}`)
+    }
   }
 
   function addSlide() {
@@ -860,11 +1352,40 @@ export function InstructorApp() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1600px] flex-col px-3 py-4 lg:px-5">
+    <div className="instructor-root mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1600px] flex-col px-3 py-4 lg:px-5">
+      {isPrinting && activeArtifact && (
+        <div className="print-only">
+          {/* 16:9 paper for this print job only; removed when the overlay unmounts. */}
+          <style>{'@page { size: 1280px 720px; margin: 0; }'}</style>
+          {activeArtifact.kind === 'slides'
+            ? activeSlides.map((slide, index) => (
+                <PrintSlide count={activeSlides.length} index={index} key={`${activeArtifact.id}-${index}`} slide={slide} />
+              ))
+            : (activeArtifact.content?.type === 'quiz' ? activeArtifact.content.questions : []).map((question, index) => (
+                <PrintQuizQuestion index={index} key={question.id} question={question} title={activeArtifact.title} />
+              ))}
+        </div>
+      )}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <h1 className="truncate text-lg font-bold">Instructor workspace</h1>
-          {activeArtifact && (
+          <h1 className="truncate text-lg font-bold">Instructor studio</h1>
+          <div className="inline-flex rounded-md bg-gray-100 p-1" role="group" aria-label="Studio view">
+            <button
+              className={`rounded px-3 py-1.5 text-xs ${studioView === 'workspace' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+              onClick={() => setStudioView('workspace')}
+              type="button"
+            >
+              Workspace
+            </button>
+            <button
+              className={`rounded px-3 py-1.5 text-xs ${studioView === 'analytics' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+              onClick={() => setStudioView('analytics')}
+              type="button"
+            >
+              Student Analytics
+            </button>
+          </div>
+          {activeArtifact && studioView === 'workspace' && (
             <input
               aria-label="Resource name"
               className="min-w-0 max-w-xs rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium focus:border-[#A21942] focus:outline-none"
@@ -873,9 +1394,107 @@ export function InstructorApp() {
             />
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <IconButton icon={FilePlus2} label="New slide deck" disabled={isLoading} onClick={() => void createAndSelectArtifact('slides')} />
+        {studioView === 'workspace' && (
+          <div className="flex items-center gap-2">
+            <IconButton icon={FilePlus2} label="New slide deck" disabled={isLoading} onClick={() => void createAndSelectArtifact('slides')} />
           <IconButton icon={MessageSquare} label="New quiz" disabled={isLoading} onClick={() => void createAndSelectArtifact('quiz')} />
+          <span className="mx-1 h-6 border-l border-gray-200" />
+          <IconButton icon={Undo2} label="Undo last change" disabled={!workspace.canUndo || isSending} onClick={() => workspace.undo()} />
+          <IconButton icon={Redo2} label="Redo last undone change" disabled={!workspace.canRedo || isSending} onClick={() => workspace.redo()} />
+          <div className="relative" ref={historyMenuRef}>
+            <IconButton icon={History} label="Saved versions" disabled={!activeArtifact || isSending} onClick={toggleHistoryPanel} />
+            {historyPanelOpen && activeArtifact && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Saved versions</p>
+                  <button
+                    aria-label="Close versions panel"
+                    className="grid size-6 place-items-center rounded text-gray-400 transition-colors hover:text-gray-600"
+                    onClick={() => setHistoryPanelOpen(false)}
+                    type="button"
+                  >
+                    <X aria-hidden="true" size={13} />
+                  </button>
+                </div>
+                <button
+                  className="mt-2 w-full rounded-md border border-[#A21942] px-3 py-1.5 text-xs font-semibold text-[#A21942] transition-colors hover:bg-[#A21942]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isRestoring || historyLoading}
+                  onClick={() => void snapshotCurrentVersion()}
+                  type="button"
+                >
+                  Snapshot current
+                </button>
+                <div className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+                  {historyLoading && <p className="py-3 text-center text-xs text-gray-500">Loading versions…</p>}
+                  {!historyLoading && historyVersions && historyVersions.length === 0 && (
+                    <p className="py-3 text-center text-xs leading-5 text-gray-500">No saved versions yet. A version is saved automatically before each AI revision.</p>
+                  )}
+                  {!historyLoading && historyVersions?.map((version) => (
+                    <div className="flex items-center justify-between gap-2 rounded-md border border-gray-200 px-2.5 py-1.5" key={version.id}>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-gray-700">{version.label}</p>
+                        <p className="text-[10px] text-gray-400">{new Date(version.createdAt).toLocaleString()}</p>
+                      </div>
+                      <button
+                        className="shrink-0 rounded px-2 py-1 text-[11px] font-semibold text-[#A21942] transition-colors hover:bg-[#A21942]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isRestoring}
+                        onClick={() => void restoreVersion(version)}
+                        type="button"
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="relative" ref={exportMenuRef}>
+            <IconButton
+              disabled={!activeArtifact || activeContentCount === 0 || isSending}
+              icon={Download}
+              label="Export"
+              onClick={() => {
+                if (exportMenuOpen) {
+                  setExportMenuOpen(false)
+                } else {
+                  setExportMenuOpen(true)
+                  setExportMenuResource(activeArtifactId)
+                }
+              }}
+            />
+            {exportMenuOpen && activeArtifact && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-52 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                <button
+                  className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                  onClick={startPrintExport}
+                  type="button"
+                >
+                  Export as PDF
+                </button>
+                <button
+                  className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isExportingPptx}
+                  onClick={() => void exportPptx()}
+                  type="button"
+                >
+                  {isExportingPptx ? 'Exporting PPTX…' : 'Export as PPTX'}
+                </button>
+              </div>
+            )}
+          </div>
+          <IconButton
+            disabled={!activeArtifact || activeContentCount === 0 || isSending}
+            icon={activeArtifact?.published ? CloudOff : CloudUpload}
+            label={activeArtifact?.published ? 'Unpublish from students' : 'Publish for students'}
+            onClick={() => void togglePublish()}
+          />
+          <IconButton
+            disabled={!activeArtifact || isSending}
+            icon={Link2}
+            label="Copy student link"
+            onClick={() => void copyStudentLink()}
+          />
           <IconButton
             disabled={activeArtifact?.kind !== 'slides' || isLoading}
             icon={Maximize2}
@@ -885,11 +1504,13 @@ export function InstructorApp() {
               else void stageRef.current?.requestFullscreen()
             }}
           />
-          <IconButton icon={Bookmark} label="Save to library" onClick={saveArtifact} />
-        </div>
+            <IconButton icon={Bookmark} label="Save to library" onClick={saveArtifact} />
+          </div>
+        )}
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[250px_minmax(0,1fr)_340px]">
+      {studioView === 'workspace' ? (
+        <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[250px_minmax(0,1fr)_340px]">
         <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm" aria-label="Sources and documents">
           <SourcesPanel
             key={activeArtifact?.id ?? 'no-active-material'}
@@ -964,6 +1585,29 @@ export function InstructorApp() {
                   <IconButton icon={AlignCenter} label="Align center" onClick={() => executeStyle('justifyCenter')} />
                   <IconButton icon={AlignRight} label="Align right" onClick={() => executeStyle('justifyRight')} />
                   <IconButton icon={List} label="Bullet list" onClick={() => executeStyle('insertUnorderedList')} />
+                  <span className="mx-1 h-6 border-l border-gray-200" />
+                  <div className="relative" ref={themeMenuRef}>
+                    <IconButton
+                      icon={Palette}
+                      label="Slide theme"
+                      disabled={!activeSlide}
+                      onClick={() => {
+                        if (themePanelOpen) {
+                          setThemePanelOpen(false)
+                        } else {
+                          setThemePanelOpen(true)
+                          setThemePanelResource(activeArtifactId)
+                        }
+                      }}
+                    />
+                    {themePanelOpen && activeSlide && (
+                      <SlideThemePanel
+                        activeTheme={activeSlideTheme}
+                        onApply={(theme, scope) => applyTheme(theme, scope)}
+                        onClose={() => setThemePanelOpen(false)}
+                      />
+                    )}
+                  </div>
                 </>
               )}
               {activeArtifact?.kind === 'quiz' && (
@@ -1372,15 +2016,245 @@ export function InstructorApp() {
             )}
           </div>
         </aside>
-      </div>
+        </div>
+      ) : (
+        <RosterAnalyticsView />
+      )}
 
-      {deleteTarget && (
+      {studioView === 'workspace' && deleteTarget && (
         <ConfirmDeleteDialog
           message={`"${deleteTarget.title}" will be permanently removed along with its sources. This can't be undone.`}
           onCancel={() => setDeleteTarget(null)}
           onConfirm={() => void confirmDeleteArtifact()}
         />
       )}
+    </div>
+  )
+}
+
+/** Read-only 16:9 slide used by the PDF (print) export.
+ *  Mirrors the on-screen slide canvas 1:1 (same structure, classes, and
+ *  markup) so text wraps and clips exactly like the studio preview. */
+function PrintSlide({ count, index, slide }: { count: number; index: number; slide: EditableSlide }) {
+  const theme = resolveSlideTheme(slide.theme)
+  return (
+    <div
+      className="print-slide flex flex-col overflow-hidden"
+      style={{
+        width: SLIDE_WIDTH,
+        height: SLIDE_HEIGHT,
+        backgroundColor: theme.background,
+        color: theme.textColor,
+      }}
+    >
+      <div className="flex h-full flex-col justify-between p-16">
+        <div className="flex min-h-0 flex-col gap-5">
+          <h2
+            className="text-5xl font-bold leading-tight"
+            dangerouslySetInnerHTML={{ __html: safeMarkup(slide.titleMarkup ?? initialMarkup(slide.title)) }}
+            style={{ color: theme.textColor }}
+          />
+          <div className="grid min-h-0 flex-1 grid-cols-2 items-center gap-12 pt-5">
+            <div
+              className="min-h-0 overflow-auto text-2xl leading-relaxed"
+              dangerouslySetInnerHTML={{
+                __html: safeMarkup(slide.bodyMarkup ?? `<ul>${slide.bullets.map((bullet) => `<li>${initialMarkup(bullet).replace(/^<p>|<\/p>$/g, '')}</li>`).join('')}</ul>`),
+              }}
+              style={{ color: theme.textColor }}
+            />
+            <div
+              className="flex max-h-full min-h-0 flex-col items-center justify-center gap-5 overflow-auto rounded-xl border-2 border-dashed p-6 text-center"
+              style={{
+                borderColor: theme.accentColor,
+                backgroundColor: theme.cardBackground,
+                color: theme.textColor,
+              }}
+            >
+              {slide.visual.kind === 'photo' && slide.imageData ? (
+                <img
+                  alt={slide.visual.description}
+                  className="max-h-full max-w-full rounded-lg object-contain"
+                  src={slide.imageData}
+                />
+              ) : (
+                <>
+                  {slide.visual.kind === 'photo'
+                    ? <Image aria-hidden="true" size={28} style={{ color: theme.accentColor }} />
+                    : <Shapes aria-hidden="true" size={28} style={{ color: theme.accentColor }} />}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {slide.visual.steps.map((step, stepIndex) => (
+                      <span className="flex items-center gap-2" key={stepIndex}>
+                        {stepIndex > 0 && (
+                          <ArrowRight aria-hidden="true" size={16} style={{ color: theme.accentColor }} />
+                        )}
+                        <span
+                          className="min-w-12 rounded-lg border px-3 py-2 text-sm font-semibold"
+                          style={{
+                            backgroundColor: theme.background,
+                            borderColor: theme.accentColor,
+                            color: theme.textColor,
+                          }}
+                        >
+                          {step}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+              <p className="max-w-full text-sm" style={{ color: theme.textColor }}>
+                {slide.visual.description}
+              </p>
+            </div>
+          </div>
+        </div>
+        <footer
+          className="flex items-center justify-between border-t pt-2 text-xs"
+          style={{ borderColor: theme.accentColor, color: theme.textColor }}
+        >
+          <span>EduGenAI</span>
+          <span>{index + 1} / {count}</span>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+/** Read-only quiz question page used by the PDF (print) export. */
+function PrintQuizQuestion({
+  index,
+  question,
+  title,
+}: {
+  index: number
+  question: GeneratedQuizQuestion
+  title: string
+}) {
+  return (
+    <div className="print-slide flex flex-col bg-white p-20 text-[#262626]">
+      <p className="text-sm font-bold uppercase tracking-wide text-[#A21942]">{title}</p>
+      <h2 className="mt-6 text-3xl font-bold">Question {index + 1}</h2>
+      <p className="mt-4 text-xl">{question.question}</p>
+      <ul className="mt-8 space-y-4">
+        {question.options.map((option, optionIndex) => (
+          <li className="flex items-start gap-3 text-lg" key={optionIndex}>
+            <span className="grid size-7 shrink-0 place-items-center rounded-full border border-gray-300 bg-[#F8FAFC] text-sm font-bold">
+              {String.fromCharCode(65 + optionIndex)}
+            </span>
+            <span>{option}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+export function SlideThemePanel({
+  activeTheme,
+  onApply,
+  onClose,
+}: {
+  activeTheme: SlideTheme
+  onApply: (theme: SlideTheme, scope: 'slide' | 'deck') => void
+  onClose: () => void
+}) {
+  const [scope, setScope] = useState<'deck' | 'slide'>('deck')
+  const [draft, setDraft] = useState<SlideTheme>(activeTheme)
+  // `draftSourceKey` remembers which effective theme the custom-color draft
+  // was copied from, so the draft re-syncs only when that theme actually
+  // changes (e.g. the instructor switched slides while the panel was open),
+  // not on every re-render — using React's "adjust state during render"
+  // pattern.
+  const [draftSourceKey, setDraftSourceKey] = useState(() => JSON.stringify(activeTheme))
+  const activeKey = JSON.stringify(activeTheme)
+  if (draftSourceKey !== activeKey) {
+    setDraftSourceKey(activeKey)
+    setDraft(activeTheme)
+  }
+
+  const colorEntries = [
+    ['background', 'Background'],
+    ['textColor', 'Text'],
+    ['accentColor', 'Accent'],
+    ['cardBackground', 'Cards'],
+  ] as const
+
+  return (
+    <div className="absolute left-0 top-full z-30 mt-2 w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Slide theme</p>
+        <button
+          aria-label="Close theme panel"
+          className="grid size-6 place-items-center rounded text-gray-400 transition-colors hover:text-gray-600"
+          onClick={onClose}
+          type="button"
+        >
+          <X aria-hidden="true" size={13} />
+        </button>
+      </div>
+
+      <div className="mt-2 inline-flex rounded-md bg-gray-100 p-1" role="group" aria-label="Theme scope">
+        <button
+          className={`rounded px-2.5 py-1 text-[11px] ${scope === 'deck' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+          onClick={() => setScope('deck')}
+          type="button"
+        >
+          All slides
+        </button>
+        <button
+          className={`rounded px-2.5 py-1 text-[11px] ${scope === 'slide' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+          onClick={() => setScope('slide')}
+          type="button"
+        >
+          This slide
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {THEME_PRESETS.map((preset) => (
+          <button
+            className={`flex items-center gap-2 rounded-md border p-2 text-left transition-colors ${themeColorsEqual(preset.theme, activeTheme) ? 'border-[#A21942] bg-[#A21942]/5' : 'border-gray-200 hover:border-gray-300'}`}
+            key={preset.id}
+            onClick={() => onApply(preset.theme, scope)}
+            title={`Apply the ${preset.name} theme`}
+            type="button"
+          >
+            <span className="flex shrink-0 -space-x-1">
+              {[preset.theme.background, preset.theme.accentColor, preset.theme.cardBackground, preset.theme.textColor].map((color, chipIndex) => (
+                <span className="size-4 rounded-full border border-white shadow-sm" key={chipIndex} style={{ backgroundColor: color }} />
+              ))}
+            </span>
+            <span className="truncate text-xs font-medium text-gray-700">{preset.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 border-t border-gray-100 pt-3">
+        <p className="text-[11px] font-semibold text-gray-500">Custom colors</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {colorEntries.map(([key, label]) => (
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-2 py-1.5" key={key}>
+              <input
+                aria-label={`${label} color`}
+                className="size-6 shrink-0 cursor-pointer rounded border border-gray-200 bg-transparent p-0"
+                type="color"
+                value={normalizeColorForPicker(draft[key] ?? '', DEFAULT_SLIDE_THEME[key] ?? '#F8FAFC')}
+                onChange={(event) => setDraft((previous) => ({ ...previous, [key]: event.target.value }))}
+              />
+              <span className="text-[11px] text-gray-600">{label}</span>
+            </label>
+          ))}
+        </div>
+        <button
+          className="mt-2 w-full rounded-md bg-[#A21942] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#801333]"
+          onClick={() => onApply(draft, scope)}
+          type="button"
+        >
+          Apply colors
+        </button>
+      </div>
+
+      <p className="mt-2 text-[10px] leading-4 text-gray-400">Changes are saved automatically to this resource.</p>
     </div>
   )
 }

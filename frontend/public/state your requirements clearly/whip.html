@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compare two animated interpretations of one ambiguous prompt in the COMP5241 prompt precision lesson.">
+  <title>Prompt Precision — Two Whip Demo Interpretations</title>
+  <style>
+    :root {
+      --primary: #A21942;
+      --primary-dark: #801333;
+      --ink: #262626;
+      --muted: #59616B;
+      --page: #F8F9FA;
+      --line: #E5E7EB;
+      --amber: #B45309;
+      --blue: #1D4ED8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--page);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    a { color: inherit; }
+    a:focus-visible { outline: 3px solid #D97706; outline-offset: 3px; }
+    .site-header { background: var(--primary); color: #fff; }
+    .header-inner, main, .site-footer { width: min(100% - 2rem, 80rem); margin-inline: auto; }
+    .header-inner {
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand { font-weight: 750; letter-spacing: .02em; }
+    .home-link { font-size: .9rem; font-weight: 650; text-underline-offset: 3px; }
+    main { padding-block: clamp(2rem, 5vw, 3.5rem); }
+    .intro { max-width: 58rem; margin: 0 auto 1.6rem; text-align: center; }
+    .eyebrow {
+      margin: 0 0 .55rem;
+      color: var(--primary);
+      font-size: .75rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.13; letter-spacing: -.035em; }
+    .intro > p:last-child { max-width: 48rem; margin: .8rem auto 0; color: var(--muted); }
+    .prompt {
+      max-width: 60rem;
+      margin: 1.35rem auto 0;
+      padding: 1rem 1.2rem;
+      text-align: left;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--primary);
+      border-radius: .6rem;
+    }
+    .prompt-label { display: block; margin-bottom: .3rem; color: var(--muted); font-size: .72rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .prompt blockquote { margin: 0; font-weight: 600; }
+    .next-step { max-width: 60rem; margin: 1.1rem auto 0; text-align: center; }
+    .next-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .7rem 1.1rem;
+      color: #fff;
+      background: var(--primary);
+      border-radius: .6rem;
+      font-weight: 700;
+      font-size: .95rem;
+      text-decoration: none;
+      transition: background-color .15s ease;
+    }
+    .next-link:hover { background: var(--primary-dark); }
+    .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.15rem; }
+    .demo-card {
+      --accent: var(--amber);
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: .85rem;
+      box-shadow: 0 3px 12px rgba(38, 38, 38, .06);
+    }
+    .demo-card--refined { --accent: var(--primary); }
+    .demo-copy { min-height: 10.2rem; padding: 1.2rem 1.3rem .9rem; }
+    .demo-number { display: inline-block; margin-bottom: .45rem; color: var(--accent); font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 0; font-size: 1.22rem; line-height: 1.35; }
+    .demo-copy p { margin: .45rem 0 0; color: var(--muted); font-size: .92rem; }
+    .preview {
+      display: block;
+      width: 100%;
+      height: clamp(390px, 42vw, 500px);
+      background: #fff;
+      border: 0;
+      border-top: 1px solid var(--line);
+    }
+    .demo-footer { padding: .85rem 1.3rem 1.1rem; border-top: 1px solid var(--line); }
+    .demo-link { color: var(--accent); font-size: .9rem; font-weight: 700; text-underline-offset: 3px; }
+    .demo-link:hover { color: var(--primary-dark); }
+    .site-footer { padding-block: 1rem 1.5rem; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 760px) {
+      .header-inner { min-height: 4rem; }
+      .comparison { grid-template-columns: 1fr; }
+      .demo-copy { min-height: 0; }
+      .preview { height: 430px; }
+    }
+    @media (max-width: 420px) {
+      .header-inner, main, .site-footer { width: min(100% - 1.25rem, 80rem); }
+      .preview { height: 380px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="brand">EduGenAI · COMP5241</span>
+      <a class="home-link" href="../index.html">Back to home</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Prompt precision lesson</p>
+      <h1 id="page-title">One prompt, two interpretations</h1>
+      <p>Compare the two original animated demos together. The first reads the phrase in its familiar sense; the second follows the clarified wording literally.</p>
+      <div class="prompt">
+        <span class="prompt-label">The original prompt</span>
+        <blockquote lang="zh-Hant">寫一個html程式，內容是一個動態svg：一個自行車騎著人往前走，然後後面有個鵜鶘拿鞭子抽他，人要有受擊反饋。</blockquote>
+      </div>
+      <p class="next-step">
+        <a class="next-link" href="prompt-tutorial.html">
+          See why the agent guessed the way it did — and how to write a prompt that leaves no room for guessing
+          <span aria-hidden="true">→</span>
+        </a>
+      </p>
+    </section>
+
+    <section class="comparison" aria-label="Compare the two whip animation interpretations">
+      <article class="demo-card">
+        <div class="demo-copy">
+          <span class="demo-number">Interpretation 1 · original</span>
+          <h2 lang="zh-Hant">鵜鶘鞭打騎車人</h2>
+          <p>A person rides a bicycle while a pelican follows and lashes him. This is the natural, familiar reading of the phrase.</p>
+        </div>
+        <iframe class="preview" src="origin%20whip/origin%20whip.html" title="Original interpretation: a pelican whips a person riding a bicycle" loading="lazy"></iframe>
+        <div class="demo-footer">
+          <a class="demo-link" href="origin%20whip/origin%20whip.html" target="_blank" rel="noopener">Open original demo separately <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+
+      <article class="demo-card demo-card--refined">
+        <div class="demo-copy">
+          <span class="demo-number">Interpretation 2 · clarified</span>
+          <h2 lang="zh-Hant">自行車騎著人 × 鵜鶘甩鞭</h2>
+          <p>A bicycle rides on top of a person, who struggles forward as the pelican chases him. Clarifying the key phrase changes the scene.</p>
+        </div>
+        <iframe class="preview" src="polyu-style/whip_pelican.html" title="Refined interpretation: a bicycle rides on top of a person while a pelican chases" loading="lazy"></iframe>
+        <div class="demo-footer">
+          <a class="demo-link" href="polyu-style/whip_pelican.html" target="_blank" rel="noopener">Open refined demo separately <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">EduGenAI (PolyU) · COMP5241 prompt precision activity</footer>
+</body>
+</html>

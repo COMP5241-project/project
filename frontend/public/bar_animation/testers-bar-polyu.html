@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>測試工程師與酒吧 — 動態 SVG 故事</title>
+<style>
+  /* ---------- PolyU EduGenAI 品牌風格（README §1） ---------- */
+  :root{
+    --primary:#A21942;          /* Primary (PolyU Brick Red) */
+    --primary-hover:#801333;
+    --ink:#262626;              /* Secondary (Dark Slate/Charcoal) */
+    --bg:#F8F9FA;               /* Background Accent (Light Grey) */
+    --line:#E5E7EB;             /* Card Borders / Dividers */
+    --muted:#6B7280;
+    --green:#10B981;            /* Success / Progress Green */
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; color:var(--ink); background:var(--bg);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI","Noto Sans TC","Microsoft JhengHei","PingFang TC","Heiti TC",sans-serif;
+    display:flex; justify-content:center;
+  }
+  /* Layout: max-w-7xl mx-auto px-4 */
+  .wrap{ width:min(80rem, 100%); padding:24px 16px 48px; }
+  h1{
+    text-align:center; font-size:clamp(20px,3vw,30px); letter-spacing:.08em; font-weight:700;
+    margin:8px 0 6px; color:var(--ink);
+  }
+  h1 .sub{ display:block; font-size:13px; color:var(--muted); letter-spacing:.3em; margin-top:8px; font-weight:400; }
+  /* Cards: bg-white rounded-lg border border-gray-200 shadow-sm */
+  .stage-card, .player{
+    background:#fff; border:1px solid var(--line); border-radius:8px;
+    box-shadow:0 1px 2px 0 rgb(0 0 0 / .05);
+  }
+  .stage-card{ overflow:hidden; }
+  svg#stage{ display:block; width:100%; height:auto; background:#0d0a16; }
+  /* Card: p-6 */
+  .player{ margin-top:16px; padding:24px; }
+  .caption{
+    min-height:52px; font-size:clamp(16px,2vw,19px);
+    text-align:center; line-height:1.6; color:var(--ink);
+  }
+  .divider{ height:1px; background:var(--line); margin:20px 0; }
+  .hud{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .scene-num{ font-size:13px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .progress{ flex:1; height:8px; background:var(--line); border-radius:999px; overflow:hidden; min-width:110px; }
+  .progress > div{ height:100%; width:0%; background:var(--green); border-radius:999px; transition:width .3s ease; }
+  /* Buttons: rounded-md px-4 py-2 font-medium + transition-colors；主色 #A21942 / hover #801333 */
+  button{
+    background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:6px;
+    padding:8px 16px; font-size:14px; font-weight:500; line-height:1.25; cursor:pointer; font-family:inherit;
+    transition:background-color .15s ease, border-color .15s ease, color .15s ease;
+  }
+  button:hover{ background:var(--bg); border-color:#D1D5DB; }
+  button:active{ transform:translateY(1px); }
+  button.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  button.primary:hover{ background:var(--primary-hover); border-color:var(--primary-hover); }
+  button:focus-visible, select:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+  select{
+    background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px 12px;
+    font-family:inherit; font-size:14px; cursor:pointer;
+    transition:background-color .15s ease, border-color .15s ease;
+  }
+  select:hover{ background:var(--bg); border-color:#D1D5DB; }
+  .hint{ font-size:13px; color:var(--muted); text-align:center; margin-top:16px; }
+  /* 尊重系統「減少動態效果」設定：關閉純裝飾的無限循環動畫 */
+  @media (prefers-reduced-motion: reduce){
+    .walking .bob, .flame, .steam, .spark, .twinkle, .quake{ animation:none; }
+    .progress > div{ transition:none; }
+  }
+
+  /* ---------- SVG 動畫 ---------- */
+  .bob{ transform-box:fill-box; transform-origin:50% 100%; }
+  .walking .bob{ animation:bob .45s ease-in-out infinite alternate; }
+  @keyframes bob{
+    from{ transform:translateY(0) rotate(-1.6deg); }
+    to  { transform:translateY(-6px) rotate(1.6deg); }
+  }
+  .flame{
+    transform-box:fill-box; transform-origin:50% 100%;
+    animation:flick .55s ease-in-out infinite alternate;
+  }
+  @keyframes flick{
+    from{ transform:scaleY(.9) scaleX(1.05) rotate(-2.5deg); }
+    to  { transform:scaleY(1.12) scaleX(.93) rotate(2.5deg); }
+  }
+  .steam{ animation:steamUp 1.7s linear infinite; opacity:0; }
+  @keyframes steamUp{
+    0%{ transform:translateY(8px); opacity:0; }
+    30%{ opacity:.75; }
+    100%{ transform:translateY(-30px); opacity:0; }
+  }
+  .dust{ animation:dustOut .75s ease-out forwards; transform-box:fill-box; transform-origin:center; }
+  @keyframes dustOut{
+    from{ transform:scale(.4); opacity:.85; }
+    to  { transform:scale(2); opacity:0; }
+  }
+  .spark{ animation:sparkUp 1.9s linear infinite; }
+  @keyframes sparkUp{
+    0%{ transform:translateY(0); opacity:.95; }
+    100%{ transform:translateY(-400px); opacity:0; }
+  }
+  .wobble{ animation:wob .6s ease-in-out; transform-box:fill-box; transform-origin:50% 92%; }
+  @keyframes wob{
+    0%{ transform:rotate(0); } 25%{ transform:rotate(15deg); }
+    55%{ transform:rotate(-11deg); } 80%{ transform:rotate(6deg); } 100%{ transform:rotate(0); }
+  }
+  .quake{ animation:quake .7s linear; }
+  @keyframes quake{
+    0%,100%{ transform:translate(0,0) rotate(0); }
+    12%{ transform:translate(-10px,6px) rotate(-.5deg); }
+    30%{ transform:translate(9px,-7px) rotate(.5deg); }
+    48%{ transform:translate(-8px,5px) rotate(-.4deg); }
+    66%{ transform:translate(6px,-4px) rotate(.3deg); }
+    84%{ transform:translate(-3px,2px) rotate(-.2deg); }
+  }
+  .lizard-anim{ animation:wig .8s ease-in-out infinite alternate; transform-box:fill-box; transform-origin:30% 60%; }
+  .glassflip{ transform:scaleY(-1); }
+  @keyframes wig{
+    from{ transform:rotate(-4deg); }
+    to  { transform:rotate(5deg) translateY(-2px); }
+  }
+  .twinkle{ animation:tw 1.1s ease-in-out infinite alternate; }
+  @keyframes tw{ from{ opacity:.2; } to{ opacity:1; } }
+  .emoji{ font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍺 測試工程師與酒吧 🍺
+    <span class="sub">一個關於「走進酒吧」的無限迴圈</span>
+  </h1>
+
+  <div class="stage-card">
+  <svg id="stage" viewBox="0 0 1200 675" role="img" aria-label="測試工程師與酒吧動畫">
+    <defs>
+      <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#241b33"/><stop offset="1" stop-color="#3d2e4e"/>
+      </linearGradient>
+      <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7a5238"/><stop offset="1" stop-color="#46301f"/>
+      </linearGradient>
+      <linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#ff5722"/><stop offset=".55" stop-color="#ff9800"/><stop offset="1" stop-color="#ffd54f"/>
+      </linearGradient>
+      <radialGradient id="glowGrad" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#ff7043" stop-opacity=".5"/>
+        <stop offset="1" stop-color="#ff7043" stop-opacity="0"/>
+      </radialGradient>
+
+      <!-- 啤酒杯 -->
+      <g id="obj-mug">
+        <rect x="-15" y="-30" width="26" height="30" rx="3" fill="#f6b93b"/>
+        <rect x="-15" y="-30" width="26" height="7" fill="#e8a92c"/>
+        <path d="M 11,-25 q 12,2 12,10 q 0,8 -12,10" fill="none" stroke="#f6b93b" stroke-width="4"/>
+        <ellipse cx="-2" cy="-30" rx="13" ry="4.5" fill="#fff6df"/>
+        <ellipse cx="-8" cy="-32" rx="5" ry="3.5" fill="#fff6df"/>
+        <ellipse cx="4" cy="-33" rx="4" ry="3" fill="#fff6df"/>
+      </g>
+      <!-- 咖啡 -->
+      <g id="obj-coffee">
+        <rect x="-13" y="-22" width="26" height="22" rx="4" fill="#f4efe6"/>
+        <rect x="-13" y="-12" width="26" height="8" fill="#8a5a34"/>
+        <path d="M 13,-19 q 10,3 10,9 q 0,6 -10,8" fill="none" stroke="#f4efe6" stroke-width="4"/>
+        <ellipse cx="0" cy="-22" rx="11.5" ry="3.5" fill="#5a3a22"/>
+      </g>
+      <!-- 碗（錕斤拷） -->
+      <g id="obj-bowl">
+        <path d="M -20,-12 Q -18,6 0,6 Q 18,6 20,-12 Z" fill="#c0392b"/>
+        <ellipse cx="0" cy="-12" rx="20" ry="5" fill="#e2604e"/>
+        <path d="M -6,-16 L 14,-30 M -2,-17 L 18,-33" stroke="#d9b98a" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <!-- 洗腳水 -->
+      <g id="obj-footwash">
+        <path d="M -16,-26 L 16,-26 L 12,0 L -12,0 Z" fill="#5aa7d8"/>
+        <ellipse cx="0" cy="-26" rx="16" ry="5" fill="#8fd0f0"/>
+        <path d="M -16,-26 Q 0,-42 16,-26" fill="none" stroke="#3a6a8a" stroke-width="3"/>
+        <path d="M -9,-16 q 3,3 6,0 q 3,-3 6,0" fill="none" stroke="#bfe6ff" stroke-width="1.5"/>
+      </g>
+      <!-- 野貓 -->
+      <g id="obj-cat">
+        <path d="M -16,-14 Q -34,-16 -30,-32" fill="none" stroke="#8a6a4a" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="0" cy="-14" rx="19" ry="11" fill="#8a6a4a"/>
+        <circle cx="17" cy="-25" r="10" fill="#8a6a4a"/>
+        <path d="M 9,-32 L 10,-42 L 17,-34 Z" fill="#8a6a4a"/>
+        <path d="M 21,-33 L 27,-41 L 25,-31 Z" fill="#8a6a4a"/>
+        <circle cx="14" cy="-26" r="1.8" fill="#ffd166"/>
+        <circle cx="21" cy="-26" r="1.8" fill="#ffd166"/>
+        <path d="M 8,-20 q 2,2 4,0 M 20,-19 q 2,2 4,0" stroke="#5f4630" stroke-width="1.5" fill="none"/>
+        <path d="M -8,-20 q 4,3 8,0 M -12,-12 q 4,3 8,0" stroke="#5f4630" stroke-width="2" fill="none"/>
+        <rect x="-12" y="-6" width="4" height="7" fill="#8a6a4a"/>
+        <rect x="-2" y="-6" width="4" height="7" fill="#8a6a4a"/>
+        <rect x="6" y="-6" width="4" height="7" fill="#8a6a4a"/>
+        <rect x="13" y="-6" width="4" height="7" fill="#8a6a4a"/>
+      </g>
+      <!-- 狼牙棒 -->
+      <g id="obj-club">
+        <rect x="-3" y="-22" width="7" height="22" rx="3" fill="#6a4a2a"/>
+        <circle cx="0" cy="-35" r="12" fill="#9aa5b1"/>
+        <circle cx="0" cy="-49" r="4" fill="#cfd6dd"/>
+        <circle cx="10" cy="-44" r="4" fill="#cfd6dd"/>
+        <circle cx="13" cy="-33" r="4" fill="#cfd6dd"/>
+        <circle cx="8" cy="-23" r="4" fill="#cfd6dd"/>
+        <circle cx="-8" cy="-46" r="4" fill="#cfd6dd"/>
+        <circle cx="-13" cy="-34" r="4" fill="#cfd6dd"/>
+        <circle cx="-9" cy="-24" r="4" fill="#cfd6dd"/>
+      </g>
+      <!-- 奶茶 -->
+      <g id="obj-milktea">
+        <path d="M -11,-32 L 11,-32 L 8,0 L -8,0 Z" fill="#d9a05b"/>
+        <ellipse cx="0" cy="-32" rx="11.5" ry="4.5" fill="#f0e6d2"/>
+        <rect x="-4" y="-52" width="4" height="22" rx="2" fill="#e74c3c" transform="rotate(12 -2 -41)"/>
+        <circle cx="0" cy="-24" r="1.6" fill="#8a5a34"/>
+        <circle cx="5" cy="-16" r="1.6" fill="#8a5a34"/>
+        <circle cx="-4" cy="-12" r="1.6" fill="#8a5a34"/>
+      </g>
+      <!-- 炒飯 -->
+      <g id="obj-rice">
+        <ellipse cx="0" cy="0" rx="26" ry="7" fill="#f4efe6" stroke="#c8b89a" stroke-width="1.5"/>
+        <path d="M -17,-2 Q -10,-15 0,-15 Q 10,-15 17,-2 Z" fill="#f2c14e"/>
+        <circle cx="-6" cy="-9" r="1.6" fill="#6a8f4a"/>
+        <circle cx="3" cy="-11" r="1.6" fill="#d97b2f"/>
+        <circle cx="8" cy="-7" r="1.4" fill="#6a8f4a"/>
+        <circle cx="-1" cy="-6" r="1.4" fill="#d97b2f"/>
+      </g>
+      <!-- 茶 -->
+      <g id="obj-tea">
+        <ellipse cx="0" cy="0" rx="15" ry="4" fill="#e8e0d0"/>
+        <rect x="-9" y="-15" width="18" height="13" rx="3" fill="#f4efe6"/>
+        <path d="M 9,-12 q 7,2 7,6 q 0,4 -7,5" fill="none" stroke="#f4efe6" stroke-width="3"/>
+        <ellipse cx="0" cy="-15" rx="9" ry="2.6" fill="#7fa06a"/>
+      </g>
+      <!-- 空杯 -->
+      <g id="obj-glass2">
+        <path d="M -12,-42 L 12,-42 L 9,0 L -9,0 Z" fill="rgba(220,236,245,.25)" stroke="#9fb8c8" stroke-width="2"/>
+      </g>
+      <!-- 掃把 -->
+      <g id="obj-broom">
+        <rect x="-2.5" y="-52" width="5" height="52" rx="2.5" fill="#8a5a34"/>
+        <path d="M -9,0 L 9,0 L 5,-14 L -5,-14 Z" fill="#d4a94e"/>
+        <path d="M -7,-4 L 7,-4 M -6,-8 L 6,-8" stroke="#a07a30" stroke-width="1.5"/>
+      </g>
+    </defs>
+
+    <!-- ================= 背景 ================= -->
+    <g id="bg">
+      <rect x="0" y="0" width="1200" height="520" fill="url(#wallGrad)"/>
+      <rect x="0" y="428" width="1200" height="4" fill="#5a4470"/>
+      <rect x="0" y="432" width="1200" height="88" fill="#46335a"/>
+      <rect x="0" y="520" width="1200" height="155" fill="url(#floorGrad)"/>
+      <g stroke="rgba(0,0,0,.22)" stroke-width="3">
+        <line x1="140" y1="520" x2="120" y2="675"/><line x1="300" y1="520" x2="290" y2="675"/>
+        <line x1="460" y1="520" x2="460" y2="675"/><line x1="620" y1="520" x2="630" y2="675"/>
+        <line x1="780" y1="520" x2="795" y2="675"/><line x1="940" y1="520" x2="960" y2="675"/>
+        <line x1="1100" y1="520" x2="1125" y2="675"/>
+      </g>
+      <line x1="0" y1="520" x2="1200" y2="520" stroke="#2a1c10" stroke-width="3"/>
+      <!-- 下水道蓋 -->
+      <ellipse cx="280" cy="588" rx="56" ry="15" fill="#241a10"/>
+      <ellipse cx="280" cy="588" rx="44" ry="10" fill="#0d0a06"/>
+      <g stroke="#3a2c1c" stroke-width="2.5">
+        <line x1="248" y1="588" x2="312" y2="588"/><line x1="254" y1="584" x2="306" y2="584"/>
+        <line x1="254" y1="592" x2="306" y2="592"/>
+      </g>
+      <!-- 牆壁裂縫（拆酒吧時出現） -->
+      <g id="wallCracks" style="opacity:0" stroke="#141021" stroke-width="4" fill="none" stroke-linecap="round">
+        <path d="M 250,140 L 264,190 L 242,232 L 260,286 L 246,330"/>
+        <path d="M 540,110 L 528,160 L 550,204 L 534,248"/>
+        <path d="M 640,300 L 660,340 L 644,392"/>
+        <path d="M 1090,140 L 1108,192 L 1088,244"/>
+      </g>
+    </g>
+
+    <!-- ================= 酒吧後排（角色身後） ================= -->
+    <g id="barBack">
+      <!-- 窗戶 -->
+      <rect x="300" y="150" width="180" height="180" rx="6" fill="#2e2440"/>
+      <g id="windowGlass">
+        <rect x="312" y="162" width="156" height="156" fill="#14142b"/>
+        <circle cx="432" cy="196" r="13" fill="#f2e9c9"/>
+        <circle cx="427" cy="193" r="3" fill="#d9cfa8"/><circle cx="436" cy="200" r="2" fill="#d9cfa8"/>
+        <circle cx="336" cy="186" r="1.6" fill="#fff" opacity=".85"/>
+        <circle cx="362" cy="210" r="1.4" fill="#fff" opacity=".7"/>
+        <circle cx="345" cy="255" r="1.6" fill="#fff" opacity=".8"/>
+        <circle cx="398" cy="180" r="1.4" fill="#fff" opacity=".6"/>
+      </g>
+      <g id="winCracks" style="opacity:0" stroke="#dfe8f0" stroke-width="2.5" fill="none">
+        <path d="M 390,240 L 344,192 M 390,240 L 442,184 M 390,240 L 332,272 M 390,240 L 452,282 M 390,240 L 390,164 M 390,240 L 388,318"/>
+        <circle cx="390" cy="240" r="9"/>
+      </g>
+      <g stroke="#2e2440" stroke-width="8">
+        <line x1="390" y1="162" x2="390" y2="318"/><line x1="312" y1="240" x2="468" y2="240"/>
+      </g>
+      <rect x="292" y="330" width="196" height="12" rx="4" fill="#4a3220"/>
+
+      <!-- 前門 -->
+      <rect x="56" y="186" width="124" height="336" rx="4" fill="#2e2440"/>
+      <g id="frontDoorLeaf">
+        <rect x="66" y="196" width="104" height="326" fill="#6a4a30"/>
+        <rect x="82" y="220" width="72" height="96" rx="4" fill="#1a1a2e"/>
+        <circle cx="108" cy="248" r="9" fill="#f2e9c9" opacity=".9"/>
+        <rect x="70" y="470" width="96" height="44" fill="#55381f"/>
+        <circle cx="156" cy="380" r="5" fill="#d4a94e"/>
+      </g>
+
+      <!-- 後門 -->
+      <rect x="1116" y="226" width="80" height="300" rx="4" fill="#2e2440"/>
+      <g id="backDoorLeaf">
+        <rect x="1124" y="234" width="64" height="292" fill="#5d4128"/>
+        <rect x="1132" y="252" width="48" height="60" rx="3" fill="#4a3320"/>
+        <rect x="1132" y="430" width="48" height="80" rx="3" fill="#4a3320"/>
+        <circle cx="1132" cy="380" r="4" fill="#d4a94e"/>
+      </g>
+
+      <!-- 酒架 -->
+      <g>
+        <rect x="724" y="238" width="360" height="10" fill="#5a3f2a"/>
+        <g transform="translate(745 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#7fb069"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#7fb069"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(785 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#b5651d"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#b5651d"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(825 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#8a5a9a"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#8a5a9a"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(950 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#c0392b"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#c0392b"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(995 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#5a9ab5"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#5a9ab5"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(1040 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#d98a3a"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#d98a3a"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(1070 238)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#7fb069"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#7fb069"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+      </g>
+      <g>
+        <rect x="724" y="318" width="360" height="10" fill="#5a3f2a"/>
+        <g transform="translate(750 318)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#b5651d"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#b5651d"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(795 318)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#8a5a9a"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#8a5a9a"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(840 318)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#c0392b"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#c0392b"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(960 318)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#7fb069"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#7fb069"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(1005 318)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#5a9ab5"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#5a9ab5"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+        <g transform="translate(1050 318)"><rect x="-7" y="-30" width="14" height="30" rx="3" fill="#b5651d"/><rect x="-3" y="-42" width="6" height="14" rx="2" fill="#b5651d"/><rect x="-4" y="-45" width="8" height="4" rx="1.5" fill="#d4a94e"/></g>
+      </g>
+
+      <!-- BAR 招牌 -->
+      <g id="sign">
+        <rect x="806" y="76" width="208" height="10" fill="#4a3220"/>
+        <line x1="840" y1="86" x2="840" y2="120" stroke="#8a6a3a" stroke-width="3"/>
+        <line x1="980" y1="86" x2="980" y2="120" stroke="#8a6a3a" stroke-width="3"/>
+        <rect x="812" y="120" width="196" height="62" rx="8" fill="#1f1630" stroke="#d4a94e" stroke-width="3"/>
+        <text x="910" y="164" text-anchor="middle" font-size="38" font-weight="bold" fill="#f2c14e" letter-spacing="8" font-family="Georgia,serif">BAR</text>
+      </g>
+
+      <!-- 小桌 + 圓凳 -->
+      <g id="table">
+        <ellipse cx="540" cy="552" rx="26" ry="7" fill="#5a3f2a"/>
+        <rect x="535" y="478" width="10" height="76" fill="#6a4a2a"/>
+        <ellipse cx="540" cy="475" rx="48" ry="13" fill="#a06a3a"/>
+        <ellipse cx="540" cy="471" rx="48" ry="13" fill="#b57a45"/>
+      </g>
+      <g id="stool">
+        <ellipse cx="625" cy="552" rx="22" ry="6" fill="#5a3f2a"/>
+        <rect x="620" y="490" width="10" height="62" fill="#6a4a2a"/>
+        <ellipse cx="625" cy="486" rx="30" ry="9" fill="#a06a3a"/>
+        <ellipse cx="625" cy="482" rx="30" ry="9" fill="#b57a45"/>
+      </g>
+    </g>
+
+    <!-- ================= 角色 ================= -->
+    <!-- 測試工程師 -->
+    <g id="tester" transform="translate(-160 595)" style="opacity:0">
+      <g class="bob">
+        <rect x="-15" y="-52" width="12" height="50" rx="5" fill="#2b3140"/>
+        <rect x="3" y="-52" width="12" height="50" rx="5" fill="#333b4d"/>
+        <rect x="-18" y="-8" width="16" height="9" rx="4" fill="#1b1f2a"/>
+        <rect x="2" y="-8" width="18" height="9" rx="4" fill="#1b1f2a"/>
+        <rect x="-23" y="-118" width="46" height="70" rx="10" fill="#3e7fd8"/>
+        <rect x="-23" y="-118" width="46" height="10" rx="5" fill="#356fc0"/>
+        <g>
+          <circle cx="0" cy="-86" r="9" fill="#fff"/>
+          <path d="M -4,-93 L -8,-98 M 4,-93 L 8,-98" stroke="#3e7fd8" stroke-width="2" stroke-linecap="round"/>
+          <path d="M -9,-88 L -14,-90 M -9,-84 L -14,-84 M 9,-88 L 14,-90 M 9,-84 L 14,-84" stroke="#3e7fd8" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="0" cy="-89" r="2.5" fill="#3e7fd8"/>
+        </g>
+        <rect x="-32" y="-110" width="11" height="40" rx="5.5" fill="#356fc0"/>
+        <g id="testerArm">
+          <rect x="12" y="-110" width="40" height="11" rx="5.5" fill="#356fc0"/>
+          <circle cx="52" cy="-104.5" r="6.5" fill="#ffd9b3"/>
+        </g>
+        <g id="testerHead">
+          <circle cx="-1" cy="-142" r="23" fill="#ffd9b3"/>
+          <path d="M -24,-144 Q -24,-167 -1,-168 Q 22,-167 22,-144 Q 12,-156 0,-155 Q -14,-154 -24,-144 Z" fill="#2b2b33"/>
+          <circle cx="3" cy="-141" r="5.5" fill="rgba(255,255,255,.25)" stroke="#22262e" stroke-width="2.5"/>
+          <circle cx="14" cy="-141" r="5.5" fill="rgba(255,255,255,.25)" stroke="#22262e" stroke-width="2.5"/>
+          <path d="M -2.5,-142 L -12,-145" stroke="#22262e" stroke-width="2.5" fill="none"/>
+          <circle cx="4.5" cy="-141" r="1.8" fill="#22262e"/>
+          <circle cx="15" cy="-141" r="1.8" fill="#22262e"/>
+          <path id="testerMouth" d="M 6,-128 q 4,3 9,0" stroke="#a05a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </g>
+        <!-- 偽裝成老闆的化妝 -->
+        <g id="testerCostume" style="opacity:0">
+          <path d="M -23,-156 Q -1,-180 21,-156 L 21,-148 L -23,-148 Z" fill="#23252e"/>
+          <rect x="-27" y="-150" width="52" height="7" rx="3.5" fill="#c0392b"/>
+          <path d="M 2,-131 Q 10,-138 17,-130 Q 10,-133 2,-131 Z" fill="#6a6f78"/>
+          <path d="M -16,-112 L 16,-112 L 21,-52 L -21,-52 Z" fill="#f4efe6" opacity=".95"/>
+          <path d="M -16,-112 L -8,-124 M 16,-112 L 8,-124" stroke="#23252e" stroke-width="3"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- 顧客 -->
+    <g id="customer" transform="translate(1280 578)" style="opacity:0">
+      <g class="bob">
+        <rect x="-15" y="-52" width="12" height="50" rx="5" fill="#2b3140"/>
+        <rect x="3" y="-52" width="12" height="50" rx="5" fill="#333b4d"/>
+        <rect x="-18" y="-8" width="16" height="9" rx="4" fill="#1b1f2a"/>
+        <rect x="2" y="-8" width="18" height="9" rx="4" fill="#1b1f2a"/>
+        <rect x="-23" y="-118" width="46" height="70" rx="10" fill="#4a9a6a"/>
+        <rect x="-23" y="-118" width="46" height="10" rx="5" fill="#3d8459"/>
+        <circle cx="0" cy="-86" r="8" fill="#fff"/>
+        <path d="M -5,-86 L 5,-86 M 0,-91 L 0,-81" stroke="#4a9a6a" stroke-width="2"/>
+        <rect x="-32" y="-110" width="11" height="40" rx="5.5" fill="#3d8459"/>
+        <rect x="21" y="-110" width="11" height="40" rx="5.5" fill="#3d8459"/>
+        <circle cx="-1" cy="-142" r="23" fill="#f0c8a0"/>
+        <path d="M -24,-144 Q -24,-168 -1,-168 Q 22,-167 22,-144 Q 10,-158 -2,-157 Q -14,-156 -24,-144 Z" fill="#7a4a2a"/>
+        <circle cx="-18" cy="-160" r="6.5" fill="#7a4a2a"/>
+        <circle cx="6" cy="-141" r="2" fill="#22262e"/>
+        <circle cx="15" cy="-141" r="2" fill="#22262e"/>
+        <path d="M 5,-128 q 5,4 10,0" stroke="#a05a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <!-- 酒保 -->
+    <g id="bartender" transform="translate(890 502)">
+      <g id="bartenderBody">
+        <rect x="-16" y="-50" width="12" height="50" rx="5" fill="#23252e"/>
+        <rect x="4" y="-50" width="12" height="50" rx="5" fill="#23252e"/>
+        <rect x="-30" y="-150" width="60" height="104" rx="10" fill="#f4efe6"/>
+        <rect x="-30" y="-150" width="15" height="104" rx="6" fill="#23252e"/>
+        <rect x="15" y="-150" width="15" height="104" rx="6" fill="#23252e"/>
+        <path d="M -15,-150 L 0,-108 L 15,-150 Z" fill="#23252e"/>
+        <path d="M -4,-146 L 4,-146 L 0,-118 Z" fill="#c0392b"/>
+        <rect x="-40" y="-140" width="12" height="44" rx="6" fill="#f4efe6"/>
+        <g id="barterArm">
+          <rect x="18" y="-140" width="34" height="12" rx="6" fill="#f4efe6"/>
+          <circle cx="52" cy="-134" r="7" fill="#ffd9b3"/>
+        </g>
+        <g id="barterHead">
+          <circle cx="0" cy="-176" r="26" fill="#ffd9b3"/>
+          <path d="M -26,-180 Q -26,-204 0,-205 Q 26,-204 26,-180 Q 14,-190 0,-189 Q -14,-188 -26,-180 Z" fill="#8a8f98"/>
+          <path d="M -24,-190 Q 0,-212 24,-190 L 24,-184 Q 0,-198 -24,-184 Z" fill="#23252e"/>
+          <rect x="-27" y="-186" width="54" height="6" rx="3" fill="#c0392b"/>
+          <circle cx="-7" cy="-178" r="2.2" fill="#22262e"/>
+          <circle cx="8" cy="-178" r="2.2" fill="#22262e"/>
+          <path d="M -12,-186 L -3,-184 M 4,-184 L 13,-186" stroke="#8a8f98" stroke-width="2" stroke-linecap="round"/>
+          <path d="M -8,-164 Q 0,-171 8,-164 Q 0,-159 -8,-164 Z" fill="#8a8f98"/>
+          <path id="barterMouth" d="M -5,-157 q 6,4 11,0" stroke="#a05a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- 蜥蜴 -->
+    <g id="lizard" transform="translate(950 392)" style="opacity:0">
+      <g class="lw">
+        <path d="M 24,-8 Q 44,-12 46,-26" stroke="#58b368" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="6" cy="-10" rx="20" ry="9" fill="#58b368"/>
+        <circle cx="-18" cy="-16" r="8" fill="#58b368"/>
+        <circle cx="-20" cy="-18" r="1.8" fill="#1b2b1b"/>
+        <path d="M -25,-15 q -5,1 -7,5" stroke="#e74c3c" stroke-width="1.6" fill="none"/>
+        <path d="M -6,-4 L -9,0 M -1,-3 L -4,0 M 12,-4 L 9,0 M 17,-3 L 20,0" stroke="#2e7d43" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="10" cy="-12" r="2" fill="#2e7d43" opacity=".6"/>
+        <circle cx="1" cy="-8" r="1.6" fill="#2e7d43" opacity=".6"/>
+      </g>
+    </g>
+
+    <!-- ================= 吧台（角色身前） ================= -->
+    <g id="barFront">
+      <rect x="740" y="394" width="370" height="24" rx="6" fill="#c89158"/>
+      <rect x="740" y="394" width="370" height="6" rx="3" fill="#dca86e"/>
+      <rect x="746" y="418" width="358" height="102" fill="#8a5a34"/>
+      <rect x="766" y="436" width="140" height="66" rx="6" fill="none" stroke="#6a4225" stroke-width="3"/>
+      <rect x="926" y="436" width="150" height="66" rx="6" fill="none" stroke="#6a4225" stroke-width="3"/>
+      <rect x="740" y="512" width="370" height="10" fill="#4a3220"/>
+      <g id="tap">
+        <rect x="1064" y="352" width="10" height="44" rx="3" fill="#8a94a0"/>
+        <path d="M 1064,364 L 1046,364 L 1046,354 L 1064,354 Z" fill="#8a94a0"/>
+        <circle cx="1046" cy="359" r="3" fill="#5a6470"/>
+      </g>
+      <path id="counterCrack" d="M 830,430 L 848,470 L 826,512" stroke="#3a2412" stroke-width="4" fill="none" style="opacity:0"/>
+    </g>
+
+    <!-- ================= 特效層 ================= -->
+    <g id="fx"></g>
+
+    <!-- 對話氣泡 -->
+    <g id="bubbleT" style="opacity:0">
+      <rect id="bubbleTrect" x="-90" y="-24" width="180" height="48" rx="14" fill="#fffdf5" stroke="#2b2b33" stroke-width="2.5"/>
+      <polygon id="bubbleTtail" points="-9,23 9,23 2,37" fill="#fffdf5" stroke="#2b2b33" stroke-width="2.5"/>
+      <text id="bubbleTtext" x="0" y="8" text-anchor="middle" font-size="24" font-weight="bold" fill="#2b2b33">一杯啤酒</text>
+    </g>
+    <g id="bubbleB" style="opacity:0">
+      <rect id="bubbleBrect" x="-90" y="-24" width="180" height="48" rx="14" fill="#fffdf5" stroke="#2b2b33" stroke-width="2.5"/>
+      <polygon id="bubbleBtail" points="-9,23 9,23 2,37" fill="#fffdf5" stroke="#2b2b33" stroke-width="2.5"/>
+      <text id="bubbleBtext" x="0" y="8" text-anchor="middle" font-size="24" font-weight="bold" fill="#2b2b33">好嘞</text>
+    </g>
+
+    <!-- ================= 火海 ================= -->
+    <g id="fire" style="opacity:0">
+      <ellipse cx="600" cy="660" rx="640" ry="200" fill="url(#glowGrad)"/>
+      <g class="flameW" data-x="120" data-y="640" data-s="2.2"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="260" data-y="650" data-s="1.6"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="420" data-y="640" data-s="2.6"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="560" data-y="650" data-s="1.8"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="700" data-y="640" data-s="2.4"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="850" data-y="650" data-s="2.0"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="980" data-y="640" data-s="2.8"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="1120" data-y="650" data-s="1.7"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="620" data-y="560" data-s="1.5"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="760" data-y="545" data-s="1.9"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="flameW" data-x="300" data-y="560" data-s="1.3"><g class="flame"><path d="M 0,0 C -16,-10 -20,-34 -8,-52 C -4,-60 4,-60 8,-52 C 20,-34 16,-10 0,0 Z" fill="url(#flameGrad)"/><path d="M 0,-2 C -8,-8 -10,-22 -3,-33 C 0,-38 3,-38 5,-32 C 11,-22 8,-8 0,-2 Z" fill="#ffd166" opacity=".9"/></g></g>
+      <g class="sparkWrap" style="opacity:0" transform="translate(140 630)"><circle class="spark" r="2.4" fill="#ffd166" style="animation-delay:.1s"/></g>
+      <g class="sparkWrap" style="opacity:0" transform="translate(320 640)"><circle class="spark" r="2" fill="#ef8354" style="animation-delay:.7s"/></g>
+      <g class="sparkWrap" style="opacity:0" transform="translate(500 635)"><circle class="spark" r="2.8" fill="#fff" style="animation-delay:.4s"/></g>
+      <g class="sparkWrap" style="opacity:0" transform="translate(680 645)"><circle class="spark" r="2.2" fill="#ffd166" style="animation-delay:1.1s"/></g>
+      <g class="sparkWrap" style="opacity:0" transform="translate(860 635)"><circle class="spark" r="2.6" fill="#ef8354" style="animation-delay:.2s"/></g>
+      <g class="sparkWrap" style="opacity:0" transform="translate(1040 645)"><circle class="spark" r="2" fill="#ffd166" style="animation-delay:.9s"/></g>
+    </g>
+
+    <!-- 結局卡 -->
+    <g id="endcard" style="opacity:0">
+      <rect x="-270" y="-95" width="540" height="190" rx="18" fill="rgba(13,10,22,.9)" stroke="#d4a94e" stroke-width="2"/>
+      <text x="0" y="-32" text-anchor="middle" font-size="34" fill="#f2c14e" font-weight="bold">—— 完 ——</text>
+      <text x="0" y="10" text-anchor="middle" font-size="18" fill="#cfc4e6">一份炒飯，炸掉整間酒吧</text>
+      <text x="0" y="50" text-anchor="middle" font-size="14" fill="#8a7fb5">按「重播」再看一次</text>
+    </g>
+  </svg>
+  </div>
+
+  <div class="player">
+    <div class="caption" id="caption" aria-live="polite"></div>
+    <div class="divider" role="presentation"></div>
+    <div class="hud">
+      <span class="scene-num" id="sceneNum">第 1 / 23 幕</span>
+      <div class="progress"><div id="progressBar"></div></div>
+      <button id="btnRestart" title="重播">⏮ 重播</button>
+      <button id="btnPrev" title="上一幕">◀ 上一幕</button>
+      <button id="btnPlay" class="primary" title="播放／暫停">⏸ 暫停</button>
+      <button id="btnNext" title="下一幕">下一幕 ▶</button>
+      <select id="selSpeed" title="速度">
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+      </select>
+    </div>
+
+    <div class="hint">空白鍵＝播放／暫停　｜　← →＝上一幕／下一幕　｜　單一 HTML 檔，直接雙擊開啟即可</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =========================================================
+   測試工程師與酒吧 — 動態 SVG 故事
+   架構：可暫停/可調速的邏輯時鐘 + 場景 token（跳幕時作廢舊動畫）
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const xlinkNS = 'http://www.w3.org/1999/xlink';
+
+/* ---------------- 時鐘（可暫停、可調速） ---------------- */
+const clock = { acc: 0, last: performance.now(), paused: false, speed: 1 };
+(function tick(){
+  const now = performance.now();
+  if (!clock.paused) clock.acc += Math.min(now - clock.last, 100) * clock.speed;
+  clock.last = now;
+  requestAnimationFrame(tick);
+})();
+
+/* ---------------- 緩動 ---------------- */
+const easeInOut = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+const easeOut   = t => 1 - Math.pow(1 - t, 3);
+const easeIn    = t => t*t*t;
+
+/* ---------------- 場景 token ---------------- */
+let sceneToken = 0;
+const alive = tok => tok === sceneToken;
+
+/* ---------------- 姿態與補間 ---------------- */
+function pose(x, y, s = 1, r = 0, cx = 0, cy = 0, o = 1){ return { x, y, s, r, cx, cy, o }; }
+function applyPose(el, p){
+  el.setAttribute('transform', `translate(${p.x} ${p.y}) rotate(${p.r} ${p.cx} ${p.cy}) scale(${p.s})`);
+  el.style.opacity = p.o;
+}
+function tween(el, from, to, dur, delay = 0, ease = easeInOut, tok = sceneToken){
+  const t0 = clock.acc + delay;
+  return new Promise(res => {
+    (function frame(){
+      if (tok !== sceneToken) return res(false);
+      const raw = clock.acc - t0;
+      if (raw >= dur){ applyPose(el, to); return res(true); }
+      if (raw >= 0){
+        const t = ease(Math.max(0, raw) / dur);
+        applyPose(el, {
+          x: from.x + (to.x - from.x) * t,
+          y: from.y + (to.y - from.y) * t,
+          s: from.s + (to.s - from.s) * t,
+          r: from.r + (to.r - from.r) * t,
+          cx: from.cx + (to.cx - from.cx) * t,
+          cy: from.cy + (to.cy - from.cy) * t,
+          o: from.o + (to.o - from.o) * t,
+        });
+      }
+      requestAnimationFrame(frame);
+    })();
+  });
+}
+function wait(ms, tok = sceneToken){
+  const t0 = clock.acc + ms;
+  return new Promise(res => {
+    (function f(){
+      if (tok !== sceneToken) return res(false);
+      if (clock.acc >= t0) return res(true);
+      requestAnimationFrame(f);
+    })();
+  });
+}
+function fade(el, from, to, dur, delay = 0, tok = sceneToken){
+  const t0 = clock.acc + delay;
+  return new Promise(res => {
+    (function f(){
+      if (tok !== sceneToken) return res(false);
+      const raw = clock.acc - t0;
+      if (raw >= dur){ el.style.opacity = to; return res(true); }
+      if (raw >= 0) el.style.opacity = from + (to - from) * (raw / dur);
+      requestAnimationFrame(f);
+    })();
+  });
+}
+
+/* ---------------- SVG 工具 ---------------- */
+function E(name, attrs = {}, parent = null){
+  const n = document.createElementNS(svgNS, name);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const fx = $('fx');
+function useFx(id, x, y, s = 1, o = 1){
+  const u = E('use', { transform: `translate(${x} ${y}) scale(${s})` }, fx);
+  u.setAttribute('href', id);
+  u.setAttributeNS(xlinkNS, 'xlink:href', id);
+  u.style.opacity = o;
+  return u;
+}
+function floatText(str, x, y, o = {}){
+  const { size = 24, fill = '#f2c14e', dur = 1400, rise = 36, delay = 0, tok = sceneToken } = o;
+  const g = E('g', {}, fx);
+  const t = E('text', { 'text-anchor': 'middle', 'font-size': size, fill, 'font-weight': 'bold' }, g);
+  t.textContent = str;
+  g.style.opacity = 0;
+  const p0 = pose(x, y, 1, 0, 0, 0, 0);
+  const p1 = pose(x, y - rise, 1, 0, 0, 0, 1);
+  tween(g, p0, p1, Math.min(380, dur * .35), delay, easeOut, tok)
+    .then(ok => ok && wait(dur, tok))
+    .then(ok => { if (ok) tween(g, p1, pose(x, y - rise, 1, 0, 0, 0, 0), 320, 0, easeOut, tok); });
+  return g;
+}
+function steam(x, y, tok = sceneToken, n = 3){
+  for (let i = 0; i < n; i++){
+    const g = E('g', { transform: `translate(${x + (i - n/2) * 9} ${y})` }, fx);
+    const p = E('path', { d: 'M 0,4 q 5,-7 0,-14 q -5,-7 0,-14', stroke: '#d8dfe6', 'stroke-width': 2.5, fill: 'none', class: 'steam' }, g);
+    p.style.animationDelay = (i * .4) + 's';
+  }
+}
+function dustPuff(x, y, tok = sceneToken, n = 3){
+  for (let i = 0; i < n; i++){
+    E('circle', { cx: x + (i - n/2) * 16, cy: y + (i % 2 ? 6 : -4), r: 8 + (i % 3) * 3, fill: '#c9b8a0', class: 'dust' }, fx);
+  }
+  wait(820, tok).then(() => { fx.querySelectorAll('.dust').forEach(e => e.remove()); });
+}
+function makeGlass(x, y, level, tok = sceneToken){
+  const g = E('g', { transform: `translate(${x} ${y})` }, fx);
+  const inner = E('g', {}, g);
+  E('path', { d: 'M -13,-46 L 13,-46 L 10,0 L -10,0 Z', fill: 'rgba(220,236,245,.16)', stroke: '#9fb8c8', 'stroke-width': 2 }, inner);
+  if (level > 0){
+    const h = 40 * level, hw = 10 + 3 * (h / 46);
+    E('path', { d: `M ${-hw},${-h} L ${hw},${-h} L 10,0 L -10,0 Z`, fill: '#f6b93b', opacity: .9 }, inner);
+    E('ellipse', { cx: 0, cy: -h, rx: hw, ry: 3, fill: '#fff6df', opacity: .9 }, inner);
+  }
+  return g;
+}
+function textW(str, fs){
+  let w = 0;
+  for (const ch of str) w += ch.charCodeAt(0) > 0x2E7F ? fs * 1.02 : fs * .58;
+  return w;
+}
+function showBubble(which, str, fs = 24, delay = 0, tok = sceneToken){
+  const b    = $(which === 't' ? 'bubbleT' : 'bubbleB');
+  const rect = $(which === 't' ? 'bubbleTrect' : 'bubbleBrect');
+  const text = $(which === 't' ? 'bubbleTtext' : 'bubbleBtext');
+  const tail = $(which === 't' ? 'bubbleTtail' : 'bubbleBtail');
+  const w = textW(str, fs) + 36, h = fs + 24;
+  rect.setAttribute('x', -w/2); rect.setAttribute('y', -h/2);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', 14);
+  text.setAttribute('x', 0); text.setAttribute('y', fs * .35);
+  text.setAttribute('font-size', fs);
+  text.textContent = str;
+  tail.setAttribute('points', `${-9},${h/2 - 1} ${9},${h/2 - 1} ${2},${h/2 + 13}`);
+  const cx = which === 't' ? 650 : 950, cy = which === 't' ? 344 : 240;
+  b.style.opacity = 0;
+  tween(b, pose(cx, cy, .82, 0, 0, 0, 0), pose(cx, cy, 1, 0, 0, 0, 1), 220, delay, easeOut, tok);
+  return b;
+}
+function hideBubble(which){
+  $(which === 't' ? 'bubbleT' : 'bubbleB').style.opacity = 0;
+}
+
+/* ---------------- 角色小動作 ---------------- */
+const MOUTHS = {
+  normal: 'M 6,-128 q 4,3 9,0',
+  happy:  'M 5,-129 q 6,7 12,0',
+  frown:  'M 6,-125 q 4,-4 9,0',
+};
+function setMouth(kind){
+  const m = $('testerMouth');
+  if (kind === 'shock'){
+    m.setAttribute('d', 'M 7,-131 q 4,6 8,0 q -4,4 -8,0 Z');
+    m.setAttribute('fill', '#7a4a3a');
+  } else {
+    m.setAttribute('d', MOUTHS[kind] || MOUTHS.normal);
+    m.setAttribute('fill', 'none');
+  }
+}
+let armAngle = 0;
+function setArm(a, dur = 260, tok = sceneToken){
+  const arm = $('testerArm');
+  const from = armAngle; armAngle = a;
+  return tween(arm, pose(0, 0, 1, from, 18, -104, 1), pose(0, 0, 1, a, 18, -104, 1), dur, 0, easeInOut, tok);
+}
+function wobble(el){
+  el.classList.remove('wobble');
+  void el.getBoundingClientRect();
+  el.classList.add('wobble');
+  setTimeout(() => el.classList.remove('wobble'), 680);
+}
+function quake(tok = sceneToken){
+  const s = $('stage');
+  s.classList.remove('quake');
+  void s.getBoundingClientRect();
+  s.classList.add('quake');
+  setTimeout(() => s.classList.remove('quake'), 750);
+  return wait(750, tok);
+}
+async function testerWalk(from, to, dur, tok = sceneToken, ease = easeInOut){
+  const t = $('tester');
+  t.style.opacity = 1;
+  t.classList.add('walking');
+  const ok = await tween(t, from, to, dur, 0, ease, tok);
+  if (alive(tok)) t.classList.remove('walking');
+  return ok;
+}
+function openDoor(which, dur = 400, tok = sceneToken){
+  const leaf = $(which === 'front' ? 'frontDoorLeaf' : 'backDoorLeaf');
+  const r = which === 'front' ? -75 : 75;
+  const c = which === 'front' ? 66 : 1186;
+  return tween(leaf, pose(0, 0, 1, 0, c, 359, 1), pose(0, 0, 1, r, c, 359, 1), dur, 0, easeInOut, tok);
+}
+function closeDoor(which, dur = 400, tok = sceneToken){
+  const leaf = $(which === 'front' ? 'frontDoorLeaf' : 'backDoorLeaf');
+  const r = which === 'front' ? -75 : 75;
+  const c = which === 'front' ? 66 : 1186;
+  return tween(leaf, pose(0, 0, 1, r, c, 359, 1), pose(0, 0, 1, 0, c, 359, 1), dur, 0, easeInOut, tok);
+}
+function shake(el, dur = 700, amp = 7, cx = 600, cy = 400, tok = sceneToken){
+  const n = 6;
+  let prev = { x: 0, y: 0, s: 1, r: 0, cx, cy, o: 1 };
+  let chain = Promise.resolve(true);
+  for (let i = 0; i < n; i++){
+    const k = 1 - i / n;
+    const to = { x: (i % 2 ? 1 : -1) * amp * k, y: 0, s: 1, r: (i % 2 ? 1 : -1) * 1.6 * k, cx, cy, o: 1 };
+    chain = chain.then(ok => {
+      if (!ok) return false;
+      return tween(el, prev, to, dur / n, 0, t => t, tok).then(r => { if (r) prev = to; return r; });
+    });
+  }
+  return chain.then(ok => { if (ok) el.setAttribute('transform', ''); return ok; });
+}
+function miniTester(x, y, s = 1){
+  const g = E('g', { transform: `translate(${x} ${y}) scale(${s})` }, fx);
+  E('rect', { x: -10, y: -36, width: 8, height: 34, rx: 4, fill: '#2b3140' }, g);
+  E('rect', { x: 2, y: -36, width: 8, height: 34, rx: 4, fill: '#2b3140' }, g);
+  E('rect', { x: -13, y: -70, width: 26, height: 38, rx: 7, fill: '#3e7fd8' }, g);
+  E('circle', { cx: 0, cy: -82, r: 11, fill: '#ffd9b3' }, g);
+  E('path', { d: 'M -11,-84 Q -11,-96 0,-96 Q 11,-96 11,-84 Q 0,-91 -11,-84 Z', fill: '#2b2b33' }, g);
+  return g;
+}
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+/* ---------------- 舞台重置 ---------------- */
+function resetFire(){
+  const fire = $('fire');
+  fire.style.opacity = 0;
+  fire.querySelectorAll('.flameW').forEach(f => {
+    f.style.opacity = 0;
+    f.setAttribute('transform', `translate(${f.dataset.x} ${f.dataset.y}) scale(0.05)`);
+  });
+  fire.querySelectorAll('.sparkWrap').forEach(g => g.style.opacity = 0);
+}
+function resetStage(){
+  fx.innerHTML = '';
+  $('tester').style.opacity = 0;
+  $('tester').setAttribute('transform', 'translate(-160 595)');
+  $('tester').classList.remove('walking');
+  $('testerCostume').style.opacity = 0;
+  $('testerArm').setAttribute('transform', '');
+  armAngle = 0;
+  setMouth('normal');
+  $('bartender').style.opacity = 1;
+  $('bartender').setAttribute('transform', 'translate(890 502)');
+  $('bartenderBody').setAttribute('transform', '');
+  $('customer').style.opacity = 0;
+  $('customer').setAttribute('transform', 'translate(1280 578)');
+  $('lizard').style.opacity = 0;
+  $('lizard').querySelector('.lw').classList.remove('lizard-anim');
+  $('sign').setAttribute('transform', '');
+  $('frontDoorLeaf').setAttribute('transform', '');
+  $('backDoorLeaf').setAttribute('transform', '');
+  $('barterHead').classList.remove('wobble');
+  $('barterMouth').setAttribute('d', 'M -5,-157 q 6,4 11,0');
+  $('windowGlass').setAttribute('transform', '');
+  $('windowGlass').style.opacity = 1;
+  $('winCracks').style.opacity = 0;
+  $('wallCracks').style.opacity = 0;
+  $('counterCrack').style.opacity = 0;
+  $('barBack').setAttribute('transform', '');
+  $('barFront').setAttribute('transform', '');
+  $('bubbleBrect').setAttribute('fill', '#fffdf5');
+  $('bubbleBtext').setAttribute('fill', '#2b2b33');
+  $('stage').classList.remove('quake');
+  hideBubble('t'); hideBubble('b');
+  resetFire();
+  $('endcard').style.opacity = 0;
+}
+
+/* =========================================================
+   23 幕劇本
+   ========================================================= */
+const SCENES = [
+  /* 1 一杯啤酒 */
+  { text: '一個測試工程師走進一家酒吧，要了一杯啤酒', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '一杯啤酒 🍺', 24, 150, tok);
+    if (!(await wait(850, tok))) return;
+    const mug = useFx('#obj-mug', 950, 392, 1.1);
+    if (!(await tween(mug, pose(950, 392, 1.1), pose(800, 392, 1.1), 520, 0, easeInOut, tok))) return;
+    showBubble('b', '好嘞', 20, 100, tok);
+    if (!(await wait(700, tok))) return;
+    setMouth('happy');
+    floatText('👍', 590, 430, { size: 32, dur: 1100, rise: 26, tok });
+    if (!(await wait(1300, tok))) return;
+  }},
+  /* 2 一杯咖啡 */
+  { text: '一個測試工程師走進一家酒吧，要了一杯咖啡', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '一杯咖啡', 24, 150, tok);
+    if (!(await wait(850, tok))) return;
+    const cup = useFx('#obj-coffee', 950, 392, 1.1);
+    if (!(await tween(cup, pose(950, 392, 1.1), pose(800, 392, 1.1), 520, 0, easeInOut, tok))) return;
+    steam(800, 356, tok);
+    showBubble('b', '熱的，小心', 20, 100, tok);
+    if (!(await wait(750, tok))) return;
+    setMouth('happy');
+    floatText('☕', 590, 430, { size: 30, dur: 1100, rise: 24, tok });
+    if (!(await wait(1300, tok))) return;
+  }},
+  /* 3 999999999 杯啤酒 */
+  { text: '一個測試工程師走進一家酒吧，要了999999999杯啤酒', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 700, tok))) return;
+    showBubble('t', '999999999 杯啤酒', 26, 150, tok);
+    setMouth('shock');
+    if (!(await wait(500, tok))) return;
+    for (let i = 0; i < 6; i++)
+      floatText('999999999', 180 + i * 155, 110 + (i % 3) * 70, { size: 15 + i * 3, fill: '#8a7fb5', dur: 900 + i * 180, delay: i * 130, rise: 30, tok });
+    for (let i = 0; i < 26; i++){
+      const x = rnd(120, 1080), s = rnd(.7, 1.4);
+      const m = useFx('#obj-mug', x, -70 - Math.random() * 180, s);
+      const onCounter = x > 730 && x < 1100 && Math.random() < .45;
+      const ty = onCounter ? 392 : rnd(545, 630);
+      tween(m, pose(x, -70 - Math.random() * 180, s), pose(x + rnd(-20, 20), ty, s, rnd(-25, 25), 0, 0, 1), rnd(650, 1150), i * 70, easeIn, tok);
+    }
+    floatText('∞', 620, 200, { size: 60, dur: 2000, delay: 700, rise: 24, tok });
+    showBubble('b', '……', 28, 1300, tok);
+    if (!(await wait(2600, tok))) return;
+  }},
+  /* 4 0 杯啤酒 */
+  { text: '一個測試工程師走進一家酒吧，要了0杯啤酒', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '0 杯啤酒', 26, 150, tok);
+    if (!(await wait(800, tok))) return;
+    const g = makeGlass(800, 392, 0, tok);
+    g.style.opacity = 0;
+    tween(g, pose(800, 340, .8, 0, 0, 0, 0), pose(800, 392, 1, 0, 0, 0, 1), 450, 0, easeOut, tok);
+    showBubble('b', '好的，0 杯', 20, 250, tok);
+    floatText('😐', 950, 300, { size: 30, dur: 1200, delay: 400, rise: 14, tok });
+    if (!(await wait(1700, tok))) return;
+  }},
+  /* 5 -1 杯啤酒 */
+  { text: '一個測試工程師走進一家酒吧，要了-1杯啤酒', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '-1 杯啤酒', 26, 150, tok);
+    if (!(await wait(700, tok))) return;
+    const g = makeGlass(800, 392, 0, tok);
+    g.style.opacity = 0;
+    tween(g, pose(800, 392, .8, 0, 0, 0, 0), pose(800, 392, 1, 0, 0, 0, 1), 420, 0, easeOut, tok);
+    if (!(await wait(500, tok))) return;
+    g.querySelector('g').classList.add('glassflip');
+    floatText('−', 700, 320, { size: 64, fill: '#e74c3c', dur: 1600, rise: 20, tok });
+    floatText('負的啤酒？', 920, 250, { size: 22, fill: '#b5a8d8', dur: 1800, delay: 350, rise: 24, tok });
+    setMouth('frown');
+    showBubble('b', '……記帳', 20, 1500, tok);
+    if (!(await wait(1800, tok))) return;
+  }},
+  /* 6 0.7 杯啤酒 */
+  { text: '一個測試工程師走進一家酒吧，要了0.7杯啤酒', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '0.7 杯啤酒', 26, 150, tok);
+    if (!(await wait(750, tok))) return;
+    const g = makeGlass(800, 392, 0, tok);
+    g.style.opacity = 0;
+    tween(g, pose(800, 392, .8, 0, 0, 0, 0), pose(800, 392, 1, 0, 0, 0, 1), 420, 0, easeOut, tok);
+    floatText('70%', 800, 320, { size: 28, fill: '#7fd6a0', dur: 2000, rise: 10, tok });
+    floatText('📏', 880, 350, { size: 28, dur: 1600, delay: 400, rise: 12, tok });
+    showBubble('b', '好的，7 成滿', 20, 1200, tok);
+    setMouth('happy');
+    if (!(await wait(1900, tok))) return;
+  }},
+  /* 7 -10000 杯啤酒 */
+  { text: '一個測試工程師走進一家酒吧，要了-10000杯啤酒', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '-10000 杯啤酒', 26, 150, tok);
+    if (!(await wait(500, tok))) return;
+    for (let i = 0; i < 14; i++)
+      floatText('−', rnd(150, 1050), rnd(110, 300), { size: rnd(28, 70), fill: '#e74c3c', dur: rnd(800, 1600), delay: i * 90, rise: 50, tok });
+    floatText('-10000', 600, 180, { size: 56, fill: '#e74c3c', dur: 2200, rise: 26, tok });
+    if (!(await shake($('barFront'), 700, 8, 920, 460, tok))) return;
+    setMouth('shock');
+    showBubble('b', '……記在您的帳上', 20, 1500, tok);
+    if (!(await wait(2000, tok))) return;
+  }},
+  /* 8 一杯蜥蜴 */
+  { text: '一個測試工程師走進一家酒吧，要了一杯蜥蜴', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '一杯蜥蜴 🦎', 24, 150, tok);
+    if (!(await wait(750, tok))) return;
+    const lz = $('lizard');
+    lz.style.opacity = 1;
+    if (!(await tween(lz, pose(950, 220, 1, 0, 0, 0, 0), pose(950, 392, 1, 0, 0, 0, 1), 600, 0, easeOut, tok))) return;
+    lz.querySelector('.lw').classList.add('lizard-anim');
+    floatText('👀', 880, 330, { size: 28, dur: 1200, delay: 300, rise: 16, tok });
+    showBubble('b', '新鮮現做', 20, 1200, tok);
+    setMouth('happy');
+    if (!(await wait(1800, tok))) return;
+  }},
+  /* 9 Qer@24dg!&*(@ */
+  { text: '一個測試工程師走進一家酒吧，要了一份Qer@24dg!&*(@', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', 'Qer@24dg!&*(@', 24, 150, tok);
+    if (!(await wait(550, tok))) return;
+    const chars = 'Qer@24dg!&*($#%';
+    const cols = ['#7fd6a0', '#e78ac0', '#f2c14e', '#8ab5e8'];
+    for (let i = 0; i < 18; i++)
+      floatText(chars[i % chars.length], rnd(150, 1050), rnd(110, 340), { size: rnd(18, 46), fill: pick(cols), dur: rnd(700, 1600), delay: i * 85, rise: 40, tok });
+    floatText('????', 600, 210, { size: 46, dur: 2000, delay: 700, rise: 22, tok });
+    setMouth('shock');
+    showBubble('b', '……這是什麼', 20, 1500, tok);
+    if (!(await wait(2100, tok))) return;
+  }},
+  /* 10 什麼也沒要 */
+  { text: '一個測試工程師走進一家酒吧，什麽也沒要', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    if (!(await wait(450, tok))) return;
+    showBubble('t', '……', 28, 100, tok);
+    showBubble('b', '……', 28, 500, tok);
+    floatText('⏱', 740, 300, { size: 32, dur: 1800, delay: 900, rise: 8, tok });
+    floatText('🤔', 600, 420, { size: 30, dur: 1400, delay: 400, rise: 16, tok });
+    if (!(await wait(2400, tok))) return;
+  }},
+  /* 11 門窗後門下水道 */
+  { text: '一個測試工程師走進一家酒吧，又走出去又從窗戶進來又從後門出去再從下水道鑽進來', run: async tok => {
+    openDoor('front', 380, tok);
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 800, tok))) return;
+    if (!(await wait(250, tok))) return;
+    closeDoor('front', 380, tok);
+    if (!(await wait(350, tok))) return;
+    openDoor('front', 250, tok);
+    if (!(await testerWalk(pose(680, 595), pose(-160, 595), 650, tok))) return;
+    if (!(await wait(450, tok))) return;
+    closeDoor('front', 300, tok);
+    // 從窗戶進來
+    const t = $('tester');
+    t.style.opacity = 1; t.classList.add('walking');
+    floatText('哐!', 390, 130, { size: 36, dur: 700, rise: 10, tok });
+    if (!(await tween(t, pose(390, -160), pose(390, 595), 550, 0, easeIn, tok))) return;
+    t.classList.remove('walking');
+    dustPuff(390, 595, tok);
+    $('winCracks').style.opacity = 0;
+    fade($('winCracks'), 0, 1, 300, 0, tok);
+    floatText('哐噹!', 390, 520, { size: 26, fill: '#c9b8a0', dur: 700, delay: 100, tok });
+    if (!(await wait(550, tok))) return;
+    // 從後門出去
+    openDoor('back', 350, tok);
+    if (!(await testerWalk(pose(390, 595), pose(1280, 595), 800, tok))) return;
+    if (!(await wait(350, tok))) return;
+    closeDoor('back', 350, tok);
+    // 從下水道鑽進來
+    floatText('咕嚕……', 280, 470, { size: 24, fill: '#8a7fb5', dur: 1000, delay: 250, tok });
+    if (!(await wait(750, tok))) return;
+    dustPuff(280, 588, tok);
+    if (!(await tween($('tester'), pose(280, 760), pose(280, 595), 700, 0, easeOut, tok))) return;
+    dustPuff(280, 595, tok);
+    floatText('嘶——', 330, 545, { size: 24, fill: '#c9b8a0', dur: 700, tok });
+    showBubble('t', '我還沒點東西…', 20, 550, tok);
+    showBubble('b', '……歡迎光臨', 20, 1000, tok);
+    if (!(await wait(1600, tok))) return;
+  }},
+  /* 12 打老闆 */
+  { text: '一個測試工程師走進一家酒吧，又走出去又進來又出去又進來又出去，最後在外面把老闆打了一頓', run: async tok => {
+    const t = $('tester'), bt = $('bartender');
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 700, tok))) return;
+    for (let i = 0; i < 3; i++){
+      openDoor('front', 220, tok);
+      if (!(await testerWalk(pose(680, 595), pose(-160, 595), 400, tok, easeIn))) return;
+      floatText('砰!', 130, 290, { size: 24, fill: '#c9b8a0', dur: 450, tok });
+      if (!(await wait(120, tok))) return;
+      if (!(await testerWalk(pose(-160, 595), pose(680, 595), 400, tok, easeOut))) return;
+      floatText('砰!', 130, 250, { size: 24, fill: '#c9b8a0', dur: 450, tok });
+      if (!(await wait(120, tok))) return;
+    }
+    closeDoor('front', 300, tok);
+    if (!(await wait(350, tok))) return;
+    // 到「外面」（門左側）
+    if (!(await Promise.all([
+      tween(t, pose(680, 595), pose(330, 595), 650, 0, easeInOut, tok),
+      tween(bt, pose(890, 502), pose(440, 595), 750, 0, easeInOut, tok),
+    ]).then(a => a.every(Boolean)))) return;
+    floatText('外面', 220, 470, { size: 20, fill: '#9b8fb5', dur: 1500, rise: 8, tok });
+    if (!(await wait(350, tok))) return;
+    // 打！
+    for (let i = 0; i < 3; i++){
+      if (!(await tween(t, pose(330, 595, 1, 0, 0, 0, 1), pose(392, 595, 1, 14, 0, 0, 1), 130, 0, t => t * t, tok))) return;
+      floatText('啪!', 470, 390, { size: 34, dur: 500, tok });
+      floatText('💢', 500, 340, { size: 30, dur: 500, delay: 60, tok });
+      wobble($('barterHead'));
+      if (!(await wait(140, tok))) return;
+      if (!(await tween(t, pose(392, 595, 1, 14, 0, 0, 1), pose(330, 595, 1, 0, 0, 0, 1), 200, 0, easeOut, tok))) return;
+      if (!(await wait(160, tok))) return;
+    }
+    for (let i = 0; i < 3; i++)
+      floatText('⭐', 430 + i * 30, 330 + (i % 2) * 20, { size: 22, dur: 900, delay: i * 120, rise: 12, tok });
+    setMouth('happy');
+    showBubble('t', '驗收通過', 20, 300, tok);
+    // 各自回去
+    if (!(await Promise.all([
+      tween(t, pose(330, 595), pose(-160, 595), 900, 300, easeIn, tok),
+      tween(bt, pose(440, 595), pose(890, 502), 1100, 300, easeInOut, tok),
+    ]).then(a => a.every(Boolean)))) return;
+    floatText('（酒保從容地揉著頭走回吧台）', 600, 480, { size: 16, fill: '#8a7fb5', dur: 1200, delay: 500, rise: 6, tok });
+    if (!(await wait(1600, tok))) return;
+  }},
+  /* 13 燙燙燙的錕斤拷 */
+  { text: '一個測試工程師走進一家酒吧，要了一杯燙燙燙的錕斤拷', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '一杯燙燙燙的錕斤拷', 22, 150, tok);
+    if (!(await wait(700, tok))) return;
+    const bowl = useFx('#obj-bowl', 800, 392, 1.2);
+    bowl.style.opacity = 0;
+    tween(bowl, pose(800, 392, .8, 0, 0, 0, 0), pose(800, 392, 1.2, 0, 0, 0, 1), 450, 0, easeOut, tok);
+    steam(800, 350, tok, 4);
+    floatText('燙燙燙', 800, 290, { size: 32, fill: '#e8873c', dur: 1300, rise: 30, tok });
+    floatText('錕斤拷', 690, 240, { size: 26, fill: '#8a7fb5', dur: 1700, delay: 350, rise: 26, tok });
+    floatText('錕斤拷', 910, 215, { size: 20, fill: '#8a7fb5', dur: 1700, delay: 650, rise: 26, tok });
+    setMouth('shock');
+    showBubble('b', '剛出爐，請小心', 20, 1400, tok);
+    if (!(await wait(2000, tok))) return;
+  }},
+  /* 14 NaN 杯 Null */
+  { text: '一個測試工程師走進一家酒吧，要了NaN杯Null', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', 'NaN 杯 Null', 24, 150, tok);
+    if (!(await wait(550, tok))) return;
+    const g = makeGlass(800, 392, 0, tok);
+    g.style.opacity = 0;
+    tween(g, pose(800, 392, .8, 0, 0, 0, 0), pose(800, 392, 1, 0, 0, 0, 1), 420, 0, easeOut, tok);
+    floatText('NaN', 800, 320, { size: 36, fill: '#e78ac0', dur: 2000, rise: 14, tok });
+    floatText('null', 640, 275, { size: 26, fill: '#8a7fb5', dur: 1800, delay: 350, rise: 20, tok });
+    floatText('undefined', 950, 255, { size: 22, fill: '#8a7fb5', dur: 1800, delay: 650, rise: 20, tok });
+    floatText('🤨', 600, 410, { size: 32, dur: 1400, delay: 800, rise: 16, tok });
+    showBubble('b', '……沒有這道菜', 20, 1600, tok);
+    if (!(await wait(2000, tok))) return;
+  }},
+  /* 15 500 杯大雜燴 */
+  { text: '一個測試工程師沖進一家酒吧，要了500杯啤酒咖啡洗腳水野貓狼牙棒奶茶', run: async tok => {
+    floatText('呼——', 230, 420, { size: 32, fill: '#c9b8a0', dur: 520, rise: 0, tok });
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 450, tok, easeIn))) return;
+    showBubble('t', '500杯！啤酒、咖啡、洗腳水、野貓、狼牙棒、奶茶！', 17, 150, tok);
+    if (!(await wait(900, tok))) return;
+    const objs = ['obj-mug', 'obj-coffee', 'obj-footwash', 'obj-cat', 'obj-club', 'obj-milktea'];
+    const spawned = [];
+    for (let i = 0; i < 30; i++){
+      const x = rnd(150, 1050), s = rnd(.8, 1.3);
+      const m = useFx('#' + objs[i % objs.length], x + rnd(-60, 60), -90 - Math.random() * 140, s);
+      const onCounter = x > 730 && x < 1100 && Math.random() < .5;
+      const tx = x + rnd(-30, 30), ty = onCounter ? 390 : rnd(545, 615);
+      const p1 = pose(tx, ty, s, rnd(-25, 25), 0, 0, 1);
+      m._final = p1;
+      tween(m, pose(x + rnd(-60, 60), -90 - Math.random() * 140, s), p1, rnd(650, 1050), i * 55, easeIn, tok);
+      spawned.push(m);
+    }
+    if (!(await wait(2600, tok))) return;
+    // 酒保從容大掃除
+    const broom = useFx('#obj-broom', 1050, 565, 1.15);
+    broom.style.opacity = 0;
+    tween(broom, pose(1050, 565, 1.15, 0, 0, 0, 0), pose(1050, 565, 1.15, 0, 0, 0, 1), 300, 0, easeOut, tok);
+    const PA = pose(1050, 565, 1.15, 12, 0, 0, 1), PB = pose(790, 565, 1.15, -16, 0, 0, 1);
+    let atA = true;
+    for (let i = 0; i < 3; i++){
+      if (!(await tween(broom, atA ? PA : PB, atA ? PB : PA, 420, 0, easeInOut, tok))) return;
+      atA = !atA;
+    }
+    if (!(await Promise.all(spawned.map((m, i) => {
+      const px = 130 + (i % 7) * 16, py = 552 + Math.floor(i / 7) * 15;
+      return tween(m, m._final, pose(px, py, .72, 0, 0, 0, .92), 750, i * 25, easeIn, tok);
+    })).then(a => a.every(Boolean)))) return;
+    dustPuff(200, 570, tok, 4);
+    showBubble('b', '小事一樁', 20, 120, tok);
+    if (!(await wait(1500, tok))) return;
+  }},
+  /* 16 拆酒吧 */
+  { text: '一個測試工程師把酒吧拆了', run: async tok => {
+    if (!(await testerWalk(pose(-160, 595), pose(620, 595), 700, tok))) return;
+    showBubble('t', '我要拆了它', 22, 200, tok);
+    setMouth('frown');
+    if (!(await wait(650, tok))) return;
+    fade($('wallCracks'), 0, 1, 450, 0, tok);
+    if (!(await wait(450, tok))) return;
+    if (!(await Promise.all([
+      shake($('barBack'), 900, 9, 600, 300, tok),
+      shake($('barFront'), 900, 9, 900, 460, tok),
+    ]).then(a => a.every(Boolean)))) return;
+    // 酒瓶崩落
+    const colors = ['#7fb069', '#b5651d', '#8a5a9a', '#c0392b', '#5a9ab5', '#d98a3a'];
+    for (let i = 0; i < 9; i++){
+      const x0 = rnd(740, 1060), y0 = pick([238, 318]);
+      const b = E('g', { transform: `translate(${x0} ${y0})` }, fx);
+      E('rect', { x: -6, y: -26, width: 12, height: 26, rx: 3, fill: pick(colors) }, b);
+      E('rect', { x: -2.5, y: -36, width: 5, height: 12, rx: 2, fill: pick(colors) }, b);
+      tween(b, pose(x0, y0, 1, 0, 0, 0, 1), pose(rnd(650, 1100), rnd(590, 650), 1, rnd(180, 540), 0, 0, 1), rnd(900, 1400), i * 80, easeIn, tok);
+    }
+    // 招牌掉落
+    tween($('sign'), pose(0, 0, 1, 0, 0, 0, 1), pose(30, 130, 1, 24, 910, 150, 1), 1100, 250, easeIn, tok);
+    // 窗戶碎裂
+    fade($('winCracks'), 0, 1, 350, 150, tok);
+    if (!(await tween($('windowGlass'), pose(0, 0, 1, 0, 0, 0, 1), pose(0, 14, 1, 5, 390, 240, .45), 800, 300, easeIn, tok))) return;
+    $('counterCrack').style.opacity = 0;
+    fade($('counterCrack'), 0, 1, 400, 300, tok);
+    dustPuff(520, 500, tok, 5);
+    dustPuff(900, 480, tok, 5);
+    if (!(await wait(1700, tok))) return;
+    setMouth('happy');
+    floatText('😎', 620, 410, { size: 36, dur: 1400, rise: 18, tok });
+    showBubble('t', '驗收合格 ✔', 20, 400, tok);
+    if (!(await wait(1600, tok))) return;
+  }},
+  /* 17 偽裝成老闆 */
+  { text: '一個測試工程師化妝成老闆走進一家酒吧，要了500杯啤酒並且不付錢', run: async tok => {
+    $('testerCostume').style.opacity = 1;
+    if (!(await testerWalk(pose(-160, 595), pose(680, 595), 900, tok))) return;
+    showBubble('t', '500 杯啤酒（不付錢）', 20, 200, tok);
+    if (!(await wait(850, tok))) return;
+    for (let i = 0; i < 10; i++){
+      const x = 790 + (i % 5) * 36, y = 390 - Math.floor(i / 5) * 24;
+      const m = useFx('#obj-mug', x, y, .9);
+      m.style.opacity = 0;
+      tween(m, pose(x, y, .9, 0, 0, 0, 0), pose(x, y, .9, 0, 0, 0, 1), 200, i * 60, easeOut, tok);
+    }
+    if (!(await wait(1300, tok))) return;
+    if (!(await testerWalk(pose(680, 595), pose(-160, 595), 900, tok, easeIn))) return;
+    if (!(await wait(350, tok))) return;
+    showBubble('b', '好嘞，記您帳上', 20, 0, tok);
+    floatText('🤝', 860, 380, { size: 30, dur: 1200, delay: 150, rise: 14, tok });
+    $('testerCostume').style.opacity = 0;
+    if (!(await wait(1500, tok))) return;
+  }},
+  /* 18 一萬人呼嘯而過 */
+  { text: '一萬個測試工程師在酒吧門外呼嘯而過', run: async tok => {
+    const crowd = E('g', {}, fx);
+    const n = 46;
+    for (let i = 0; i < n; i++){
+      const m = miniTester(-120 - i * 34 - Math.random() * 22, 585 + (i % 2) * 8, rnd(.8, 1));
+      crowd.appendChild(m);
+    }
+    for (let i = 0; i < 5; i++)
+      E('line', { x1: -40, y1: 520 + i * 14, x2: 40, y2: 520 + i * 14, stroke: '#c9b8a0', 'stroke-width': 2, opacity: .5 }, crowd);
+    floatText('呼嘯————', 300, 420, { size: 34, fill: '#c9b8a0', dur: 1300, delay: 300, rise: 10, tok });
+    floatText('10,000 人', 900, 420, { size: 26, fill: '#8a7fb5', dur: 1500, delay: 550, rise: 10, tok });
+    tween(crowd, pose(0, 0, 1, 0, 0, 0, 1), pose(1550, 0, 1, 0, 0, 0, 1), 1700, 250, easeIn, tok);
+    // 酒保從容擦杯子
+    const glass = useFx('#obj-glass2', 950, 392, 1);
+    glass.style.opacity = 0;
+    tween(glass, pose(950, 392, 1, 0, 0, 0, 0), pose(950, 392, 1, 0, 0, 0, 1), 300, 200, easeOut, tok);
+    for (let i = 0; i < 3; i++){
+      const a = i % 2 ? 3 : -3;
+      if (!(await tween($('bartenderBody'), pose(0, 0, 1, -a, 0, -120, 1), pose(0, 0, 1, a, 0, -120, 1), 380, 0, easeInOut, tok))) return;
+    }
+    showBubble('b', '（繼續擦杯子）', 18, 800, tok);
+    if (!(await wait(2200, tok))) return;
+  }},
+  /* 19 酒保從容應對 */
+  { text: '酒保從容應對', run: async tok => {
+    const t = $('tester');
+    t.style.opacity = 1;
+    t.setAttribute('transform', 'translate(680 595)');
+    const tea = useFx('#obj-tea', 950, 392, 1.1);
+    tea.style.opacity = 0;
+    tween(tea, pose(950, 392, .8, 0, 0, 0, 0), pose(950, 392, 1.1, 0, 0, 0, 1), 400, 0, easeOut, tok);
+    steam(950, 368, tok);
+    for (let i = 0; i < 2; i++){
+      if (!(await tween($('bartenderBody'), pose(0, 0, 1, 0, 0, 0, 1), pose(0, 0, 1, -5, 0, -120, 1), 520, 0, easeInOut, tok))) return;
+      if (!(await wait(560, tok))) return;
+      if (!(await tween($('bartenderBody'), pose(0, 0, 1, -5, 0, -120, 1), pose(0, 0, 1, 0, 0, 0, 1), 520, 0, easeInOut, tok))) return;
+      if (!(await wait(560, tok))) return;
+    }
+    floatText('～', 870, 250, { size: 44, fill: '#7fd6a0', dur: 1700, rise: 16, tok });
+    showBubble('b', '從容應對，是基本功', 20, 900, tok);
+    floatText('🧘', 890, 240, { size: 36, dur: 1500, delay: 1300, rise: 16, tok });
+    if (!(await wait(2200, tok))) return;
+  }},
+  /* 20 測試工程師很滿意 */
+  { text: '測試工程師很滿意', run: async tok => {
+    const t = $('tester');
+    t.style.opacity = 1;
+    t.setAttribute('transform', 'translate(680 595)');
+    setMouth('happy');
+    setArm(-150, 400, tok);
+    floatText('👍', 650, 430, { size: 42, dur: 1500, rise: 26, tok });
+    const marks = ['⭐', '✨', '❤', '👍', '⭐', '✨'];
+    for (let i = 0; i < 6; i++)
+      floatText(marks[i], 540 + (i % 3) * 80, 440 - (i % 2) * 70, { size: 26, dur: 1300, delay: i * 160, rise: 34, tok });
+    showBubble('t', '完美！沒有 bug！', 20, 500, tok);
+    showBubble('b', '謝謝惠顧', 20, 1100, tok);
+    if (!(await wait(2400, tok))) return;
+  }},
+  /* 21 滿意地離開 */
+  { text: '測試工程師們滿意地離開了酒吧', run: async tok => {
+    setMouth('happy');
+    openDoor('front', 400, tok);
+    const minis = [];
+    for (let i = 0; i < 3; i++) minis.push(miniTester(900 + i * 26, 592, .9));
+    if (!(await testerWalk(pose(680, 595), pose(-160, 595), 1100, tok))) return;
+    floatText('👋', 940, 360, { size: 32, dur: 1300, delay: 300, rise: 16, tok });
+    showBubble('b', '歡迎再來！', 20, 800, tok);
+    minis.forEach((m, i) => {
+      const x = 900 + i * 26;
+      tween(m, pose(x, 592, .9, 0, 0, 0, 1), pose(-220, 592, .9, 0, 0, 0, 1), 1700, 250 + i * 260, easeInOut, tok);
+    });
+    closeDoor('front', 400, tok);
+    if (!(await wait(2600, tok))) return;
+  }},
+  /* 22 顧客點炒飯 */
+  { text: '一名顧客點了一份炒飯', run: async tok => {
+    const c = $('customer');
+    c.style.opacity = 1;
+    c.classList.add('walking');
+    if (!(await tween(c, pose(1280, 578), pose(625, 548), 950, 0, easeInOut, tok))) return;
+    c.classList.remove('walking');
+    if (!(await wait(250, tok))) return;
+    showBubble('t', '一份炒飯，謝謝', 20, 100, tok);
+    if (!(await wait(1000, tok))) return;
+    hideBubble('t');
+    // 酒保突然卡住：系統錯誤
+    wobble($('barterHead'));
+    $('bubbleBrect').setAttribute('fill', '#fff0f0');
+    $('bubbleBtext').setAttribute('fill', '#d63030');
+    showBubble('b', '錯誤 ERROR', 26, 300, tok);
+    $('barterMouth').setAttribute('d', 'M -5,-157 l 12,0');
+    if (!(await wait(2400, tok))) return;
+  }},
+  /* 23 酒吧爆炸 */
+  { text: '酒吧爆炸，測試工程師們衝出來大喊「NOOOOOOOOO!」', run: async tok => {
+    // 角色還留在酒吧裡
+    const t = $('tester');
+    t.style.opacity = 1;
+    t.setAttribute('transform', 'translate(680 595)');
+    setMouth('shock');
+    const c = $('customer');
+    c.style.opacity = 1;
+    c.setAttribute('transform', 'translate(625 548)');
+
+    // 大閃光
+    const flash = E('g', {}, fx);
+    E('circle', { r: 40, fill: '#fffbe6' }, flash);
+    E('circle', { r: 24, fill: '#ffd166' }, flash);
+    tween(flash, pose(600, 430, .2, 0, 0, 0, .95), pose(600, 430, 30, 0, 0, 0, 0), 620, 0, easeOut, tok);
+    // 衝擊波
+    const ring = E('g', {}, fx);
+    E('circle', { r: 34, fill: 'none', stroke: '#ffe082', 'stroke-width': 8 }, ring);
+    tween(ring, pose(600, 430, .3, 0, 0, 0, .9), pose(600, 430, 20, 0, 0, 0, 0), 900, 60, easeOut, tok);
+    // 畫面震動
+    quake(tok);
+    // 碎塊飛濺
+    const colors = ['#8a5a34', '#c0392b', '#9aa5b1', '#6a4a2a', '#d4a94e', '#3e7fd8', '#7fb069'];
+    for (let i = 0; i < 26; i++){
+      const g = E('g', {}, fx);
+      const sz = rnd(5, 11);
+      if (i % 3) E('rect', { x: -sz/2, y: -sz/2, width: sz, height: sz * .8, rx: 1.5, fill: pick(colors) }, g);
+      else E('circle', { r: sz/2, fill: pick(colors) }, g);
+      const a = rnd(0, Math.PI * 2), d = rnd(300, 640);
+      const x1 = 600 + Math.cos(a) * 40, y1 = 430 + Math.sin(a) * 28;
+      tween(g, pose(x1, y1, 1, 0, 0, 0, 1), pose(600 + Math.cos(a) * d, 430 + Math.sin(a) * d * .8, 1, rnd(180, 540), 0, 0, .15), rnd(750, 1250), i * 22, easeIn, tok);
+    }
+    // 濃煙
+    for (let i = 0; i < 6; i++){
+      const g = E('g', {}, fx);
+      E('circle', { r: 26 + (i % 3) * 8, fill: i % 2 ? '#5a5168' : '#6f6480' }, g);
+      const x = 360 + i * 84;
+      tween(g, pose(x, 470, .6, 0, 0, 0, .75), pose(x + rnd(-40, 40), 300, 2.4, 0, 0, 0, 0), rnd(1800, 2600), 200 + i * 120, easeOut, tok);
+    }
+    // 酒保與爆炸同時消失
+    dustPuff(890, 400, tok, 5);
+    tween($('bartender'), pose(890, 502, 1, 0, 0, 0, 1), pose(890, 502, 1, 0, 0, 0, 0), 350, 0, easeOut, tok);
+    floatText('（蒸發了）', 890, 288, { size: 20, fill: '#9b8fb5', dur: 1400, delay: 200, rise: 12, tok });
+    if (!(await wait(1150, tok))) return;
+    floatText('💥 轟隆！！', 600, 205, { size: 42, fill: '#ef8354', dur: 1500, rise: 20, tok });
+
+    // 殘火繼續燃燒
+    const fire = $('fire');
+    fire.style.opacity = 1;
+    fire.querySelectorAll('.flameW').forEach((f, i) => {
+      const x = +f.dataset.x, y = +f.dataset.y, s = +f.dataset.s;
+      f.style.opacity = 0;
+      tween(f, pose(x, y, .05, 0, 0, 0, 0), pose(x, y, s, 0, 0, 0, 1), 500, i * 60, easeOut, tok);
+    });
+    fire.querySelectorAll('.sparkWrap').forEach(g => g.style.opacity = 1);
+
+    // 顧客與其他工程師衝出來（主角工程師留在原位）
+    openDoor('front', 350, tok);
+    if (!(await wait(380, tok))) return;
+    c.classList.add('walking');
+    tween(c, pose(625, 548), pose(-210, 595), 950, 90, easeIn, tok);
+    for (let i = 0; i < 3; i++){
+      const x0 = 730 + i * 42, s0 = .85 + i * .06;
+      const m = miniTester(x0, 592, s0);
+      m.style.opacity = 0;
+      tween(m, pose(x0, 592, s0, 0, 0, 0, 0), pose(-190 - i * 46, 592, s0, 0, 0, 0, 1), 1050, 140 + i * 170, easeIn, tok);
+    }
+    floatText('NOOOOOOOOO!', 560, 320, { size: 44, fill: '#ff6b5e', dur: 1700, delay: 120, rise: 26, tok });
+    floatText('NOOOOOOOOO!', 720, 255, { size: 34, fill: '#ff9e80', dur: 1600, delay: 420, rise: 22, tok });
+    floatText('NOOOOOOOOO!', 420, 235, { size: 27, fill: '#ffc2a8', dur: 1500, delay: 720, rise: 18, tok });
+    if (!(await wait(2450, tok))) return;
+    // 工程師的台詞
+    showBubble('t', '我從來沒想過這種場景', 20, 100, tok);
+    if (!(await wait(2500, tok))) return;
+    // 結局卡
+    const ec = $('endcard');
+    ec.style.opacity = 0;
+    tween(ec, pose(600, 335, .9, 0, 0, 0, 0), pose(600, 335, 1, 0, 0, 0, 1), 600, 0, easeOut, tok);
+  }},
+];
+
+/* =========================================================
+   播放控制
+   ========================================================= */
+const state = { i: 0, ended: false };
+const capEl = $('caption');
+
+async function typeCaption(str, tok){
+  capEl.textContent = '';
+  for (const ch of str){
+    if (tok !== sceneToken) return;
+    capEl.textContent += ch;
+    await wait(26, tok);
+  }
+}
+function updateHud(){
+  $('sceneNum').textContent = `第 ${state.i + 1} / ${SCENES.length} 幕`;
+  $('progressBar').style.width = ((state.i + 1) / SCENES.length * 100) + '%';
+}
+function updatePlayBtn(){
+  const b = $('btnPlay');
+  b.textContent = state.ended ? '↻ 重播' : (clock.paused ? '▶ 播放' : '⏸ 暫停');
+}
+function goto(i){
+  sceneToken++;
+  const tok = sceneToken;
+  state.i = Math.max(0, Math.min(SCENES.length - 1, i));
+  state.ended = false;
+  clock.paused = false;
+  updateHud();
+  updatePlayBtn();
+  resetStage();
+  typeCaption(SCENES[state.i].text, tok);
+  SCENES[state.i].run(tok).then(async ok => {
+    if (tok !== sceneToken) return;
+    if (state.i < SCENES.length - 1) {
+      if (!(await wait(1000, tok))) return;
+      goto(state.i + 1);
+    }
+    else { state.ended = true; updatePlayBtn(); }
+  });
+}
+$('btnPlay').addEventListener('click', () => {
+  if (state.ended) return goto(0);
+  clock.paused = !clock.paused;
+  updatePlayBtn();
+});
+$('btnNext').addEventListener('click', () => goto(state.i + 1));
+$('btnPrev').addEventListener('click', () => goto(state.i - 1));
+$('btnRestart').addEventListener('click', () => goto(0));
+$('selSpeed').addEventListener('change', e => { clock.speed = parseFloat(e.target.value); });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space'){ e.preventDefault(); $('btnPlay').click(); }
+  else if (e.key === 'ArrowRight') goto(state.i + 1);
+  else if (e.key === 'ArrowLeft') goto(state.i - 1);
+});
+
+/* 開演 */
+goto(0);
+</script>
+</body>
+</html>

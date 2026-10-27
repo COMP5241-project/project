@@ -18,6 +18,85 @@
 }
 
 /* ==================================================================
+   Instructor studio — PDF export (print view)
+   "Export as PDF" renders the active deck/quiz into .print-only and
+   calls window.print(); while printing, the rest of the app is hidden
+   and each slide becomes its own 16:9 page. The matching @page rule is
+   injected conditionally by the app (see the .print-only overlay) so
+   other pages keep their normal print paper size.
+   ================================================================== */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Flatten the whole document so the first slide starts at the exact page
+     origin. The studio's sticky <header> and the auth-status banner live
+     OUTSIDE .instructor-root (they are siblings of the app root inside
+     <main>), so the sibling rule further down can never reach them. Without
+     this the header printed on top of slide 1, offsetting the (exactly
+     page-height) slide by the header's height and pushing its footer onto a
+     second, mostly-blank page. */
+  html,
+  body,
+  main,
+  #instructor-app {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+  }
+  body > :not(main) {
+    display: none !important;
+  }
+  main > :not(#instructor-app) {
+    display: none !important;
+  }
+
+  .instructor-root {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+  }
+  .instructor-root > *:not(.print-only) {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-slide {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    /* A congested slide must be clipped, never split across two pages:
+       splitting is what produced the stray mostly-blank page. */
+    break-inside: avoid;
+    page-break-after: always;
+  }
+  .print-slide:last-child {
+    page-break-after: auto;
+  }
+  /* Match the on-screen clipping (content that overflows a constrained area
+     inside a slide is cut at the slide boundary, no scrollbars are printed)
+     and force the slide's theme colours — background, visual card, step
+     chips, text — to appear in the PDF even when "Background graphics" is
+     switched off in the print dialog. */
+  .print-slide,
+  .print-slide * {
+    overflow: hidden !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* ==================================================================
    Spot the Hallucination — game motion
    Character/element motion is applied to wrapper <div>/<span> nodes,
    never to the <svg> element itself (see
