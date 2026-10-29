@@ -243,7 +243,7 @@ function LoginPage() {
                       {isLoading ? <><LoaderCircle aria-hidden="true" className="animate-spin" size={16} />Signing in…</> : <>Sign in<ArrowRight aria-hidden="true" size={16} /></>}
                     </button>
                     <button aria-label="Forgot password" className="inline-flex size-12 shrink-0 items-center justify-center rounded-md border border-gray-300 text-[#A21942] transition-colors hover:border-[#A21942] hover:bg-[#A21942]/5 disabled:opacity-60" disabled={isLoading} onClick={() => { setError(null); setView('reset-email') }} title="Forgot password" type="button">
-                      <img alt="" aria-hidden="true" className="size-7" src="/reset-password.svg" />
+                      <img alt="" aria-hidden="true" className="size-5" src="/reset-password.svg" />
                     </button>
                   </div>
                 </form>
