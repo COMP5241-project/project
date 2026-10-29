@@ -1,6 +1,7 @@
 import ipaddress
 import logging
 import os
+import re
 import socket
 import uuid
 from collections.abc import Generator
@@ -9,7 +10,7 @@ from html.parser import HTMLParser
 from typing import Any, Literal
 from urllib.parse import urljoin, urlsplit
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from httpx import Client as HttpClient
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from pypdf import PdfReader
@@ -23,6 +24,7 @@ from app.identity.auth import OptionalClientDependency
 from app.identity.errors import ApiError
 from app.identity.profiles import load_profile
 from app.identity.sessions import StoreDependency, verified_session
+from app.pptx_export import PPTX_MEDIA_TYPE, build_pptx
 from app.routers.auth import require_trusted_origin
 
 router = APIRouter(prefix="/api/materials")
@@ -63,6 +65,8 @@ class MaterialRecord(BaseModel):
     sources: list[SourceItem]
     data: dict[str, Any]
     chat_history: list[dict[str, Any]] = Field(alias="chatHistory")
+    published: bool = False
+    published_at: str | None = Field(default=None, alias="publishedAt")
     updated_at: str = Field(alias="updatedAt")
     created_at: str = Field(alias="createdAt")
 
@@ -209,6 +213,8 @@ def _material_row(
         sources=items,
         data=row.get("data") or {},
         chatHistory=row.get("chat_history") or [],
+        published=row.get("published", False),
+        publishedAt=row.get("published_at"),
         updatedAt=row["updated_at"],
         createdAt=row["created_at"],
     )
@@ -451,6 +457,187 @@ def delete_material(
         except Exception as error:
             raise _database_error(error) from None
         return None
+
+
+class MaterialVersionRecord(BaseModel):
+    id: str
+    material_id: str = Field(alias="materialId")
+    user_id: str = Field(alias="userId")
+    title: str
+    data: dict[str, Any]
+    label: str
+    created_at: str = Field(alias="createdAt")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class MaterialVersionCreate(BaseModel):
+    label: str = Field(default="Snapshot", min_length=1, max_length=100)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+def _version_row(row: dict[str, Any]) -> MaterialVersionRecord:
+    return MaterialVersionRecord(
+        id=str(row["id"]),
+        materialId=str(row["material_id"]),
+        userId=str(row["user_id"]),
+        title=row["title"],
+        data=row.get("data") or {},
+        label=row.get("label") or "Snapshot",
+        createdAt=row["created_at"],
+    )
+
+
+def _owned_version(db: Client, material_id: str, version_id: str, user_id: str) -> dict[str, Any]:
+    try:
+        result = db.table("material_versions").select("*").eq(
+            "id", version_id
+        ).eq("material_id", material_id).eq("user_id", user_id).maybe_single().execute()
+    except Exception as error:
+        raise _database_error(error) from None
+    if not result or not result.data:
+        raise ApiError(404, "version_not_found", "This saved version was not found.")
+    return result.data
+
+
+@router.post(
+    "/{material_id}/versions",
+    response_model=MaterialVersionRecord,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def create_version(
+    material_id: uuid.UUID,
+    payload: MaterialVersionCreate,
+    request: Request,
+    client: OptionalClientDependency,
+    store: StoreDependency,
+):
+    for user_id, db in _authorize_instructor(request, client, store):
+        material = _owned_material(db, str(material_id), user_id)
+        try:
+            row = db.table("material_versions").insert({
+                "material_id": str(material_id),
+                "user_id": user_id,
+                "title": material["title"],
+                "data": material.get("data") or {},
+                "label": payload.label,
+            }).execute().data[0]
+            return _version_row(row)
+        except Exception as error:
+            raise _database_error(error) from None
+
+
+@router.get("/{material_id}/versions", response_model=list[MaterialVersionRecord])
+def list_versions(
+    material_id: uuid.UUID,
+    request: Request,
+    client: OptionalClientDependency,
+    store: StoreDependency,
+):
+    for user_id, db in _authorize_instructor(request, client, store):
+        _owned_material(db, str(material_id), user_id)
+        try:
+            rows = db.table("material_versions").select("*").eq(
+                "material_id", str(material_id)
+            ).eq("user_id", user_id).order("created_at", desc=True).limit(25).execute().data or []
+            return [_version_row(row) for row in rows]
+        except Exception as error:
+            raise _database_error(error) from None
+
+
+@router.post(
+    "/{material_id}/versions/{version_id}/restore",
+    response_model=MaterialRecord,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def restore_version(
+    material_id: uuid.UUID,
+    version_id: uuid.UUID,
+    request: Request,
+    client: OptionalClientDependency,
+    store: StoreDependency,
+):
+    for user_id, db in _authorize_instructor(request, client, store):
+        material = _owned_material(db, str(material_id), user_id)
+        version = _owned_version(db, str(material_id), str(version_id), user_id)
+        try:
+            # Snapshot the current state first so restoring a version is
+            # itself reversible back to this exact moment.
+            db.table("material_versions").insert({
+                "material_id": str(material_id),
+                "user_id": user_id,
+                "title": material["title"],
+                "data": material.get("data") or {},
+                "label": "Before restore",
+            }).execute()
+            now = datetime.now(UTC).isoformat()
+            row = db.table("materials").update({
+                "data": version["data"],
+                "updated_at": now,
+            }).eq("id", str(material_id)).eq("user_id", user_id).execute().data[0]
+            sources = db.table("material_sources").select("*").eq(
+                "material_id", str(material_id)
+            ).eq("user_id", user_id).order("created_at").execute().data or []
+            return _material_row(row, sources, db)
+        except ApiError:
+            raise
+        except Exception as error:
+            raise _database_error(error) from None
+
+
+@router.get("/{material_id}/export/pptx")
+def export_material_pptx(
+    material_id: uuid.UUID,
+    request: Request,
+    client: OptionalClientDependency,
+    store: StoreDependency,
+):
+    for user_id, db in _authorize_instructor(request, client, store):
+        material = _owned_material(db, str(material_id), user_id)
+        try:
+            file_bytes = build_pptx(material)
+        except Exception:
+            logger.exception("PPTX export failed for a material.")
+            raise ApiError(500, "pptx_export_failed", "Unable to build the PPTX file. Try again.") from None
+        title = re.sub(r'[\\/:*?"<>|]+', "", str(material.get("title") or "")).strip() or "material"
+        return Response(
+            content=file_bytes,
+            media_type=PPTX_MEDIA_TYPE,
+            headers={"Content-Disposition": f'attachment; filename="{title}.pptx"'},
+        )
+
+
+class MaterialPublish(BaseModel):
+    published: bool
+
+
+@router.post("/{material_id}/publish", response_model=MaterialRecord, dependencies=[Depends(require_trusted_origin)])
+def publish_material(
+    material_id: uuid.UUID,
+    payload: MaterialPublish,
+    request: Request,
+    client: OptionalClientDependency,
+    store: StoreDependency,
+):
+    for user_id, db in _authorize_instructor(request, client, store):
+        _owned_material(db, str(material_id), user_id)
+        now = datetime.now(UTC).isoformat()
+        changes: dict[str, Any] = {
+            "published": payload.published,
+            "published_at": now if payload.published else None,
+            "updated_at": now,
+        }
+        try:
+            row = db.table("materials").update(changes).eq(
+                "id", str(material_id)
+            ).eq("user_id", user_id).execute().data[0]
+            sources = db.table("material_sources").select("*").eq(
+                "material_id", str(material_id)
+            ).eq("user_id", user_id).order("created_at").execute().data or []
+            return _material_row(row, sources, db)
+        except Exception as error:
+            raise _database_error(error) from None
 
 
 @router.post(

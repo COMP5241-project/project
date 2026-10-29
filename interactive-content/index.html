@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduGenAI (PolyU) — Mini-Game Prototypes</title>
+<meta name="description" content="Browse COMP5241 courses from the PolyU EduGenAI learning platform.">
+<style>
+  /* ---------- PolyU EduGenAI 品牌風格（EDUGENAI-README §1） ---------- */
+  :root{
+    --primary:#A21942;          /* Primary (PolyU Brick Red) */
+    --primary-hover:#801333;
+    --ink:#262626;              /* Secondary (Dark Slate/Charcoal) */
+    --bg:#F8F9FA;               /* Background Accent (Light Grey) */
+    --line:#E5E7EB;             /* Card Borders / Dividers */
+    --muted:#6B7280;
+    --muted-2:#4B5563;
+    --green:#10B981;            /* Success / Progress Green */
+    --green-dark:#047857;       /* green TEXT on white (4.5:1 safe) */
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; min-height:100vh; color:var(--ink); background:var(--bg);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI","Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    display:flex; flex-direction:column;
+  }
+  a{ color:inherit; text-decoration:none; }
+  :focus-visible{ outline:2px solid var(--primary); outline-offset:3px; border-radius:6px; }
+
+  /* ---------- Brand bar ---------- */
+  .brandbar{ background:var(--primary); color:#fff; border-bottom:1px solid rgba(0,0,0,.10); }
+  .brandbar-inner{
+    max-width:80rem; margin:0 auto; padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .brand-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .brand-badge{
+    display:inline-flex; align-items:center; gap:8px; flex:none;
+    background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.24);
+    padding:7px 13px; border-radius:9px; font-weight:700; font-size:13px; letter-spacing:.02em;
+  }
+  .brand-badge svg{ width:18px; height:18px; }
+  .brand-name{ font-size:15px; font-weight:600; line-height:1.2; }
+  .brand-name small{ display:block; font-size:11px; font-weight:500; opacity:.82; letter-spacing:.04em; }
+  .brand-right{ font-size:12px; font-weight:700; letter-spacing:.1em; opacity:.92; white-space:nowrap; }
+
+  /* ---------- Layout ---------- */
+  .wrap{ max-width:80rem; margin:0 auto; padding:0 16px; width:100%; }
+
+  /* ---------- Hero ---------- */
+  .hero{ padding:54px 0 26px; text-align:center; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--green-dark); background:#ECFDF5; border:1px solid #A7F3D0;
+    padding:6px 14px; border-radius:999px; margin-bottom:20px;
+  }
+  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--green); }
+  .hero h1{
+    margin:0 0 16px; font-size:clamp(30px,5.2vw,48px); font-weight:800;
+    letter-spacing:-.02em; line-height:1.05;
+  }
+  .hero h1 .accent{ color:var(--primary); }
+  .hero p{
+    margin:0 auto; max-width:660px; font-size:clamp(15px,2vw,18px);
+    line-height:1.65; color:var(--muted-2);
+  }
+
+  /* ---------- Cards ---------- */
+  .cards{ display:grid; grid-template-columns:minmax(0, 42rem); justify-content:center; gap:22px; padding:16px 0 6px; }
+
+  .card{
+    position:relative; display:flex; flex-direction:column;
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    padding:28px; box-shadow:0 1px 2px rgba(0,0,0,.04);
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; inset:0 0 auto 0; height:4px;
+    background:var(--accent); transform:scaleX(.32); transform-origin:left; opacity:.95;
+    transition:transform .28s ease;
+  }
+  .card:hover, .card:focus-visible{
+    transform:translateY(-5px);
+    border-color:var(--accent);
+    box-shadow:0 18px 34px -14px rgba(162,25,66,.30);
+  }
+  .card:hover::before, .card:focus-visible::before{ transform:scaleX(1); }
+  .card--catalog{ --accent:#2563EB; --chip-bg:#DBEAFE; --chip-fg:#1D4ED8; }
+
+  .card-top{ display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+  .icon-chip{
+    width:56px; height:56px; border-radius:16px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--chip-bg); color:var(--chip-fg);
+  }
+  .icon-chip svg{ width:28px; height:28px; }
+  .card-kicker{ font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .card-title{ margin:3px 0 0; font-size:21px; font-weight:700; letter-spacing:-.01em; }
+  .card-sub{ margin:3px 0 0; font-size:13px; color:var(--muted); }
+
+  .card-desc{ margin:0 0 18px; font-size:15px; line-height:1.65; color:var(--muted-2); flex:1; }
+
+  .tags{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+  .tag{
+    font-size:12px; font-weight:600; color:var(--muted-2);
+    background:#F3F4F6; border:1px solid var(--line);
+    padding:5px 11px; border-radius:999px;
+  }
+
+  .card-cta{
+    display:inline-flex; align-items:center; justify-content:center; gap:9px;
+    min-height:48px; padding:12px 20px; border-radius:10px;
+    background:var(--primary); color:#fff; font-size:15px; font-weight:600;
+    transition:background-color .18s ease;
+  }
+  .card-cta svg{ width:18px; height:18px; transition:transform .18s ease; }
+  .card:hover .card-cta svg{ transform:translateX(4px); }
+  .card-cta:hover{ background:var(--primary-hover); }
+  /* ---------- Footer ---------- */
+  footer{ margin-top:auto; }
+  .foot-inner{
+    max-width:80rem; margin:0 auto; padding:22px 16px 30px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    border-top:1px solid var(--line);
+  }
+  .foot-inner .l{ font-size:13px; color:var(--muted); }
+  .foot-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .foot-button{
+    min-height:42px; padding:9px 17px; border:1px solid var(--primary);
+    border-radius:9px; background:var(--primary); color:#fff;
+    font:inherit; font-size:14px; font-weight:650; cursor:pointer;
+    transition:background-color .18s ease, border-color .18s ease, transform .18s ease;
+  }
+  .foot-button:hover{ background:var(--primary-hover); border-color:var(--primary-hover); transform:translateY(-1px); }
+  .foot-button:focus-visible{ outline:2px solid var(--primary); outline-offset:3px; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+    .card:hover{ transform:none; }
+    .foot-button:hover{ transform:none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Brand bar -->
+  <div class="brandbar">
+    <div class="brandbar-inner">
+      <div class="brand-left">
+        <span class="brand-badge" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
+          EduGenAI
+        </span>
+        <span class="brand-name">PolyU · GenAI-Powered SE Platform<small>COMP5241 · Mini-Game Prototypes</small></span>
+      </div>
+      <a class="brand-right" href="course.html">COURSES</a>
+    </div>
+  </div>
+
+  <main class="wrap" style="flex:1;">
+    <!-- Hero -->
+    <section class="hero">
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span> COMP5241 · Course catalogue</span>
+      <h1>Explore the <span class="accent">courses</span>.</h1>
+      <p>Discover the COMP5241 course and explore its learning materials from the PolyU EduGenAI platform.</p>
+    </section>
+
+    <!-- Cards -->
+    <section class="cards" aria-label="Course catalogue">
+
+      <!-- Course Directory -->
+      <a class="card card--catalog" href="course.html"
+         aria-label="Browse available courses">
+        <div class="card-top">
+          <span class="icon-chip" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5z"/><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"/><path d="M8 7h8"/><path d="M8 10h6"/></svg>
+          </span>
+          <div>
+            <div class="card-kicker">Course Catalogue</div>
+            <h2 class="card-title">Available Courses</h2>
+            <p class="card-sub">1 available · 4 coming soon</p>
+          </div>
+        </div>
+        <p class="card-desc">
+          Browse the available COMP5241 course and its introduction, with four
+          clearly marked placeholders for future courses.
+        </p>
+        <div class="tags">
+          <span class="tag">Course introductions</span>
+          <span class="tag">Future courses</span>
+        </div>
+        <span class="card-cta">
+          Browse courses
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="foot-inner">
+      <span class="l">EduGenAI (PolyU) · COMP5241 mini-game prototypes</span>
+      <span class="foot-actions">
+        <button class="foot-button" id="aboutUsBtn" type="button">About Us</button>
+        <button class="foot-button" id="contactUsBtn" type="button">Contact Us</button>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    const aboutPages = ["e_egg/tomori.html", "e_egg/arale.html"];
+    document.getElementById("aboutUsBtn").addEventListener("click", () => {
+      const page = aboutPages[Math.floor(Math.random() * aboutPages.length)];
+      const popupUrl = new URL(page, window.location.href);
+      popupUrl.searchParams.set("autoplay", "1");
+      window.open(popupUrl.href, "_blank", "noopener,noreferrer");
+    });
+
+    document.getElementById("contactUsBtn").addEventListener("click", () => {
+      window.open(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "_blank",
+        "noopener,noreferrer",
+      );
+    });
+  </script>
+</body>
+</html>

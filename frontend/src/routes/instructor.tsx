@@ -69,7 +69,7 @@ function InstructorPage() {
           analytics from this studio.
         </p>
         <p className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          The course generator and analytics dashboard are coming soon.
+          Opening the Instructor Studio…
         </p>
       </div>
     )

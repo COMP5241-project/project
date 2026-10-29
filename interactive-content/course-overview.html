@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="COMP5241 course overview, chapter guide, and interactive learning resources.">
+  <title>COMP5241 Course Overview — EduGenAI (PolyU)</title>
+  <style>
+    :root {
+      --primary: #A21942;
+      --primary-dark: #801333;
+      --ink: #262626;
+      --muted: #59616B;
+      --page: #F8F9FA;
+      --line: #E5E7EB;
+      --green: #047857;
+      --blue: #1D4ED8;
+      --amber: #A16207;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    a { color: inherit; }
+    a:focus-visible { outline: 3px solid #D97706; outline-offset: 3px; }
+    .site-header { background: var(--primary); color: #fff; }
+    .header-inner, main, .site-footer { width: min(100% - 2rem, 76rem); margin-inline: auto; }
+    .header-inner {
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand { font-weight: 750; letter-spacing: .02em; }
+    .header-links { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+    .header-links a { font-size: .9rem; font-weight: 650; text-underline-offset: 3px; }
+    main { padding-block: clamp(2.5rem, 7vw, 5rem); }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(1.5rem, 5vw, 3.25rem);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--primary);
+      border-radius: 1rem;
+      box-shadow: 0 4px 16px rgba(38, 38, 38, .05);
+    }
+    .eyebrow, .section-kicker {
+      margin: 0 0 .55rem;
+      color: var(--green);
+      font-size: .75rem;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { max-width: 52rem; margin: 0; font-size: clamp(2.1rem, 5vw, 3.65rem); line-height: 1.1; letter-spacing: -.04em; }
+    .hero-copy { max-width: 51rem; margin: 1rem 0 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.15rem); }
+    .hero-facts { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.35rem; }
+    .fact { padding: .35rem .75rem; color: #4B5563; background: #F3F4F6; border: 1px solid var(--line); border-radius: 999px; font-size: .82rem; font-weight: 650; }
+    .section { margin-top: clamp(2.5rem, 6vw, 4rem); }
+    .section-heading { max-width: 48rem; margin-bottom: 1.2rem; }
+    h2 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.025em; line-height: 1.25; }
+    .section-heading > p:last-child { margin: .45rem 0 0; color: var(--muted); }
+    .overview-grid, .chapter-grid, .resource-grid { display: grid; gap: 1rem; }
+    .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .info-card, .chapter-card, .resource-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: .8rem;
+      box-shadow: 0 2px 8px rgba(38, 38, 38, .035);
+    }
+    .info-card { padding: 1.35rem; }
+    .info-card h3, .chapter-card h3, .resource-card h3 { margin: 0; font-size: 1.08rem; line-height: 1.35; }
+    .info-card p { margin: .5rem 0 0; color: var(--muted); }
+    .chapter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); counter-reset: chapter; }
+    .chapter-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 1.35rem;
+      counter-increment: chapter;
+    }
+    .chapter-card::before {
+      content: "CHAPTER " counter(chapter, decimal-leading-zero);
+      margin-bottom: .65rem;
+      color: var(--primary);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+    }
+    .chapter-card p { margin: .5rem 0 1rem; color: var(--muted); }
+    .text-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      margin-top: auto;
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+    .text-link:hover { color: var(--primary-dark); }
+    .resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .resource-card { display: flex; flex-direction: column; align-items: flex-start; padding: 1.4rem; border-top: 4px solid var(--resource-accent); }
+    .resource-card--game { --resource-accent: var(--amber); }
+    .resource-card--bar { --resource-accent: var(--primary); }
+    .resource-card--whip-first { --resource-accent: var(--blue); }
+    .resource-card--whip-second { --resource-accent: var(--green); }
+    .resource-type { margin: 0 0 .5rem; color: var(--muted); font-size: .72rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .resource-card > p:not(.resource-type) { margin: .55rem 0 1.1rem; color: var(--muted); }
+    .resource-card code { padding: .1rem .35rem; background: #F3F4F6; border-radius: .25rem; font-size: .83em; overflow-wrap: anywhere; }
+    .note-banner {
+      margin-top: 1rem;
+      padding: 1rem 1.15rem;
+      color: #374151;
+      background: #EFF6FF;
+      border-left: 4px solid #60A5FA;
+      border-radius: .45rem;
+    }
+    .site-footer { padding-block: 1.25rem 1.75rem; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 680px) {
+      .header-inner { min-height: 4rem; }
+      .overview-grid, .chapter-grid, .resource-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="brand">EduGenAI · COMP5241</span>
+      <nav class="header-links" aria-label="Main navigation">
+        <a href="course.html">Course catalogue</a>
+        <a href="index.html">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">Course overview · PolyU</p>
+      <h1 id="page-title">COMP5241: Software Engineering in the Age of AI</h1>
+      <p class="hero-copy">
+        This course introduces the principles and practices behind building reliable software,
+        from understanding how AI is changing development to planning a lifecycle, collaborating
+        with version control, using coding agents responsibly, and testing the result. The notes
+        and interactive activities below provide a guided route through these topics.
+      </p>
+      <div class="hero-facts" aria-label="Course details">
+        <span class="fact">5 chapters</span>
+        <span class="fact">Notes in 6 languages</span>
+        <span class="fact">Games and interactive demos</span>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="learning-title">
+      <div class="section-heading">
+        <p class="section-kicker">Course at a glance</p>
+        <h2 id="learning-title">What you will explore</h2>
+        <p>The course connects software engineering foundations with practical, AI-aware development workflows.</p>
+      </div>
+      <div class="overview-grid">
+        <article class="info-card">
+          <h3>Software development foundations</h3>
+          <p>Understand the stages of the software lifecycle, from requirements and design through implementation, testing, deployment, and maintenance.</p>
+        </article>
+        <article class="info-card">
+          <h3>Effective collaboration</h3>
+          <p>Use Git and GitHub concepts to manage changes, coordinate work, and maintain a dependable history as software evolves.</p>
+        </article>
+        <article class="info-card">
+          <h3>AI-assisted engineering</h3>
+          <p>Work with coding agents using clear specifications and useful project context, while reviewing and verifying generated work.</p>
+        </article>
+        <article class="info-card">
+          <h3>Quality and testing</h3>
+          <p>Choose appropriate test approaches, cover edge cases, and use feedback to improve confidence in the software you deliver.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="chapters-title">
+      <div class="section-heading">
+        <p class="section-kicker">Course content</p>
+        <h2 id="chapters-title">Chapters and learning path</h2>
+        <p>Read the chapters in sequence for a progression from the changing development landscape to practical quality assurance.</p>
+      </div>
+      <div class="chapter-grid">
+        <article class="chapter-card">
+          <h3>Software Development in the Age of AI</h3>
+          <p>Survey AI-assisted and agentic coding, where AI can help across the SDLC, the productivity debate, and the skills developers still need.</p>
+          <a class="text-link" href="course%20notes/course-notes.html?chapter=1">Read chapter 1 <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="chapter-card">
+          <h3>Software Development Lifecycle</h3>
+          <p>Follow software from requirements and design through implementation, verification and validation, deployment strategies, and maintenance.</p>
+          <a class="text-link" href="course%20notes/course-notes.html?chapter=2">Read chapter 2 <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="chapter-card">
+          <h3>Collaboration and Version Control</h3>
+          <p>Learn Git fundamentals and collaborative workflows, including how to manage changes safely and work together through GitHub Flow.</p>
+          <a class="text-link" href="course%20notes/course-notes.html?chapter=3">Read chapter 3 <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="chapter-card">
+          <h3>AI-Assisted Software Development Practices</h3>
+          <p>Explore context engineering, project instruction files, specification-driven development, agent skills, and evidence about AI productivity.</p>
+          <a class="text-link" href="course%20notes/course-notes.html?chapter=4">Read chapter 4 <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="chapter-card">
+          <h3>Software Testing Overview</h3>
+          <p>Compare test types and levels, examine happy paths, edge cases and negative tests, and learn about test-driven and usability testing.</p>
+          <a class="text-link" href="course%20notes/course-notes.html?chapter=5">Read chapter 5 <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+      <div class="note-banner">
+        Course notes are available in English, Traditional Chinese, Simplified Chinese, Japanese,
+        German, and Spanish. Open any chapter above and choose a language in the notes viewer.
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="activities-title">
+      <div class="section-heading">
+        <p class="section-kicker">Learn by doing</p>
+        <h2 id="activities-title">Interactive activities and examples</h2>
+        <p>These standalone demos connect course ideas to playable, visual, and prompt-driven examples. Each link opens the corresponding activity.</p>
+      </div>
+      <div class="resource-grid">
+        <article class="resource-card resource-card--game">
+          <p class="resource-type">SDLC learning game</p>
+          <h3>Gold Rush Hook</h3>
+          <p>Apply lifecycle decisions in a Gold Miner–style game: hook SDLC good practices for marks, avoid harmful shortcuts, and use upgrades across three levels.</p>
+          <a class="text-link" href="gold_hook/">Play Gold Rush Hook <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="resource-card resource-card--bar">
+          <p class="resource-type">Testing story · 23 scenes</p>
+          <h3>Testers &amp; the Bar</h3>
+          <p>Watch an animated testing comedy where a tester tries increasingly unusual orders. The scenes offer a light-hearted way to think about edge cases and unexpected inputs.</p>
+          <a class="text-link" href="bar_animation/testers-bar-polyu.html">Open the bar animation <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="resource-card resource-card--whip-first">
+          <p class="resource-type">Prompt precision · side-by-side comparison</p>
+          <h3>Two Whip Demo Interpretations</h3>
+          <p>Compare the original animation of a person riding a bicycle with the clarified interpretation of a bicycle riding on a person. The paired demos show why precise wording matters.</p>
+          <a class="text-link" href="state%20your%20requirements%20clearly/whip.html">Compare both whip demos <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="resource-card resource-card--whip-second">
+          <p class="resource-type">Prompt precision · tutorial</p>
+          <h3>How Ambiguity Changes What an Agent Builds</h3>
+          <p>A guided tutorial on how one ambiguous phrase leads an agent to guess a whole scene, the kinds of ambiguity to watch for, and a checklist to write prompts that leave no room for guessing.</p>
+          <a class="text-link" href="state%20your%20requirements%20clearly/prompt-tutorial.html">Open the prompt tutorial <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">PolyU · GenAI-Powered Software Engineering Learning</footer>
+</body>
+</html>

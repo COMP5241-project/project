@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arale — ASCII Art · EduGenAI (PolyU)</title>
+<style>
+  :root {
+    --polyu: #A21942;
+    --polyu-dark: #801333;
+    --ink: #262626;
+    --page: #F8F9FA;
+    --line: #E5E7EB;
+    --ok: #10B981;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .wrap { max-width: 90rem; margin: 0 auto; padding: 0 1rem; }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header { background: var(--polyu); color: #fff; padding: 1rem 0; }
+  .head-inner {
+    max-width: 90rem; margin: 0 auto; padding: 0 1rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: .75rem; }
+  .brand-badge {
+    background: #fff; color: var(--polyu);
+    font-weight: 700; font-size: .8rem; letter-spacing: .04em;
+    padding: .35rem .7rem; border-radius: .5rem;
+  }
+  .brand h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+  .brand p { margin: 0; font-size: .8rem; opacity: .85; }
+  .head-tag {
+    font-size: .75rem; font-weight: 600; letter-spacing: .08em;
+    border: 1px solid rgba(255,255,255,.4); border-radius: 999px; padding: .3rem .8rem;
+  }
+
+  /* ── Controls ───────────────────────────────────────────── */
+  .controls {
+    background: #fff; border: 1px solid var(--line); border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    padding: .9rem 1.25rem; margin: 1.5rem 0 1rem;
+    display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+  }
+  .ctl-group { display: flex; align-items: center; gap: .4rem; }
+  .ctl-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin-right: .25rem; }
+  .btn {
+    background: #fff; color: var(--ink);
+    border: 1px solid var(--line); border-radius: .375rem;
+    padding: .4rem .8rem; font: inherit; font-size: .85rem; font-weight: 500;
+    cursor: pointer; transition: border-color .2s, background .2s, color .2s;
+  }
+  .btn:hover { border-color: #d1d5db; background: var(--page); }
+  .btn:focus-visible { outline: none; border-color: var(--polyu); box-shadow: 0 0 0 3px rgba(162,25,66,.2); }
+  .btn.active { background: var(--polyu); border-color: var(--polyu); color: #fff; }
+  .btn-primary { background: var(--polyu); border-color: var(--polyu); color: #fff; }
+  .btn-primary:hover { background: var(--polyu-dark); border-color: var(--polyu-dark); }
+  .meta { font-size: .8rem; color: #6b7280; margin: 0 0 1.25rem; }
+  .meta code { background: #eef0f2; border-radius: .25rem; padding: .1rem .35rem; font-size: .75rem; }
+
+  /* ── Art canvas ─────────────────────────────────────────── */
+  .art-card {
+    background: #fff; border: 1px solid var(--line); border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    padding: 1.25rem; margin-bottom: 3rem;
+  }
+  pre#art {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Mono", monospace;
+    font-size: 12px; line-height: 1.15;
+    color: var(--ink);
+    white-space: pre; overflow-x: auto;
+    tab-size: 4;
+  }
+
+  /* ── Background music dock ──────────────────────────────── */
+  .music-dock {
+    position: fixed; right: 1rem; bottom: 1rem; z-index: 50;
+    display: flex; align-items: center; gap: .5rem;
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.14);
+    padding: .4rem .55rem .4rem .95rem;
+  }
+  .music-status { display: none; color: #6b7280; font-size: .72rem; }
+  .music-status.is-visible { display: inline; }
+  .unmute-btn {
+    display: none;
+    border: 1px solid var(--polyu);
+    background: var(--polyu);
+    color: #fff;
+    border-radius: 999px;
+    padding: .35rem .7rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    cursor: pointer;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .unmute-btn.is-visible { display: inline-flex; align-items: center; gap: .3rem; }
+  .unmute-btn svg { width: .9rem; height: .9rem; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(162, 25, 66, .5); }
+    50% { box-shadow: 0 0 0 6px rgba(162, 25, 66, 0); }
+  }
+  .music-dock .music-label { font-size: .72rem; font-weight: 700; letter-spacing: .06em; color: #6b7280; text-transform: uppercase; }
+  .music-dock .btn { border-radius: 999px; padding: .35rem .65rem; display: inline-flex; align-items: center; gap: .35rem; }
+  .music-dock .btn svg { width: 1rem; height: 1rem; }
+  .music-dock .btn.active { background: var(--polyu); border-color: var(--polyu); color: #fff; }
+  .yt-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+
+  /* ── States ─────────────────────────────────────────────── */
+  .state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem; min-height: 14rem; text-align: center; padding: 2rem; }
+  .state .icon { font-size: 2.5rem; }
+  .state h3 { margin: 0; font-size: 1.1rem; }
+  .state p { margin: 0; color: #6b7280; max-width: 36rem; }
+  .state code { background: #eef0f2; border-radius: .25rem; padding: .15rem .4rem; font-size: .85rem; }
+  .spinner {
+    width: 2.25rem; height: 2.25rem; border-radius: 50%;
+    border: 3px solid var(--line); border-top-color: var(--polyu);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer { border-top: 1px solid var(--line); background: #fff; padding: 1rem 0; }
+  .foot-inner { max-width: 90rem; margin: 0 auto; padding: 0 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .8rem; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <span class="brand-badge">EduGenAI</span>
+      <div>
+        <h1>Arale — ASCII Art</h1>
+        <p>PolyU · GenAI-Powered SE Platform · COMP5241</p>
+      </div>
+    </div>
+    <span class="head-tag">EASTER EGG</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="ctl-group">
+      <span class="ctl-label">Font size</span>
+      <button class="btn" id="fontDown" title="Smaller font" aria-label="Decrease font size">A−</button>
+      <button class="btn" id="fontUp" title="Larger font" aria-label="Increase font size">A+</button>
+      <button class="btn" id="fitBtn" title="Scale the art to fit the window width" aria-pressed="false">Fit to width</button>
+    </div>
+    <div class="ctl-group">
+      <a class="btn btn-primary" id="downloadBtn" href="arale_ascii-art.txt" download>Download .txt</a>
+    </div>
+  </div>
+
+  <p class="meta" id="metaLine"></p>
+
+  <div class="art-card">
+    <div class="state" id="loading">
+      <div class="spinner"></div>
+      <h3>Loading the art…</h3>
+    </div>
+    <pre id="art" hidden></pre>
+  </div>
+</div>
+
+<!-- Background music: YouTube IFrame player (hidden) + control dock -->
+<div class="yt-hidden" id="ytPlayer" aria-hidden="true"></div>
+<div class="music-dock" id="musicDock" role="group" aria-label="Background music">
+  <span class="music-label">Music</span>
+  <span class="music-status" id="musicStatus" role="status"></span>
+  <button class="unmute-btn" id="unmuteBtn" title="Turn on the music sound">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+    <span>Enable Sound</span>
+  </button>
+  <button class="btn" id="musicBtn" aria-pressed="false" title="Play / pause background music">
+    <svg id="musicIconPlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="musicIconPause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+    <span id="musicText">Play</span>
+  </button>
+</div>
+
+<footer>
+  <div class="foot-inner">
+    <span>EduGenAI (PolyU) · COMP5241 easter egg</span>
+    <span>Source: <code>arale_ascii-art.txt</code> (next to this file)</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+const ART_FILE = "arale_ascii-art.txt";
+const artEl = document.getElementById("art");
+const loadingEl = document.getElementById("loading");
+const metaLine = document.getElementById("metaLine");
+const fitBtn = document.getElementById("fitBtn");
+
+/* ── Color map (light→dark ramp, matched to the Arale webp) ─────────────── */
+const COLOR_MAP = {
+  ".": "#4B5563",   /* dark gray — dot details stand out against the canvas */
+  ":": "#D5D9DE",   /* light gray — soft shadow */
+  ";": "#E8A868",   /* peach — skin highlight */
+  "+": "#C67F4E",   /* deeper tan — skin */
+  "x": "#3A4150",   /* dark slate — hair */
+  "X": "#1A1A1A",   /* near-black — hair */
+  "$": "#D62828",   /* red — outfit / headband */
+  "&": "#9E1B1B",   /* dark red — outfit shadow */
+};
+const DEFAULT_COLOR = "#262626";
+
+function escapeHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderColoredArt(lines) {
+  let html = "";
+  for (const line of lines) {
+    let currentColor = null;
+    let currentText = "";
+    for (const ch of line) {
+      const color = COLOR_MAP[ch] || DEFAULT_COLOR;
+      if (color !== currentColor) {
+        if (currentText) {
+          html += '<span style="color:' + currentColor + '">' + escapeHtml(currentText) + "</span>";
+        }
+        currentColor = color;
+        currentText = ch;
+      } else {
+        currentText += ch;
+      }
+    }
+    if (currentText) {
+      html += '<span style="color:' + currentColor + '">' + escapeHtml(currentText) + "</span>";
+    }
+    html += "\n";
+  }
+  return html;
+}
+
+const MIN_FONT = 4;
+const MAX_FONT = 24;
+let fontSize = 12;
+let fitMode = false;
+let maxLineLen = 0;
+
+function setFontSize(px) {
+  fontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, px));
+  artEl.style.fontSize = fontSize + "px";
+}
+
+function fitToWidth() {
+  if (!maxLineLen) return;
+  // Monospace glyph width is ~0.6em; leave a little headroom for the scrollbar.
+  const px = (artEl.clientWidth - 8) / (maxLineLen * 0.6);
+  setFontSize(px);
+}
+
+function showState(html) {
+  loadingEl.innerHTML = html;
+  loadingEl.style.display = "flex";
+  artEl.hidden = true;
+}
+
+async function loadArt() {
+  let text;
+  try {
+    const res = await fetch(ART_FILE, { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    text = await res.text();
+  } catch (err) {
+    showState(
+      '<div class="icon">🎨</div>' +
+      "<h3>Couldn't load the art</h3>" +
+      "<p>" + ART_FILE + " — " + err.message + ". Browsers block fetch() on file:// pages. " +
+      "Serve the folder over HTTP instead — e.g. run <code>npx serve .. -l 4174</code> from the repo root " +
+      "and open <code>http://localhost:4174/e_egg/arale.html</code>.</p>"
+    );
+    return;
+  }
+
+  const lines = text.replace(/\r\n?/g, "\n").split("\n").map((l) => l.replace(/\s+$/, ""));
+  maxLineLen = Math.max(...lines.map((l) => l.length));
+
+  artEl.innerHTML = renderColoredArt(lines);
+  artEl.hidden = false;
+  loadingEl.style.display = "none";
+  metaLine.innerHTML =
+    "Source: <code>" + ART_FILE + "</code> · " +
+    lines.length + " lines · " + maxLineLen + " chars wide · " +
+    (text.length / 1024).toFixed(1) + " KB";
+
+  if (fitMode) fitToWidth();
+}
+
+document.getElementById("fontDown").addEventListener("click", () => { fitMode = false; fitBtn.classList.remove("active"); fitBtn.setAttribute("aria-pressed", "false"); setFontSize(fontSize - 1); });
+document.getElementById("fontUp").addEventListener("click", () => { fitMode = false; fitBtn.classList.remove("active"); fitBtn.setAttribute("aria-pressed", "false"); setFontSize(fontSize + 1); });
+fitBtn.addEventListener("click", () => {
+  fitMode = !fitMode;
+  fitBtn.classList.toggle("active", fitMode);
+  fitBtn.setAttribute("aria-pressed", String(fitMode));
+  if (fitMode) fitToWidth();
+});
+window.addEventListener("resize", () => { if (fitMode) fitToWidth(); });
+
+/* ── Background music (YouTube IFrame API) ─────────────────────────────── */
+const YT_VIDEO_ID = "QARyadS-0zY";
+const musicBtn = document.getElementById("musicBtn");
+const musicIconPlay = document.getElementById("musicIconPlay");
+const musicIconPause = document.getElementById("musicIconPause");
+const musicText = document.getElementById("musicText");
+const musicStatus = document.getElementById("musicStatus");
+const unmuteBtn = document.getElementById("unmuteBtn");
+const autoplayRequested = new URLSearchParams(window.location.search).get("autoplay") !== "0";
+let ytPlayer = null;
+let musicPlaying = false;
+let soundEnabled = false;
+
+function setMusicUI(playing) {
+  musicPlaying = playing;
+  musicBtn.classList.toggle("active", playing);
+  musicBtn.setAttribute("aria-pressed", String(playing));
+  musicIconPlay.style.display = playing ? "none" : "block";
+  musicIconPause.style.display = playing ? "block" : "none";
+  musicText.textContent = playing ? "Pause" : "Play";
+  if (playing) {
+    musicStatus.textContent = "";
+    musicStatus.classList.remove("is-visible");
+  }
+}
+
+function showUnmutePrompt() {
+  if (soundEnabled) return;
+  unmuteBtn.classList.add("is-visible");
+  musicStatus.textContent = "Playing muted — click Enable Sound";
+  musicStatus.classList.add("is-visible");
+}
+
+function enableSound() {
+  if (!ytPlayer) return;
+  ytPlayer.unMute();
+  soundEnabled = true;
+  unmuteBtn.classList.remove("is-visible");
+  musicStatus.textContent = "";
+  musicStatus.classList.remove("is-visible");
+}
+
+function startMusic() {
+  if (!ytPlayer) return;
+  if (!soundEnabled) {
+    // A user gesture is the perfect moment to turn the sound on.
+    enableSound();
+  }
+  ytPlayer.playVideo();
+}
+
+function onPlayerReady() {
+  if (!autoplayRequested) return;
+  // Browsers block audible autoplay, but allow muted autoplay.
+  // Start muted so the video plays immediately, then prompt to unmute.
+  ytPlayer.mute();
+  ytPlayer.playVideo();
+  showUnmutePrompt();
+}
+
+function onPlayerStateChange(event) {
+  setMusicUI(event.data === 1 /* YT.PlayerState.PLAYING */);
+}
+
+function loadYouTubeAPI() {
+  return new Promise((resolve) => {
+    if (window.YT && window.YT.Player) { resolve(); return; }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(); };
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  });
+}
+
+async function initMusic() {
+  try {
+    await loadYouTubeAPI();
+    ytPlayer = new YT.Player("ytPlayer", {
+      videoId: YT_VIDEO_ID,
+      width: "1",
+      height: "1",
+      playerVars: {
+        autoplay: autoplayRequested ? 1 : 0,
+        controls: 0,
+        disablekb: 1,
+        playsinline: 1,
+        rel: 0,
+      },
+      events: {
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange,
+        onAutoplayBlocked: showUnmutePrompt,
+      },
+    });
+  } catch (err) {
+    musicStatus.textContent = "Audio unavailable";
+    musicStatus.classList.add("is-visible");
+  }
+}
+
+musicBtn.addEventListener("click", () => {
+  if (!ytPlayer) return;
+  if (musicPlaying) ytPlayer.pauseVideo();
+  else startMusic();
+});
+
+unmuteBtn.addEventListener("click", enableSound);
+
+initMusic();
+
+loadArt();
+</script>
+</body>
+</html>

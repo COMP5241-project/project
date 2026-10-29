@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鵜鶘鞭打騎車人</title>
+<style>
+  :root{ --ink:#123; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    min-height:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:radial-gradient(120% 120% at 50% -10%, #1c2b4a 0%, #0e1626 55%, #0a0f1a 100%);
+    font-family:"Segoe UI",system-ui,-apple-system,"Microsoft JhengHei","PingFang TC",sans-serif;
+    color:#eaf2ff;padding:20px;
+  }
+  h1{font-size:clamp(18px,2.4vw,26px);font-weight:700;letter-spacing:.5px;margin:0 0 2px}
+  h1 span{color:#ffcf4d}
+  p.sub{margin:0;opacity:.7;font-size:13px}
+  .stage{
+    width:min(1150px,96vw);
+    border-radius:20px;overflow:hidden;
+    box-shadow:0 24px 60px -18px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06);
+    background:#cdeeff;
+  }
+  svg{display:block;width:100%;height:auto}
+  .foot{opacity:.55;font-size:12px}
+</style>
+</head>
+<body>
+  <h1>🚲 騎車人 <span>× 甩鞭鵜鶘</span> 🦩</h1>
+  <p class="sub">往前衝，但後面有人（鳥）拿著鞭子追著抽 —— 每次受擊都有反饋</p>
+
+  <div class="stage">
+  <svg id="scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid meet" role="img"
+       aria-label="一個人在騎自行車往前進，後面有一隻鵜鶘拿鞭子抽他">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"  stop-color="#8fd0ff"/>
+        <stop offset="1"  stop-color="#e8f7ff"/>
+      </linearGradient>
+      <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5c636d"/>
+        <stop offset="1" stop-color="#3c414a"/>
+      </linearGradient>
+      <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#fff2b0"/>
+        <stop offset="1" stop-color="#ffcf4d"/>
+      </radialGradient>
+      <linearGradient id="pelicanBody" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset="1" stop-color="#e7edf5"/>
+      </linearGradient>
+      <radialGradient id="pouch" cx="40%" cy="30%" r="75%">
+        <stop offset="0" stop-color="#ff9f52"/>
+        <stop offset="1" stop-color="#f26d1d"/>
+      </radialGradient>
+      <linearGradient id="shirt" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3aa0ff"/>
+        <stop offset="1" stop-color="#1e6fd0"/>
+      </linearGradient>
+      <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ff6b6b"/>
+        <stop offset="1" stop-color="#d63b3b"/>
+      </linearGradient>
+      <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="3"/>
+      </filter>
+    </defs>
+
+    <!-- ===== Background ===== -->
+    <rect x="0" y="0" width="1200" height="600" fill="url(#sky)"/>
+    <circle cx="1046" cy="112" r="56" fill="url(#sun)"/>
+    <g id="sunRays"></g>
+
+    <!-- clouds (wrapped individually) -->
+    <g id="clouds"></g>
+
+    <!-- hills (tiled) -->
+    <g id="hills"></g>
+
+    <!-- road -->
+    <rect x="0" y="500" width="1200" height="100" fill="url(#road)"/>
+    <rect x="0" y="500" width="1200" height="6" fill="#727a86"/>
+    <!-- center dashes (tiled) -->
+    <g id="stripes"></g>
+    <!-- roadside objects (tiled) -->
+    <g id="roadside"></g>
+
+    <!-- ===== Shadows ===== -->
+    <ellipse id="pelicanShadow" cx="360" cy="505" rx="92" ry="12" fill="#0a1a2a" opacity="0.18"/>
+    <ellipse id="bikeShadow"    cx="820" cy="505" rx="150" ry="13" fill="#0a1a2a" opacity="0.20"/>
+
+    <!-- ===== Pelican (behind / left) ===== -->
+    <g id="pelican"></g>
+
+    <!-- ===== Bike + Rider (front / right) ===== -->
+    <g id="riderShadow"></g>
+    <g id="bike"></g>
+    <g id="rider"></g>
+
+    <!-- ===== FX layer ===== -->
+    <g id="fx"></g>
+  </svg>
+  </div>
+
+  <div class="foot">純 SVG + JS，無任何外部資源 · 直接打開就能跑</div>
+
+<script>
+"use strict";
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("scene");
+const $   = id => document.getElementById(id);
+
+/* ---------- tiny helpers ---------- */
+const lerp  = (a,b,u)=>a+(b-a)*u;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const ease  = u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+function el(tag,attrs,parent){
+  const n=document.createElementNS(NS,tag);
+  for(const k in attrs) n.setAttribute(k,attrs[k]);
+  if(parent) parent.appendChild(n);
+  return n;
+}
+function wrapX(base,speed,t,range,pad){
+  const m=range+pad*2;
+  return ((base - t*speed) % m + m) % m - pad;
+}
+/* keyframe sampler -> value */
+function sampleKF(kf,p){
+  if(p<=kf[0][0]) return kf[0][1];
+  for(let i=0;i<kf.length-1;i++){
+    const a=kf[i],b=kf[i+1];
+    if(p>=a[0]&&p<=b[0]){
+      const u=(p-a[0])/(b[0]-a[0]||1);
+      return lerp(a[1],b[1],ease(u));
+    }
+  }
+  return kf[kf.length-1][1];
+}
+function sampleKF2(kf,p){
+  if(p<=kf[0][0]) return {x:kf[0][1],y:kf[0][2]};
+  for(let i=0;i<kf.length-1;i++){
+    const a=kf[i],b=kf[i+1];
+    if(p>=a[0]&&p<=b[0]){
+      const u=(p-a[0])/(b[0]-a[0]||1);
+      const e=ease(u);
+      return {x:lerp(a[1],b[1],e), y:lerp(a[2],b[2],e)};
+    }
+  }
+  const l=kf[kf.length-1]; return {x:l[1],y:l[2]};
+}
+
+/* =============================================================
+   BACKGROUND
+============================================================= */
+function buildBackground(){
+  // sun rays
+  const rays=$("sunRays");
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2;
+    el("line",{x1:1046+Math.cos(a)*66, y1:112+Math.sin(a)*66,
+               x2:1046+Math.cos(a)*86, y2:112+Math.sin(a)*86,
+               stroke:"#ffd75e","stroke-width":6,"stroke-linecap":"round",opacity:.7},rays);
+  }
+
+  // clouds
+  const clouds=$("clouds");
+  const cloudDefs=[
+    {x:160,y:120,s:1.0},{x:520,y:80,s:.8},{x:820,y:150,s:1.15},
+    {x:1080,y:90,s:.7},{x:300,y:210,s:.6}
+  ];
+  cloudDefs.forEach((c,i)=>{
+    const g=el("g",{id:"cloud"+i},clouds);
+    el("ellipse",{cx:0,cy:0,rx:46*c.s,ry:26*c.s,fill:"#fff"},g);
+    el("ellipse",{cx:40*c.s,cy:8*c.s,rx:34*c.s,ry:20*c.s,fill:"#fff"},g);
+    el("ellipse",{cx:-38*c.s,cy:10*c.s,rx:30*c.s,ry:18*c.s,fill:"#f3f9ff"},g);
+    c._g=g;
+  });
+  clouds._defs=cloudDefs;
+
+  // hills (tiled, period 1200)
+  const hills=$("hills");
+  const hill=[ -1000, 200, 1400, 2600 ];
+  hill.forEach(hx=>{
+    el("ellipse",{cx:hx,cy:560,rx:420,ry:150,fill:"#8fd08f"},hills);
+    el("ellipse",{cx:hx+260,cy:590,rx:300,ry:120,fill:"#a9dc9a"},hills);
+  });
+
+  // center dashes (tiled, period 90)
+  const stripes=$("stripes");
+  for(let i=0;i<16;i++){
+    el("rect",{x:i*90-90,y:544,width:46,height:10,rx:5,fill:"#f4f7fa"},stripes);
+  }
+
+  // roadside: trees + cactus + sign (tiled, period 400)
+  const road=$("roadside");
+  const tree=(x,flip)=>{
+    const g=el("g",{},road);
+    el("rect",{x:x-8,y:430,width:16,height:74,rx:6,fill:"#8a5a34"},g);
+    el("circle",{cx:x,cy:410,r:44,fill:"#3f9d4f"},g);
+    el("circle",{cx:x-30,cy:430,r:30,fill:"#49b35b"},g);
+    el("circle",{cx:x+30,cy:430,r:30,fill:"#378f47"},g);
+    return g;
+  };
+  const sign=(x)=>{
+    const g=el("g",{},road);
+    el("rect",{x:x-5,y:430,width:10,height:74,rx:4,fill:"#9aa3ad"},g);
+    el("rect",{x:x-46,y:392,width:92,height:44,rx:8,fill:"#fff3b0",stroke:"#333","stroke-width":3},g);
+    el("text",{x:x,y:420,"text-anchor":"middle","font-size":24,"font-weight":"bold",
+               "font-family":"Segoe UI, sans-serif",fill:"#333"},g).textContent="小心鳥!";
+    return g;
+  };
+  const cactus=(x)=>{
+    const g=el("g",{},road);
+    el("rect",{x:x-9,y:420,width:18,height:84,rx:9,fill:"#4fae63"},g);
+    el("rect",{x:x-34,y:440,width:26,height:12,rx:6,fill:"#4fae63"},g);
+    el("rect",{x:x-34,y:418,width:12,height:36,rx:6,fill:"#4fae63"},g);
+    return g;
+  };
+  // build a tiling set over a wide span (period 400)
+  for(let i=-1;i<5;i++){
+    tree(60+i*400);
+    cactus(260+i*400);
+    if(i===0||i===2) sign(160+i*400);
+  }
+  road._period=400;
+}
+
+/* =============================================================
+   PELICAN
+============================================================= */
+function buildPelican(){
+  const P=$("pelican");
+  const body=el("g",{id:"pelicanBody"},P);
+
+  // legs (two, alternating)
+  const legs=el("g",{id:"pelicanLegs"},P);
+  const mkLeg=(id,phase)=>{
+    const g=el("g",{id},legs);
+    const thigh=el("line",{x1:0,y1:0,x2:0,y2:0,stroke:"#f08a2b","stroke-width":12,"stroke-linecap":"round"},g);
+    const shin =el("line",{x1:0,y1:0,x2:0,y2:0,stroke:"#f08a2b","stroke-width":11,"stroke-linecap":"round"},g);
+    const foot =el("path",{d:"",fill:"#ff9d33",stroke:"#d9741c","stroke-width":2},g);
+    return {g,thigh,shin,foot,phase};
+  };
+  const legA=mkLeg("legA",0), legB=mkLeg("legB",Math.PI);
+
+  // tail
+  el("path",{d:"M300,392 C250,360 235,410 285,430 C255,440 265,470 320,455 C275,470 320,500 360,470 Z",
+             fill:"#e9eef5",stroke:"#c4cdd9","stroke-width":3},body);
+
+  // body
+  el("ellipse",{cx:360,cy:405,rx:88,ry:58,fill:"url(#pelicanBody)",stroke:"#c4cdd9","stroke-width":3},body);
+  // belly shading
+  el("path",{d:"M300,440 C340,470 420,468 448,432 C420,470 330,474 300,440 Z",fill:"#dbe4ee",opacity:.8},body);
+
+  // neck (S-curve)
+  el("path",{d:"M420,392 C470,388 470,350 452,332 C440,320 452,306 470,300",
+             fill:"none",stroke:"#ffffff","stroke-width":26,"stroke-linecap":"round"},body);
+  el("path",{d:"M420,392 C470,388 470,350 452,332 C440,320 452,306 470,300",
+             fill:"none",stroke:"#dfe6ee","stroke-width":4,opacity:.6},body);
+
+  // head
+  el("circle",{cx:474,cy:296,r:27,fill:"#ffffff",stroke:"#c4cdd9","stroke-width":3},body);
+  // eye
+  el("circle",{cx:482,cy:288,r:6.5,fill:"#20242b"},body);
+  el("circle",{cx:484,cy:286,r:2.2,fill:"#fff"},body);
+  // little angry brow
+  el("path",{id:"pelicBrow",d:"M470,278 L494,286",stroke:"#20242b","stroke-width":4,"stroke-linecap":"round"},body);
+
+  // beak (long, pointing right) + pouch
+  el("path",{d:"M492,282 L592,296 L592,304 L492,306 Z",fill:"#ffb347",stroke:"#d9741c","stroke-width":2.5},body);
+  el("path",{id:"pouch",
+             d:"M492,306 C520,352 560,352 592,306 C560,320 520,320 492,306 Z",
+             fill:"url(#pouch)",stroke:"#c85a12","stroke-width":2.5},body);
+
+  // wing / arm holding whip (front)
+  const wing=el("g",{id:"pelicanWing"},P);
+  el("path",{d:"M392,392 C440,378 486,372 512,378 C486,404 440,412 392,392 Z",
+             fill:"#dfe7f1",stroke:"#b9c4d3","stroke-width":3},wing);
+  // hand knob
+  el("circle",{id:"whipHand",cx:512,cy:380,r:12,fill:"#f08a2b",stroke:"#d9741c","stroke-width":3},P);
+
+  P._={body,legs,legA,legB,wing,pouch:$("pouch"),brow:$("pelicBrow")};
+}
+
+/* =============================================================
+   BIKE
+============================================================= */
+const B={
+  rRear:{x:735,y:447}, rFront:{x:905,y:447},
+  bb:{x:800,y:462}, saddle:{x:770,y:344}, head:{x:882,y:360},
+  crank:24
+};
+function buildBike(){
+  const g=$("bike");
+  const frame="url(#frame)";
+  const line=(a,b,w,c)=>el("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:c||frame,"stroke-width":w||9,"stroke-linecap":"round"},g);
+
+  // far pedal + far leg will be drawn behind frame (rider group handles legs)
+  // wheels
+  const mkWheel=(c)=>{
+    const wg=el("g",{},g);
+    el("circle",{cx:c.x,cy:c.y,r:53,fill:"none",stroke:"#1b1f26","stroke-width":9},wg);
+    el("circle",{cx:c.x,cy:c.y,r:44,fill:"none",stroke:"#2b3038","stroke-width":3},wg);
+    const spokes=el("g",{id:null},wg);
+    for(let i=0;i<8;i++){
+      const a=i/8*Math.PI*2;
+      el("line",{x1:c.x,y1:c.y,x2:c.x+Math.cos(a)*44,y2:c.y+Math.sin(a)*44,
+                 stroke:"#565e69","stroke-width":3},spokes);
+    }
+    el("circle",{cx:c.x,cy:c.y,r:7,fill:"#c7ced8",stroke:"#39404a","stroke-width":3},wg);
+    return spokes;
+  };
+  const spRear=mkWheel(B.rRear);
+  const spFront=mkWheel(B.rFront);
+
+  // frame tubes
+  line(B.bb,B.saddle);
+  line(B.saddle,B.head);           // top tube
+  line(B.bb,B.head);               // down tube
+  line(B.rRear,B.bb);              // chainstay
+  line(B.rRear,B.saddle);          // seatstay
+  line(B.head,B.rFront);           // fork
+  el("line",{x1:B.head.x,y1:B.head.y,x2:B.head.x+4,y2:B.head.y-30,stroke:frame,"stroke-width":9,"stroke-linecap":"round"},g);
+
+  // seat
+  el("ellipse",{cx:B.saddle.x-2,cy:B.saddle.y-4,rx:20,ry:8,fill:"#20242b"},g);
+  // handlebar
+  el("path",{d:"M886,330 C902,326 914,336 912,352",fill:"none",stroke:"#20242b","stroke-width":8,"stroke-linecap":"round"},g);
+  el("circle",{cx:912,cy:352,r:7,fill:"#20242b"},g);
+
+  // crank + near pedal (near pedal drawn here, near leg drawn in rider)
+  const crank=el("g",{id:"crank"},g);
+  const arm1=el("line",{x1:B.bb.x,y1:B.bb.y,x2:0,y2:0,stroke:"#39404a","stroke-width":8,"stroke-linecap":"round"},crank);
+  const arm2=el("line",{x1:B.bb.x,y1:B.bb.y,x2:0,y2:0,stroke:"#2c323b","stroke-width":8,"stroke-linecap":"round"},crank);
+  const pedNear=el("line",{x1:0,y1:0,x2:16,y2:0,stroke:"#20242b","stroke-width":7,"stroke-linecap":"round"},crank);
+  const pedFar =el("line",{x1:0,y1:0,x2:-16,y2:0,stroke:"#14181d","stroke-width":7,"stroke-linecap":"round"},crank);
+  el("circle",{cx:B.bb.x,cy:B.bb.y,r:9,fill:"#39404a"},g);
+
+  g._={spRear,spFront,crank,arm1,arm2,pedNear,pedFar};
+}
+
+/* =============================================================
+   RIDER
+============================================================= */
+const R={ hip:{x:772,y:346}, shoulder:{x:850,y:296}, head:{x:872,y:270} };
+function buildRider(){
+  const g=$("rider");
+
+  // far leg (behind the bike frame) -> insert BEFORE the bike group
+  const far=el("g",{id:"legFar"});
+  $("bike").before(far);
+  far._shin=el("line",{stroke:"#2a5c8f","stroke-width":15,"stroke-linecap":"round"},far);
+  far._thigh=el("line",{stroke:"#2f67a0","stroke-width":17,"stroke-linecap":"round"},far);
+  far._shoe=el("path",{fill:"#20242b"},far);
+
+  // torso + head + near leg (front)
+  const torso=el("g",{id:"torso"},g);
+
+  // near leg
+  const near=el("g",{id:"legNear"},torso);
+  near._shin=el("line",{stroke:"#3a79c0","stroke-width":16,"stroke-linecap":"round"},near);
+  near._thigh=el("line",{stroke:"#3a79c0","stroke-width":18,"stroke-linecap":"round"},near);
+  near._shoe=el("path",{fill:"#1b1f26"},near);
+
+  // back
+  el("path",{d:"M772,346 C800,326 828,314 852,300 L862,318 C838,332 812,346 788,360 Z",
+             fill:"url(#shirt)",stroke:"#155a9e","stroke-width":2.5},torso);
+  // neck
+  el("line",{x1:852,y1:300,x2:866,y2:284,stroke:"#f2c9a0","stroke-width":13,"stroke-linecap":"round"},torso);
+
+  // arm
+  const arm=el("g",{id:"arm"},torso);
+  arm._upper=el("line",{stroke:"#2f86e0","stroke-width":14,"stroke-linecap":"round"},arm);
+  arm._fore=el("line",{stroke:"#3a92e8","stroke-width":12,"stroke-linecap":"round"},arm);
+  arm._hand=el("circle",{r:8,fill:"#f2c9a0",stroke:"#d8a074","stroke-width":2},arm);
+
+  // head group
+  const head=el("g",{id:"head"},torso);
+  // helmet
+  el("path",{d:"M850,270 C852,246 892,244 896,270 C880,262 862,262 850,270 Z",
+             fill:"#ff5a5a",stroke:"#c83a3a","stroke-width":2.5},head);
+  el("line",{x1:864,y1:250,x2:866,y2:268,stroke:"#c83a3a","stroke-width":2},head);
+  el("line",{x1:880,y1:249,x2:880,y2:268,stroke:"#c83a3a","stroke-width":2},head);
+  // face
+  el("circle",{cx:872,cy:272,r:20,fill:"#f2c9a0",stroke:"#d8a074","stroke-width":2.5},head);
+  // eye normal (2 dots)  / pain (X + squint)
+  const eyesN=el("g",{id:"eyesN"},head);
+  el("circle",{cx:872,cy:268,r:2.6,fill:"#20242b"},eyesN);
+  el("circle",{cx:884,cy:266,r:2.6,fill:"#20242b"},eyesN);
+  const eyesP=el("g",{id:"eyesP",style:"display:none"},head);
+  el("path",{d:"M868,264 L876,270 M876,264 L868,270",stroke:"#20242b","stroke-width":2.4,"stroke-linecap":"round"},eyesP);
+  el("path",{d:"M880,262 L888,268 M888,262 L880,268",stroke:"#20242b","stroke-width":2.4,"stroke-linecap":"round"},eyesP);
+  // brow (pain)
+  const brow=el("path",{id:"riderBrow",d:"M866,258 L890,262",stroke:"#20242b","stroke-width":3,
+                       "stroke-linecap":"round",style:"display:none"},head);
+  // mouth normal (smile)
+  const mouthN=el("path",{id:"mouthN",d:"M878,282 C884,286 890,285 893,281",
+                       fill:"none",stroke:"#a8523a","stroke-width":2.6,"stroke-linecap":"round"},head);
+  // mouth pain (open)
+  const mouthP=el("ellipse",{id:"mouthP",cx:886,cy:283,rx:5,ry:6,fill:"#7a2f24",
+                          stroke:"#a8523a","stroke-width":2,style:"display:none"},head);
+  // sweat drop
+  const sweat=el("path",{id:"sweat",d:"M898,258 C904,266 902,274 896,272 C892,270 894,262 898,258 Z",
+                     fill:"#8fd0ff",stroke:"#4aa6e0","stroke-width":1.5,style:"display:none"},head);
+
+  g._={torso,near,far,arm,head,eyesN,eyesP,brow,mouthN,mouthP,sweat};
+}
+
+/* =============================================================
+   FX (impact star, ring, text)
+============================================================= */
+function buildFX(){
+  const fx=$("fx");
+  // star burst
+  const star=el("g",{id:"star",style:"display:none"},fx);
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    el("line",{x1:0,y1:0,x2:Math.cos(a)*26,y2:Math.sin(a)*26,
+               stroke:"#ffcf4d","stroke-width":5,"stroke-linecap":"round"},star);
+  }
+  el("circle",{cx:0,cy:0,r:12,fill:"#fff3b0",opacity:.9},star);
+  // ring
+  const ring=el("circle",{id:"ring",cx:0,cy:0,r:10,fill:"none",stroke:"#ff9d33","stroke-width":4,
+                         style:"display:none"},fx);
+  // text
+  const txt=el("text",{id:"fxText","font-family":"Segoe UI, sans-serif","font-weight":"900",
+                      "text-anchor":"middle",fill:"#fff3b0",stroke:"#d63b3b","stroke-width":1,
+                      "paint-order":"stroke",style:"display:none"},fx);
+  fx._={star,ring,txt};
+}
+
+/* =============================================================
+   WHIP
+============================================================= */
+function buildWhip(){
+  const g=el("g",{id:"whipG"},svg);
+  // swoosh trail
+  const swoosh=el("path",{id:"swoosh",d:"",fill:"none",stroke:"#ffffff",
+                         "stroke-width":16,"stroke-linecap":"round",opacity:0},g);
+  // main whip
+  const path=el("path",{id:"whip",d:"",fill:"none",stroke:"#7a4a21","stroke-width":7,
+                       "stroke-linecap":"round"},g);
+  const path2=el("path",{id:"whip2",d:"",fill:"none",stroke:"#5a3416","stroke-width":3,
+                        "stroke-linecap":"round",opacity:.7},g);
+  const tip=el("circle",{id:"whipTip",r:5,fill:"#5a3416"},g);
+  g._={swoosh,path,path2,tip};
+}
+
+/* =============================================================
+   ANIMATION
+============================================================= */
+const HAND_BASE={x:512,y:380};
+const WHIP={
+  cycle:1.4,
+  hitPhase:0.70,                 // seconds within cycle when tip contacts rider
+  hand:{x:512,y:380},
+  tipKF:[
+    [0.00, 648, 332],
+    [0.20, 668, 212],
+    [0.36, 706, 250],
+    [0.50, 812, 326],            // HIT
+    [0.62, 856, 396],
+    [0.80, 724, 332],
+    [1.00, 648, 332],
+  ],
+  bendKF:[
+    [0.00, 46],[0.20, 96],[0.36, 62],[0.50, 14],[0.62, 26],[0.80, 48],[1.00, 46]
+  ],
+};
+
+function lastHitTime(t){
+  const {cycle,hitPhase}=WHIP;
+  if(t<hitPhase) return -1e9;
+  const n=Math.floor((t-hitPhase)/cycle + 1e-9);
+  return hitPhase + n*cycle;
+}
+
+function whipTipAt(p){
+  return sampleKF2(WHIP.tipKF,p);
+}
+function whipBendAt(p){
+  return sampleKF(WHIP.bendKF,p);
+}
+
+function setWhip(p){
+  const tip=whipTipAt(p);
+  const bend=whipBendAt(p);
+  const S=WHIP.hand;
+  const M={x:(S.x+tip.x)/2,y:(S.y+tip.y)/2};
+  let vx=tip.x-S.x, vy=tip.y-S.y;
+  const len=Math.hypot(vx,vy)||1;
+  // perpendicular, choose the one pointing "up" (smaller y)
+  let n1={x:-vy/len,y:vx/len}, n2={x:vy/len,y:-vx/len};
+  const n = n1.y < n2.y ? n1 : n2;
+  const C={x:M.x+n.x*bend, y:M.y+n.y*bend};
+  const d=`M${S.x},${S.y} Q${C.x},${C.y} ${tip.x},${tip.y}`;
+  const W=svg._whip;
+  W.path.setAttribute("d",d);
+  W.path2.setAttribute("d",d);
+  W.tip.setAttribute("cx",tip.x); W.tip.setAttribute("cy",tip.y);
+
+  // swoosh during whoosh
+  const whoosh=clamp(1-Math.abs(p-0.5)/0.14,0,1);
+  W.swoosh.setAttribute("opacity",(whoosh*0.5).toFixed(3));
+  if(whoosh>0.02){
+    // a fatter, offset copy to fake motion blur
+    W.swoosh.setAttribute("d",`M${S.x},${S.y} Q${C.x+n.x*10},${C.y+n.y*10} ${tip.x},${tip.y}`);
+  }
+  // store for hit FX position
+  WHIP._lastTip=tip; WHIP._lastC=C;
+}
+
+/* 2-bone IK: given hip, foot, lengths -> knee (choose bend dir) */
+function ikKnee(hip,foot,L1,L2,bendSign){
+  let dx=foot.x-hip.x, dy=foot.y-hip.y;
+  let d=Math.hypot(dx,dy);
+  const maxD=L1+L2-0.01, minD=Math.abs(L1-L2)+0.01;
+  d=clamp(d,minD,maxD);
+  const a=Math.atan2(dy,dx);
+  const cos=(L1*L1+d*d-L2*L2)/(2*L1*d);
+  const theta=Math.acos(clamp(cos,-1,1));
+  const ang=a+bendSign*theta;
+  return {x:hip.x+L1*Math.cos(ang), y:hip.y+L1*Math.sin(ang)};
+}
+
+function setLine(e,x1,y1,x2,y2){
+  e.setAttribute("x1",x1);e.setAttribute("y1",y1);
+  e.setAttribute("x2",x2);e.setAttribute("y2",y2);
+}
+
+let t0=performance.now();
+let prevWhipP=0;
+
+function frame(now){
+  const t=(now-t0)/1000;
+
+  /* ---------- background scroll ---------- */
+  const speed=230; // world px/s
+  const clouds=svg._clouds;
+  clouds._defs.forEach((c,i)=>{
+    const x=wrapX(c.x, speed*0.35, t, 1200, 160);
+    c._g.setAttribute("transform",`translate(${x},${c.y})`);
+  });
+  $("hills").setAttribute("transform",`translate(${-(t*speed*0.2)%1200},0)`);
+  $("stripes").setAttribute("transform",`translate(${-(t*speed)%90},0)`);
+  $("roadside").setAttribute("transform",`translate(${-(t*speed)%400},0)`);
+
+  /* ---------- pelican hop + legs ---------- */
+  const hop=Math.abs(Math.sin(t*4.2));
+  const py=-(hop*20) - 2;
+  const px=Math.sin(t*4.2)*6;
+  const P=svg._pelican;
+  P.body.setAttribute("transform",`translate(${px},${py})`);
+  P.legs.setAttribute("transform",`translate(${px},${py})`);
+  P.wing.setAttribute("transform",`translate(${px},${py}) rotate(${-6+hop*8},392,392)`);
+  if(P.hand) P.hand.setAttribute("transform",`translate(${px},${py})`);
+  // move the whip hand reference with the body so the whip stays attached
+  WHIP.hand={x:HAND_BASE.x+px, y:HAND_BASE.y+py};
+
+  // legs alternate (simple stride)
+  [P.legA,P.legB].forEach(L=>{
+    const s=Math.sin(t*8+L.phase);
+    const hipL={x:L.phase===0?350:378, y:452};
+    const footX=hipL.x + s*26;
+    const lift=Math.max(0,Math.sin(t*8+L.phase+Math.PI/2))*10;
+    const foot={x:footX, y:500-lift};
+    const knee=ikKnee(hipL,foot,30,30,+1);
+    setLine(L.thigh,hipL.x,hipL.y,knee.x,knee.y);
+    setLine(L.shin,knee.x,knee.y,foot.x,foot.y);
+    L.foot.setAttribute("d",
+      `M${foot.x-6},${foot.y} C${foot.x-2},${foot.y-8} ${foot.x+18},${foot.y-8} ${foot.x+24},${foot.y} `+
+      `C${foot.x+14},${foot.y+6} ${foot.x-2},${foot.y+6} ${foot.x-6},${foot.y} Z`);
+  });
+
+  // pelican brow excitement when whipping
+  const p=t%WHIP.cycle;
+  const exc=clamp(1-Math.abs(p-WHIP.hitPhase)/0.35,0,1);
+  P.brow.setAttribute("d",`M470,${278+exc*3} L494,${286+exc*2}`);
+  // pouch puff (scale around its top-center anchor)
+  const ps=1+exc*0.08;
+  P.pouch.setAttribute("transform",`translate(542,306) scale(1 ${ps}) translate(-542,-306)`);
+
+  /* ---------- whip ---------- */
+  const whipP=(t%WHIP.cycle)/WHIP.cycle;
+  setWhip(whipP);
+
+  /* ---------- hit detection + rider feedback ---------- */
+  const lh=lastHitTime(t);
+  const flinchDur=0.45;
+  const u=clamp((t-lh)/flinchDur,0,1);           // 0 right after hit -> 1 recovered
+  const flinch = (t-lh>=0 && t-lh<flinchDur) ? (1-ease(u)) : 0;
+
+  // rider bob
+  const bob=Math.sin(t*6)*2.5;
+  const torso=svg._rider.torso;
+
+  // torso lean back on hit (around hip)
+  const lean=-9*flinch;
+  torso.setAttribute("transform",
+    `translate(0,${bob}) rotate(${lean},772,346)`);
+
+  // head jolt (back + up)
+  const head=svg._rider.head;
+  const hx=-9*flinch, hy=-7*flinch;
+  head.setAttribute("transform",`translate(${hx},${hy}) rotate(${-16*flinch},852,300)`);
+
+  // face swap
+  const pain=flinch>0.45;
+  svg._rider.eyesN.style.display = pain?"none":"";
+  svg._rider.eyesP.style.display = pain?"":"none";
+  svg._rider.brow.style.display  = pain?"":"none";
+  svg._rider.mouthN.style.display= pain?"none":"";
+  svg._rider.mouthP.style.display= pain?"":"none";
+  // sweat droplet falls during flinch
+  svg._rider.sweat.style.display = (flinch>0.2)?"":"none";
+  if(flinch>0.2){
+    const dy=(1-flinch)*26;
+    svg._rider.sweat.setAttribute("transform",`translate(0,${dy})`);
+  }
+
+  // arms pull back a touch on hit + arm pose
+  svg._rider.arm.setAttribute("transform",`translate(${-5*flinch},${2*flinch})`);
+  {
+    const sh={x:850,y:296}, hd={x:912,y:352};
+    const elb=ikKnee(sh,hd,36,44,+1);
+    setLine(svg._rider.arm._upper,sh.x,sh.y,elb.x,elb.y);
+    setLine(svg._rider.arm._fore,elb.x,elb.y,hd.x,hd.y);
+    svg._rider.arm._hand.setAttribute("cx",hd.x);
+    svg._rider.arm._hand.setAttribute("cy",hd.y);
+  }
+
+  /* ---------- pedaling (legs + crank + wheels) ---------- */
+  const crank=t*4.6; // rad/s
+  const bike=svg._bike;
+  const ped1={x:B.bb.x+B.crank*Math.cos(crank),      y:B.bb.y+B.crank*Math.sin(crank)};
+  const ped2={x:B.bb.x+B.crank*Math.cos(crank+Math.PI),y:B.bb.y+B.crank*Math.sin(crank+Math.PI)};
+
+  // crank arms + pedals
+  setLine(bike.arm1,B.bb.x,B.bb.y,ped1.x,ped1.y);
+  setLine(bike.arm2,B.bb.x,B.bb.y,ped2.x,ped2.y);
+  bike.pedNear.setAttribute("transform",`translate(${ped1.x},${ped1.y})`);
+  bike.pedFar .setAttribute("transform",`translate(${ped2.x},${ped2.y})`);
+
+  // rotate spokes
+  const deg=crank*180/Math.PI;
+  bike.spRear .setAttribute("transform",`rotate(${deg},735,447)`);
+  bike.spFront.setAttribute("transform",`rotate(${deg},905,447)`);
+
+  // legs: near leg to ped1, far leg to ped2
+  function setLeg(legGroup,hip,foot){
+    const L1=78,L2=80;
+    const knee=ikKnee(hip,foot,L1,L2,-1); // bend forward (knee leads, toward front wheel)
+    setLine(legGroup._thigh,hip.x,hip.y,knee.x,knee.y);
+    setLine(legGroup._shin,knee.x,knee.y,foot.x,foot.y);
+    legGroup._shoe.setAttribute("d",
+      `M${foot.x-8},${foot.y} C${foot.x-4},${foot.y-9} ${foot.x+16},${foot.y-9} ${foot.x+22},${foot.y} `+
+      `C${foot.x+12},${foot.y+6} ${foot.x-4},${foot.y+6} ${foot.x-8},${foot.y} Z`);
+  }
+  const hipNear={x:R.hip.x, y:R.hip.y};
+  setLeg(svg._rider.far ,hipNear,ped2);
+  setLeg(svg._rider.near,hipNear,ped1);
+
+  /* ---------- bike micro-bob ---------- */
+  bike.spRear; // noop
+  $("bike").setAttribute("transform",`translate(0,${bob*0.4})`);
+
+  /* ---------- FX ---------- */
+  const FX=svg._fx;
+  if(lh>-1e8){
+    const dt=t-lh;
+    if(dt>=0 && dt<0.5){
+      const tip=WHIP._lastTip||{x:812,y:326};
+      const pop=ease(clamp(dt/0.18,0,1));
+      const fade=1-clamp(dt/0.45,0,1);
+      const scale=0.4+pop*1.1;
+      FX.star.style.display="";
+      FX.star.setAttribute("transform",`translate(${tip.x},${tip.y}) scale(${scale})`);
+      FX.star.setAttribute("opacity",fade.toFixed(3));
+
+      const rr=10+dt*90;
+      FX.ring.style.display="";
+      FX.ring.setAttribute("cx",tip.x);FX.ring.setAttribute("cy",tip.y);
+      FX.ring.setAttribute("r",rr);FX.ring.setAttribute("opacity",(fade*0.8).toFixed(3));
+
+      // text
+      const words=["OUCH!","痛!!","啪!","喂喂!","好痛"];
+      const wi=Math.floor(lh/WHIP.cycle)%words.length;
+      FX.txt.style.display="";
+      FX.txt.setAttribute("x",tip.x);
+      FX.txt.setAttribute("y",tip.y-46-(1-fade)*30);
+      FX.txt.setAttribute("font-size",(26+pop*14).toFixed(1));
+      FX.txt.setAttribute("opacity",fade.toFixed(3));
+      FX.txt.textContent=words[wi];
+    } else {
+      FX.star.style.display="none";
+      FX.ring.style.display="none";
+      FX.txt.style.display="none";
+    }
+  } else {
+    FX.star.style.display="none";
+    FX.ring.style.display="none";
+    FX.txt.style.display="none";
+  }
+
+  prevWhipP=whipP;
+  requestAnimationFrame(frame);
+}
+
+/* ---------- wire private refs ---------- */
+function wire(){
+  svg._clouds=$("clouds");
+  svg._pelican=$("pelican")._;
+  svg._pelican.hand=$("whipHand");
+  svg._bike=$("bike")._;
+  svg._rider=$("rider")._;
+  svg._fx=$("fx")._;
+  svg._whip=$("whipG")._;
+}
+
+buildBackground();
+buildPelican();
+buildBike();
+buildRider();
+buildFX();
+buildWhip();
+wire();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

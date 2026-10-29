@@ -21,6 +21,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.tanstack
 *.local
 
 # Dev artifacts (screenshots, reference frames, mockups)

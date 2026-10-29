@@ -86,13 +86,16 @@ npm run build
 
 #### C3. Content CMS & Manual Editing
 * **Slide editor:** 16:9 WYSIWYG canvas, inline text editing, slide thumbnails, reordering, duplication, deletion, and text formatting controls.
+* **Theme editor:** Apply preset palettes or custom theme colors (background, text, accent, cards) to the whole deck or a single slide; themes persist with the resource.
+* **Undo & versioning:** Edits can be undone/redone (buttons or Ctrl+Z / Ctrl+Shift+Z); a server-side version is captured automatically before each AI revision and can be restored from the History panel.
 * **Quiz builder:** Edit questions, answers, option order, and correct answers; student preview offers instant answer feedback and explanations.
 * **File-scoped AI conversations:** Each resource maintains its own messages and sends its current JSON structure when requesting a revision.
-* **Local persistence:** Resources are saved in browser storage; server-backed sharing and publishing are not implemented yet.
+* **Server persistence & export:** Resources are saved in Supabase through the backend. Slide decks and quizzes export as PPTX (built server-side; quiz answer keys stay in speaker notes) or as PDF through a print view.
 
 #### C4. Course Publishing & Roster Analytics
-* **Publishing Pipeline:** Clicking "Publish Course" updates the course status from `draft` to `published`, making it instantly visible on the student dashboard.
-* **Roster Analytics Dashboard:** Instructors can import a student roster (`.csv`), track student participation rates, monitor quiz performance, and view time spent in interactive sandboxes[cite: 1].
+* **Publishing Pipeline:** Instructors toggle "Publish for students" on a slide deck or quiz; published courses appear instantly in the student dashboard's "Your courses" list, and the student link (`/courses/:id`) can be copied for sharing.
+* **Student course player:** Students view published slide decks (themed 16:9 slides) and sit quizzes; answers are checked server-side (answer keys never reach the client) and every attempt plus course start/completion is recorded for analytics.
+* **Roster Analytics Dashboard:** Instructors import a student roster (CSV with `name,email` columns) in the "Student Analytics" view, and re-imports refresh it. Roster emails are matched to signed-up accounts automatically, and the dashboard reports enrollment, matched accounts, recent activity, participation rate, quiz averages, and per-course start/completion counts.
 
 ---
 
@@ -133,7 +136,7 @@ The backend application code is in `backend/app/`; its dependencies and Python p
 * **FastAPI** — web framework for building the API
 * **uv** — Python project and dependency management
 
-The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, the public sample mini-course (with a quota-limited AI tutor), and instructor-only AI course generation. Assessment-submission endpoints are not yet implemented.
+The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, the public sample mini-course (with a quota-limited AI tutor), instructor-only AI course generation, instructor material management (sources, version snapshots, PPTX export, publishing), student course delivery (server-checked quiz answers and progress tracking), and roster import with participation analytics. Assessment-submission endpoints are not yet implemented.
 
 ---
 
