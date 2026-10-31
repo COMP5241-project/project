@@ -1,266 +1,504 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="COMP5241 course overview, chapter guide, and interactive learning resources.">
-  <title>COMP5241 Course Overview — EduGenAI (PolyU)</title>
-  <style>
-    :root {
-      --primary: #A21942;
-      --primary-dark: #801333;
-      --ink: #262626;
-      --muted: #59616B;
-      --page: #F8F9FA;
-      --line: #E5E7EB;
-      --green: #047857;
-      --blue: #1D4ED8;
-      --amber: #A16207;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background: var(--page);
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-      line-height: 1.65;
-    }
-    a { color: inherit; }
-    a:focus-visible { outline: 3px solid #D97706; outline-offset: 3px; }
-    .site-header { background: var(--primary); color: #fff; }
-    .header-inner, main, .site-footer { width: min(100% - 2rem, 76rem); margin-inline: auto; }
-    .header-inner {
-      min-height: 4.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-    .brand { font-weight: 750; letter-spacing: .02em; }
-    .header-links { display: flex; gap: 1.1rem; flex-wrap: wrap; }
-    .header-links a { font-size: .9rem; font-weight: 650; text-underline-offset: 3px; }
-    main { padding-block: clamp(2.5rem, 7vw, 5rem); }
-    .hero {
-      position: relative;
-      overflow: hidden;
-      padding: clamp(1.5rem, 5vw, 3.25rem);
-      background: #fff;
-      border: 1px solid var(--line);
-      border-top: 5px solid var(--primary);
-      border-radius: 1rem;
-      box-shadow: 0 4px 16px rgba(38, 38, 38, .05);
-    }
-    .eyebrow, .section-kicker {
-      margin: 0 0 .55rem;
-      color: var(--green);
-      font-size: .75rem;
-      font-weight: 750;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-    h1 { max-width: 52rem; margin: 0; font-size: clamp(2.1rem, 5vw, 3.65rem); line-height: 1.1; letter-spacing: -.04em; }
-    .hero-copy { max-width: 51rem; margin: 1rem 0 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.15rem); }
-    .hero-facts { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.35rem; }
-    .fact { padding: .35rem .75rem; color: #4B5563; background: #F3F4F6; border: 1px solid var(--line); border-radius: 999px; font-size: .82rem; font-weight: 650; }
-    .section { margin-top: clamp(2.5rem, 6vw, 4rem); }
-    .section-heading { max-width: 48rem; margin-bottom: 1.2rem; }
-    h2 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.025em; line-height: 1.25; }
-    .section-heading > p:last-child { margin: .45rem 0 0; color: var(--muted); }
-    .overview-grid, .chapter-grid, .resource-grid { display: grid; gap: 1rem; }
-    .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .info-card, .chapter-card, .resource-card {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: .8rem;
-      box-shadow: 0 2px 8px rgba(38, 38, 38, .035);
-    }
-    .info-card { padding: 1.35rem; }
-    .info-card h3, .chapter-card h3, .resource-card h3 { margin: 0; font-size: 1.08rem; line-height: 1.35; }
-    .info-card p { margin: .5rem 0 0; color: var(--muted); }
-    .chapter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); counter-reset: chapter; }
-    .chapter-card {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 1.35rem;
-      counter-increment: chapter;
-    }
-    .chapter-card::before {
-      content: "CHAPTER " counter(chapter, decimal-leading-zero);
-      margin-bottom: .65rem;
-      color: var(--primary);
-      font-size: .72rem;
-      font-weight: 800;
-      letter-spacing: .1em;
-    }
-    .chapter-card p { margin: .5rem 0 1rem; color: var(--muted); }
-    .text-link {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      margin-top: auto;
-      color: var(--primary);
-      font-weight: 700;
-      text-decoration-thickness: 1px;
-      text-underline-offset: 3px;
-    }
-    .text-link:hover { color: var(--primary-dark); }
-    .resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .resource-card { display: flex; flex-direction: column; align-items: flex-start; padding: 1.4rem; border-top: 4px solid var(--resource-accent); }
-    .resource-card--game { --resource-accent: var(--amber); }
-    .resource-card--bar { --resource-accent: var(--primary); }
-    .resource-card--whip-first { --resource-accent: var(--blue); }
-    .resource-card--whip-second { --resource-accent: var(--green); }
-    .resource-type { margin: 0 0 .5rem; color: var(--muted); font-size: .72rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-    .resource-card > p:not(.resource-type) { margin: .55rem 0 1.1rem; color: var(--muted); }
-    .resource-card code { padding: .1rem .35rem; background: #F3F4F6; border-radius: .25rem; font-size: .83em; overflow-wrap: anywhere; }
-    .note-banner {
-      margin-top: 1rem;
-      padding: 1rem 1.15rem;
-      color: #374151;
-      background: #EFF6FF;
-      border-left: 4px solid #60A5FA;
-      border-radius: .45rem;
-    }
-    .site-footer { padding-block: 1.25rem 1.75rem; color: var(--muted); font-size: .85rem; }
-    @media (max-width: 680px) {
-      .header-inner { min-height: 4rem; }
-      .overview-grid, .chapter-grid, .resource-grid { grid-template-columns: 1fr; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-    }
-  </style>
-</head>
-<body>
-  <header class="site-header">
-    <div class="header-inner">
-      <span class="brand">EduGenAI · COMP5241</span>
-      <nav class="header-links" aria-label="Main navigation">
-        <a href="course.html">Course catalogue</a>
-        <a href="index.html">Home</a>
-      </nav>
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="COMP5241 course overview, chapter guide, and interactive learning resources."
+    />
+    <title>COMP5241 Course Overview — EduGenAI (PolyU)</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+    <style type="text/tailwindcss">
+      @theme {
+        --color-brand-50: #f8f9fa;
+        --color-brand-100: #f5e9ed;
+        --color-brand-200: #ebd3db;
+        --color-brand-300: #d9a7b7;
+        --color-brand-400: #c46f89;
+        --color-brand-500: #a21942;
+        --color-brand-600: #801333;
+        --color-brand-700: #67102a;
+        --color-brand-800: #4e0c20;
+        --color-brand-900: #350816;
+        --color-brand-950: #1e050d;
+
+        --color-stone-50: #f8f9fa;
+        --color-stone-100: #f8f9fa;
+        --color-stone-200: #e5e7eb;
+        --color-stone-300: #d1d5db;
+        --color-stone-400: #9ca3af;
+        --color-stone-500: #6b7280;
+        --color-stone-600: #4b5563;
+        --color-stone-700: #374151;
+        --color-stone-800: #262626;
+        --color-stone-900: #262626;
+        --color-stone-950: #262626;
+
+        --font-sans: "Inter", system-ui, sans-serif;
+        --font-serif: "Inter", system-ui, sans-serif;
+
+        --radius-xl: 1.5rem;
+        --radius-2xl: 1.75rem;
+        --radius-3xl: 2rem;
+
+        --animate-float: float 8s ease-in-out infinite;
+        --animate-blob: blob 10s infinite;
+
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0) rotate(0);
+          }
+          33% {
+            transform: translateY(-15px) rotate(1deg);
+          }
+          66% {
+            transform: translateY(10px) rotate(-1deg);
+          }
+        }
+
+        @keyframes blob {
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+        }
+      }
+
+      @utility glass-warm {
+        @apply bg-white/70 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgba(38,38,38,0.06)];
+      }
+
+      @utility btn-primary {
+        @apply bg-brand-500 text-white font-medium px-4 py-2 rounded-md shadow-sm hover:bg-brand-600 transition-colors;
+      }
+
+      @utility card-soft {
+        @apply bg-white rounded-lg border border-stone-200 shadow-sm;
+      }
+
+      @media (min-width: 1024px) {
+        .sdlc-phase > article:first-of-type::after,
+        .sdlc-phase > article:last-of-type::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          width: 2rem;
+          border-top: 2px solid #ebd3db;
+        }
+
+        .sdlc-phase > article:first-of-type::after {
+          right: -2rem;
+        }
+
+        .sdlc-phase > article:last-of-type::before {
+          left: -2rem;
+        }
+      }
+
+      body {
+        @apply antialiased text-stone-800 bg-stone-50;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        @apply font-sans font-extrabold text-stone-950;
+      }
+    </style>
+  </head>
+  <body class="relative overflow-x-hidden font-sans">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-white focus:px-5 focus:py-3 focus:font-bold focus:text-stone-900 focus:shadow-xl"
+      >Skip to content</a
+    >
+
+    <div
+      aria-hidden="true"
+      class="hidden"
+    >
+      <div
+        class="absolute -left-40 -top-32 h-[34rem] w-[34rem] rounded-full bg-brand-100/70 blur-3xl motion-reduce:animate-none animate-blob"
+      ></div>
+      <div
+        class="absolute -right-36 top-40 h-[30rem] w-[30rem] rounded-full bg-stone-200/70 blur-3xl motion-reduce:animate-none animate-blob"
+      ></div>
+      <div
+        class="absolute -bottom-48 left-1/3 h-[36rem] w-[36rem] rounded-full bg-brand-50 blur-3xl motion-reduce:animate-none animate-blob"
+      ></div>
     </div>
-  </header>
 
-  <main>
-    <section class="hero" aria-labelledby="page-title">
-      <p class="eyebrow">Course overview · PolyU</p>
-      <h1 id="page-title">COMP5241: Software Engineering in the Age of AI</h1>
-      <p class="hero-copy">
-        This course introduces the principles and practices behind building reliable software,
-        from understanding how AI is changing development to planning a lifecycle, collaborating
-        with version control, using coding agents responsibly, and testing the result. The notes
-        and interactive activities below provide a guided route through these topics.
-      </p>
-      <div class="hero-facts" aria-label="Course details">
-        <span class="fact">5 chapters</span>
-        <span class="fact">Notes in 6 languages</span>
-        <span class="fact">Games and interactive demos</span>
-      </div>
-    </section>
+    <header class="sticky top-0 z-50 border-b border-stone-200/80 bg-white/95 px-3 backdrop-blur-xl sm:px-6">
+      <nav
+        aria-label="Main navigation"
+        class="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-3 px-2 sm:px-0"
+      >
+        <a
+          href="course.html"
+          class="flex shrink-0 items-center gap-2"
+        >
+          <span
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-lg text-white shadow-sm"
+          >
+            <i class="ph-fill ph-graduation-cap" aria-hidden="true"></i>
+          </span>
+          <span class="font-sans text-[15px] font-extrabold tracking-tight text-stone-900 sm:text-base"
+            >EduGenAI <span class="hidden text-brand-500 sm:inline">· COMP5241</span></span
+          >
+        </a>
+        <div class="hidden items-center gap-7 md:flex">
+          <a
+            href="index.html"
+            class="text-[13px] font-medium text-stone-600 transition-colors hover:text-brand-600"
+            >Home</a
+          >
+          <a
+            href="#learning-title"
+            class="text-sm font-semibold text-stone-600 transition-colors hover:text-brand-600"
+            >Overview</a
+          >
+          <a
+            href="#chapters-title"
+            class="text-sm font-semibold text-stone-600 transition-colors hover:text-brand-600"
+            >Chapters</a
+          >
+          <a
+            href="#activities-title"
+            class="text-sm font-semibold text-stone-600 transition-colors hover:text-brand-600"
+            >Activities</a
+          >
+        </div>
+        <a
+          href="#chapters-title"
+          class="shrink-0 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+          >Explore course</a
+        >
+      </nav>
+    </header>
 
-    <section class="section" aria-labelledby="learning-title">
-      <div class="section-heading">
-        <p class="section-kicker">Course at a glance</p>
-        <h2 id="learning-title">What you will explore</h2>
-        <p>The course connects software engineering foundations with practical, AI-aware development workflows.</p>
-      </div>
-      <div class="overview-grid">
-        <article class="info-card">
-          <h3>Software development foundations</h3>
-          <p>Understand the stages of the software lifecycle, from requirements and design through implementation, testing, deployment, and maintenance.</p>
-        </article>
-        <article class="info-card">
-          <h3>Effective collaboration</h3>
-          <p>Use Git and GitHub concepts to manage changes, coordinate work, and maintain a dependable history as software evolves.</p>
-        </article>
-        <article class="info-card">
-          <h3>AI-assisted engineering</h3>
-          <p>Work with coding agents using clear specifications and useful project context, while reviewing and verifying generated work.</p>
-        </article>
-        <article class="info-card">
-          <h3>Quality and testing</h3>
-          <p>Choose appropriate test approaches, cover edge cases, and use feedback to improve confidence in the software you deliver.</p>
-        </article>
-      </div>
-    </section>
+    <main id="main">
+      <section
+        class="relative flex flex-col items-center justify-center px-6 py-24 text-center sm:py-28"
+        aria-labelledby="page-title"
+      >
+        <p
+          class="mb-8 inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-sm font-bold text-stone-700 shadow-sm"
+        >
+          <i class="ph-fill ph-sparkle text-brand-600" aria-hidden="true"></i>
+          Course overview · PolyU
+        </p>
+        <h1
+          id="page-title"
+          class="mx-auto mb-8 max-w-5xl text-4xl leading-tight tracking-tight sm:text-5xl md:text-6xl"
+        >
+          <span class="text-brand-600">Master Software Engineering in the Age of AI.</span>
+        </h1>
+        <p
+          class="mx-auto mb-10 max-w-3xl text-lg font-medium leading-relaxed text-stone-600 sm:text-xl md:text-2xl"
+        >
+          Build reliable software, collaborate with coding agents, and master the modern development lifecycle through interactive, playable demos.
+        </p>
+        <div class="mb-12 flex flex-col gap-4 sm:flex-row">
+          <a
+            href="#activities-title"
+            class="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-8 py-4 font-bold text-stone-800 shadow-sm transition-all hover:border-stone-300 hover:bg-stone-50"
+          >
+            Browse activities
+            <i class="ph-bold ph-arrow-down" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
 
-    <section class="section" aria-labelledby="chapters-title">
-      <div class="section-heading">
-        <p class="section-kicker">Course content</p>
-        <h2 id="chapters-title">Chapters and learning path</h2>
-        <p>Read the chapters in sequence for a progression from the changing development landscape to practical quality assurance.</p>
-      </div>
-      <div class="chapter-grid">
-        <article class="chapter-card">
-          <h3>Software Development in the Age of AI</h3>
-          <p>Survey AI-assisted and agentic coding, where AI can help across the SDLC, the productivity debate, and the skills developers still need.</p>
-          <a class="text-link" href="course%20notes/course-notes.html?chapter=1">Read chapter 1 <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="chapter-card">
-          <h3>Software Development Lifecycle</h3>
-          <p>Follow software from requirements and design through implementation, verification and validation, deployment strategies, and maintenance.</p>
-          <a class="text-link" href="course%20notes/course-notes.html?chapter=2">Read chapter 2 <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="chapter-card">
-          <h3>Collaboration and Version Control</h3>
-          <p>Learn Git fundamentals and collaborative workflows, including how to manage changes safely and work together through GitHub Flow.</p>
-          <a class="text-link" href="course%20notes/course-notes.html?chapter=3">Read chapter 3 <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="chapter-card">
-          <h3>AI-Assisted Software Development Practices</h3>
-          <p>Explore context engineering, project instruction files, specification-driven development, agent skills, and evidence about AI productivity.</p>
-          <a class="text-link" href="course%20notes/course-notes.html?chapter=4">Read chapter 4 <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="chapter-card">
-          <h3>Software Testing Overview</h3>
-          <p>Compare test types and levels, examine happy paths, edge cases and negative tests, and learn about test-driven and usability testing.</p>
-          <a class="text-link" href="course%20notes/course-notes.html?chapter=5">Read chapter 5 <span aria-hidden="true">→</span></a>
-        </article>
-      </div>
-      <div class="note-banner">
-        Course notes are available in English, Traditional Chinese, Simplified Chinese, Japanese,
-        German, and Spanish. Open any chapter above and choose a language in the notes viewer.
-      </div>
-    </section>
+      <section
+        class="px-6 py-24 sm:py-28"
+        aria-labelledby="learning-title"
+      >
+        <div class="mx-auto max-w-7xl">
+          <div class="mx-auto mb-14 max-w-3xl text-center">
+            <p class="mb-3 text-sm font-extrabold uppercase tracking-[0.18em] text-brand-600">
+              Course at a glance
+            </p>
+            <h2 id="learning-title" class="mb-5 text-4xl tracking-tight sm:text-5xl">
+              What you will explore
+            </h2>
+            <p class="text-lg leading-relaxed text-stone-600 sm:text-xl">
+              The course connects software engineering foundations with practical, AI-aware development workflows.
+            </p>
+          </div>
+          <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <article class="card-soft p-5 sm:p-6">
+              <span class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-3xl text-brand-600">
+                <i class="ph-duotone ph-flow-arrow" aria-hidden="true"></i>
+              </span>
+              <h3 class="mb-3 text-2xl">Software development foundations</h3>
+            </article>
+            <article class="card-soft p-5 sm:p-6">
+              <span class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-3xl text-brand-600">
+                <i class="ph-duotone ph-git-branch" aria-hidden="true"></i>
+              </span>
+              <h3 class="mb-3 text-2xl">Effective collaboration</h3>
+            </article>
+            <article class="card-soft p-5 sm:p-6">
+              <span class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-3xl text-brand-600">
+                <i class="ph-duotone ph-robot" aria-hidden="true"></i>
+              </span>
+              <h3 class="mb-3 text-2xl">AI-assisted engineering</h3>
+            </article>
+            <article class="card-soft p-5 sm:p-6">
+              <span class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-3xl text-brand-600">
+                <i class="ph-duotone ph-check-square" aria-hidden="true"></i>
+              </span>
+              <h3 class="mb-3 text-2xl">Quality and testing</h3>
+            </article>
+          </div>
+        </div>
+      </section>
 
-    <section class="section" aria-labelledby="activities-title">
-      <div class="section-heading">
-        <p class="section-kicker">Learn by doing</p>
-        <h2 id="activities-title">Interactive activities and examples</h2>
-        <p>These standalone demos connect course ideas to playable, visual, and prompt-driven examples. Each link opens the corresponding activity.</p>
-      </div>
-      <div class="resource-grid">
-        <article class="resource-card resource-card--game">
-          <p class="resource-type">SDLC learning game</p>
-          <h3>Gold Rush Hook</h3>
-          <p>Apply lifecycle decisions in a Gold Miner–style game: hook SDLC good practices for marks, avoid harmful shortcuts, and use upgrades across three levels.</p>
-          <a class="text-link" href="gold_hook/">Play Gold Rush Hook <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="resource-card resource-card--bar">
-          <p class="resource-type">Testing story · 23 scenes</p>
-          <h3>Testers &amp; the Bar</h3>
-          <p>Watch an animated testing comedy where a tester tries increasingly unusual orders. The scenes offer a light-hearted way to think about edge cases and unexpected inputs.</p>
-          <a class="text-link" href="bar_animation/testers-bar-polyu.html">Open the bar animation <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="resource-card resource-card--whip-first">
-          <p class="resource-type">Prompt precision · side-by-side comparison</p>
-          <h3>Two Whip Demo Interpretations</h3>
-          <p>Compare the original animation of a person riding a bicycle with the clarified interpretation of a bicycle riding on a person. The paired demos show why precise wording matters.</p>
-          <a class="text-link" href="state%20your%20requirements%20clearly/whip.html">Compare both whip demos <span aria-hidden="true">→</span></a>
-        </article>
-        <article class="resource-card resource-card--whip-second">
-          <p class="resource-type">Prompt precision · tutorial</p>
-          <h3>How Ambiguity Changes What an Agent Builds</h3>
-          <p>A guided tutorial on how one ambiguous phrase leads an agent to guess a whole scene, the kinds of ambiguity to watch for, and a checklist to write prompts that leave no room for guessing.</p>
-          <a class="text-link" href="state%20your%20requirements%20clearly/prompt-tutorial.html">Open the prompt tutorial <span aria-hidden="true">→</span></a>
-        </article>
-      </div>
-    </section>
-  </main>
+      <section id="chapters-title" class="px-6 py-24 sm:py-28" aria-labelledby="chapters-heading">
+        <div class="mx-auto max-w-7xl">
+          <div class="mx-auto mb-12 max-w-3xl text-center">
+            <p class="mb-3 text-sm font-extrabold uppercase tracking-[0.18em] text-brand-600">Your learning journey</p>
+            <h2 id="chapters-heading" class="mb-5 text-4xl tracking-tight sm:text-5xl">The SDLC Learning Hub</h2>
+            <p class="text-lg leading-relaxed text-stone-600 sm:text-xl">Move from context to quality through a paired rhythm of theory and practice.</p>
+          </div>
 
-  <footer class="site-footer">PolyU · GenAI-Powered Software Engineering Learning</footer>
-</body>
+          <div class="card-soft mb-20 p-6 sm:p-8">
+            <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p class="mb-2 text-sm font-extrabold uppercase tracking-[0.18em] text-brand-600">Your progress</p>
+                <h3 class="mb-2 text-3xl sm:text-4xl">Keep building your engineering practice.</h3>
+                <p class="text-stone-600">One of five modules completed · Continue with the SDLC foundations.</p>
+              </div>
+              <a href="course%20notes/course-notes.html?chapter=2" class="btn-primary inline-flex shrink-0 items-center justify-center gap-2">
+                Resume course <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+              </a>
+            </div>
+            <div class="mt-8">
+              <div class="mb-3 flex items-center justify-between text-sm font-bold text-stone-700">
+                <span data-progress-percent>20% completed</span><span data-progress-count>1 / 5 modules</span>
+              </div>
+              <div class="h-4 overflow-hidden rounded-full bg-brand-100" role="progressbar" aria-label="Course progress" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+                <div data-progress-bar class="h-full w-1/5 rounded-full bg-brand-500 shadow-[0_0_16px_rgba(162,25,66,0.35)]"></div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-stone-600">
+                <span class="rounded-full bg-stone-100 px-4 py-2"><i class="ph-bold ph-books text-brand-600" aria-hidden="true"></i> 5 Modules</span>
+                <span class="rounded-full bg-stone-100 px-4 py-2"><i class="ph-bold ph-clock text-brand-600" aria-hidden="true"></i> 3.5 Hours Total</span>
+                <span data-completed-count class="rounded-full bg-emerald-50 px-4 py-2 text-emerald-700"><i class="ph-bold ph-check-circle" aria-hidden="true"></i> 1 Completed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-soft mb-16 flex flex-col gap-6 bg-brand-50/60 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+            <div>
+              <p class="mb-2 text-sm font-extrabold uppercase tracking-[0.18em] text-brand-600">SDLC in two minutes</p>
+              <p class="max-w-3xl leading-relaxed text-stone-700">The Software Development Lifecycle is the structured process used to design, develop, and test high-quality software.</p>
+            </div>
+            <button type="button" class="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-stone-900 px-5 py-3 font-bold text-white transition-colors hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stone-900">
+              <span aria-hidden="true">▶</span> What is the SDLC? (2 min)
+            </button>
+          </div>
+
+          <div id="activities-title" class="relative">
+            <div class="absolute bottom-0 left-1/2 top-0 hidden -translate-x-1/2 border-l-2 border-dashed border-brand-200 lg:block" aria-hidden="true"></div>
+            <ol class="space-y-12 border-l-2 border-dashed border-brand-200 pl-6 lg:space-y-20 lg:border-l-0 lg:pl-0">
+              <li class="sdlc-phase relative grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="1">
+                <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 1: Planning &amp; Analysis</h4>
+                <article class="card-soft group p-6 sm:p-8 lg:text-right">
+                  <div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse">
+                    <span class="rounded-full bg-brand-50 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-brand-700">📖 Reading · 45 mins</span>
+                    <span data-status-pill class="text-sm font-extrabold uppercase tracking-wider text-emerald-600">Completed</span>
+                  </div>
+                  <h3 class="mb-4 text-2xl sm:text-3xl">Software Development in the Age of AI</h3>
+                  <p class="mb-7 leading-relaxed text-stone-600">Survey AI-assisted and agentic coding, where AI can help across the SDLC, the productivity debate, and the skills developers still need.</p>
+                  <a data-module-id="reading-1" href="course%20notes/course-notes.html?chapter=1" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-900 px-5 py-3 font-bold text-white transition-colors hover:bg-stone-800">Review reading <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
+                </article>
+                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-emerald-500 text-3xl text-white shadow-[0_0_0_8px_rgba(16,185,129,0.14)]" aria-label="Completed"><i class="ph-bold ph-check" aria-hidden="true"></i></div></div>
+                <article class="card-soft group border-2 border-emerald-100 p-6 sm:p-8">
+                  <div class="mb-5"><span class="rounded-full bg-emerald-50 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-emerald-700">🎮 Interactive · 15 mins</span></div>
+                  <h3 class="mb-4 text-2xl sm:text-3xl">Gold Rush Hook</h3>
+                  <p class="mb-7 leading-relaxed text-stone-600">Apply lifecycle decisions in a Gold Miner–style game: hook SDLC good practices for marks, avoid harmful shortcuts, and use upgrades across three levels.</p>
+                  <a data-module-id="game-1" href="gold_hook/" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 font-bold text-white transition-colors hover:bg-emerald-700">Play simulation <i class="ph-bold ph-arrow-up-right" aria-hidden="true"></i></a>
+                </article>
+              </li>
+              <li class="sdlc-phase relative grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="2">
+                <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 2: Design</h4>
+                <article class="card-soft group border-2 border-brand-200 p-6 shadow-sm sm:p-8 lg:text-right">
+                  <div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse">
+                    <span class="rounded-full bg-brand-50 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-brand-700">📖 Reading · 50 mins</span>
+                    <span data-status-pill class="rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-brand-700">In progress</span>
+                  </div>
+                  <h3 class="mb-4 text-2xl sm:text-3xl">Software Development Lifecycle</h3>
+                  <p class="mb-7 leading-relaxed text-stone-600">Follow software from requirements and design through implementation, verification and validation, deployment strategies, and maintenance.</p>
+                  <a data-module-id="reading-2" href="course%20notes/course-notes.html?chapter=2" class="btn-primary inline-flex items-center gap-2 px-5 py-3">Resume reading <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
+                </article>
+                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-brand-500 text-2xl text-white shadow-[0_0_0_8px_rgba(162,25,66,0.12)] motion-safe:animate-pulse" aria-label="In progress"><i class="ph-bold ph-play" aria-hidden="true"></i></div></div>
+                <article class="card-soft group p-6 sm:p-8">
+                  <div class="mb-5"><span class="rounded-full bg-brand-50 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-brand-700">🎮 Interactive · 20 mins</span></div>
+                  <h3 class="mb-4 text-2xl sm:text-3xl">Testers &amp; the Bar</h3>
+                  <p class="mb-7 leading-relaxed text-stone-600">Watch an animated testing comedy where a tester tries increasingly unusual orders. The scenes offer a light-hearted way to think about edge cases and unexpected inputs.</p>
+                  <a href="bar_animation/testers-bar-polyu.html" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-500 px-5 py-3 font-bold text-white transition-colors hover:bg-brand-600">Start lab <i class="ph-bold ph-arrow-up-right" aria-hidden="true"></i></a>
+                </article>
+              </li>
+              <li class="sdlc-phase relative grid items-center gap-8 opacity-75 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="3" data-locked="true">
+                <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 3: Implementation</h4>
+                <article class="card-soft p-6 sm:p-8 lg:text-right">
+                  <div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 40 mins</span><span data-status-pill class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div>
+                  <h3 class="mb-4 text-2xl sm:text-3xl">Collaboration and Version Control</h3>
+                  <p class="mb-7 leading-relaxed text-stone-600">Learn Git fundamentals and collaborative workflows, including how to manage changes safely and work together through GitHub Flow.</p>
+                  <a href="course%20notes/course-notes.html?chapter=3" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start module <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a>
+                </article>
+                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-stone-300 text-2xl text-stone-600" aria-label="Locked"><i class="ph-fill ph-lock-key" aria-hidden="true"></i></div></div>
+                <article class="card-soft p-6 sm:p-8"><div class="mb-5"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">🎮 Interactive · 15 mins</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Two Whip Demo Interpretations</h3><p class="mb-7 leading-relaxed text-stone-600">Compare the original animation of a person riding a bicycle with the clarified interpretation of a bicycle riding on a person. The paired demos show why precise wording matters.</p><a href="state%20your%20requirements%20clearly/whip.html" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start lab <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+              </li>
+              <li class="sdlc-phase relative grid items-center gap-8 opacity-75 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="4" data-locked="true">
+                <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 4: Testing &amp; Review</h4>
+                <article class="card-soft p-6 sm:p-8 lg:text-right"><div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 35 mins</span><span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div><h3 class="mb-4 text-2xl sm:text-3xl">AI-Assisted Software Development Practices</h3><p class="mb-7 leading-relaxed text-stone-600">Explore context engineering, project instruction files, specification-driven development, agent skills, and evidence about AI productivity.</p><a href="course%20notes/course-notes.html?chapter=4" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start module <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-stone-300 text-2xl text-stone-600" aria-label="Locked"><i class="ph-fill ph-lock-key" aria-hidden="true"></i></div></div>
+                <article class="card-soft p-6 sm:p-8"><div class="mb-5"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">🎮 Interactive · 20 mins</span></div><h3 class="mb-4 text-2xl sm:text-3xl">How Ambiguity Changes What an Agent Builds</h3><p class="mb-7 leading-relaxed text-stone-600">A guided tutorial on how one ambiguous phrase leads an agent to guess a whole scene, the kinds of ambiguity to watch for, and a checklist to write prompts that leave no room for guessing.</p><a href="state%20your%20requirements%20clearly/prompt-tutorial.html" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start lab <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+              </li>
+              <li class="sdlc-phase relative grid items-center gap-8 opacity-75 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="5" data-locked="true">
+                <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 5: Deployment &amp; Maintenance</h4>
+                <article class="card-soft p-6 sm:p-8 lg:text-right"><div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 40 mins</span><span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Software Testing Overview</h3><p class="mb-7 leading-relaxed text-stone-600">Compare test types and levels, examine happy paths, edge cases and negative tests, and learn about test-driven and usability testing.</p><a href="course%20notes/course-notes.html?chapter=5" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start module <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-stone-300 text-2xl text-stone-600" aria-label="Locked"><i class="ph-fill ph-lock-key" aria-hidden="true"></i></div></div>
+                <article class="card-soft p-6 sm:p-8"><div class="mb-5"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">🎮 Interactive · 15 mins</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Quality Assurance Lab</h3><p class="mb-7 leading-relaxed text-stone-600">Use the testing chapter as a guided practice checkpoint for happy paths, edge cases, negative tests, and usability testing.</p><a href="course%20notes/course-notes.html?chapter=5" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start lab <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+              </li>
+            </ol>
+          </div>
+          <div class="mt-12 flex items-start gap-4 rounded-3xl border border-brand-200 bg-brand-50/80 p-6 text-stone-700 sm:p-8">
+            <i class="ph-duotone ph-translate mt-1 shrink-0 text-2xl text-brand-700" aria-hidden="true"></i>
+            <p class="leading-relaxed">Course notes are available in English, Traditional Chinese, Simplified Chinese, Japanese, German, and Spanish. Open any chapter above and choose a language in the notes viewer.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="px-6 py-12 text-center text-sm font-semibold text-stone-500">
+      PolyU · GenAI-Powered Software Engineering Learning
+    </footer>
+    <script>
+      (() => {
+        const storageKey = "comp5241-sdlc-progress";
+        const defaultState = {
+          "reading-1": true,
+          "game-1": true,
+        };
+        const phases = [...document.querySelectorAll("[data-step]")];
+        let state = loadState();
+
+        function loadState() {
+          try {
+            const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+            return saved && typeof saved === "object" ? { ...defaultState, ...saved } : { ...defaultState };
+          } catch {
+            console.warn("Unable to read saved SDLC progress; using the default course state.");
+            return { ...defaultState };
+          }
+        }
+
+        function saveState() {
+          localStorage.setItem(storageKey, JSON.stringify(state));
+        }
+
+        function isComplete(step) {
+          return state[`reading-${step}`] === true && state[`game-${step}`] === true;
+        }
+
+        function updateStatus(phase, complete, unlocked) {
+          const pill = [...phase.querySelectorAll("span")].find((item) =>
+            /^(Completed|In progress|Locked|Not started)$/.test(item.textContent.trim()),
+          );
+          if (pill) {
+            pill.textContent = complete ? "Completed" : unlocked ? "In progress" : "Locked";
+            pill.className = complete
+              ? "text-sm font-extrabold uppercase tracking-wider text-emerald-600"
+              : unlocked
+                ? "rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-brand-700"
+                : "text-xs font-extrabold uppercase tracking-wider text-stone-500";
+          }
+
+          const node = phase.querySelector("[data-node]");
+          if (!node) return;
+          const icon = node.querySelector("i");
+          node.classList.remove("bg-emerald-500", "bg-brand-500", "bg-stone-300", "text-stone-600", "motion-safe:animate-pulse");
+          if (complete) {
+            node.classList.add("bg-emerald-500");
+            node.setAttribute("aria-label", "Completed");
+            icon.className = "ph-bold ph-check";
+          } else if (unlocked) {
+            node.classList.add("bg-brand-500", "motion-safe:animate-pulse");
+            node.setAttribute("aria-label", "In progress");
+            icon.className = "ph-bold ph-play";
+          } else {
+            node.classList.add("bg-stone-300", "text-stone-600");
+            node.setAttribute("aria-label", "Locked");
+            icon.className = "ph-fill ph-lock-key";
+          }
+        }
+
+        function renderProgress() {
+          const completedSteps = phases.filter((phase) => isComplete(phase.dataset.step)).length;
+          const percent = Math.round((completedSteps / phases.length) * 100);
+          document.querySelector("[data-progress-percent]").textContent = `${percent}% completed`;
+          document.querySelector("[data-progress-count]").textContent = `${completedSteps} / ${phases.length} modules`;
+          document.querySelector("[data-completed-count]").innerHTML =
+            `<i class="ph-bold ph-check-circle" aria-hidden="true"></i> ${completedSteps} Completed`;
+          const bar = document.querySelector("[data-progress-bar]");
+          bar.style.width = `${percent}%`;
+          bar.parentElement.setAttribute("aria-valuenow", String(percent));
+
+          phases.forEach((phase, index) => {
+            const complete = isComplete(phase.dataset.step);
+            const unlocked = index === 0 || isComplete(String(index));
+            phase.classList.toggle("opacity-75", !unlocked);
+            phase.dataset.locked = String(!unlocked);
+            updateStatus(phase, complete, unlocked);
+          });
+        }
+
+        phases.forEach((phase, index) => {
+          phase.querySelectorAll("article").forEach((card, cardIndex) => {
+            const action = card.querySelector("a");
+            if (action && !action.dataset.moduleId) {
+              action.dataset.moduleId = `${cardIndex === 0 ? "reading" : "game"}-${index + 1}`;
+            }
+          });
+        });
+
+        document.querySelectorAll("[data-module-id]").forEach((module) => {
+          module.addEventListener("click", (event) => {
+            if (module.closest("[data-locked=\"true\"]")) {
+              event.preventDefault();
+              return;
+            }
+            state[module.dataset.moduleId] = true;
+            saveState();
+            renderProgress();
+          });
+        });
+
+        saveState();
+        renderProgress();
+      })();
+    </script>
+  </body>
 </html>
