@@ -272,6 +272,9 @@ export interface PublishedCourseSummary {
   title: string
   type: 'slides' | 'quiz'
   publishedAt: string | null
+  /** This student's delivery status: 'none', 'in_progress', or 'completed'. */
+  status?: 'none' | 'in_progress' | 'completed'
+  completedAt?: string | null
 }
 
 export interface StudentSlide {

@@ -98,21 +98,41 @@ create policy "Instructors view their roster students' quiz answers"
 
 -- Instructors may resolve roster emails to account ids, but only for rows
 -- whose email appears in one of their own rosters.
+--
+-- The "caller is an instructor" check lives in a SECURITY DEFINER function:
+-- referencing public.profiles from inside this policy's own USING clause
+-- would make Postgres evaluate the policy recursively (42P17) and break all
+-- authenticated reads of profiles.
+create or replace function public.is_instructor()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid()
+      and role = 'instructor'
+  );
+$$;
+
+revoke execute on function public.is_instructor() from anon, public;
+grant execute on function public.is_instructor() to authenticated;
+
 drop policy if exists "Instructors resolve their roster emails" on public.profiles;
 create policy "Instructors resolve their roster emails"
   on public.profiles
   for select
   to authenticated
   using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = (select auth.uid()) and p.role = 'instructor'
-        and p.id in (
-          select r.instructor_id
-          from public.rosters r
-          join public.roster_students rs on rs.roster_id = r.id
-          where lower(rs.email) = lower(profiles.email)
-        )
+    public.is_instructor()
+    and exists (
+      select 1
+      from public.rosters r
+      join public.roster_students rs on rs.roster_id = r.id
+      where r.instructor_id = (select auth.uid())
+        and lower(rs.email) = lower(profiles.email)
     )
   );
 

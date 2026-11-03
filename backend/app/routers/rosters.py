@@ -131,6 +131,30 @@ def import_roster(
                 "name": roster_name[:200],
             }).execute().data[0]
             roster_id = str(roster["id"])
+            # Re-import is a full refresh, so clear the old students first. We
+            # can't use upsert(on_conflict="roster_id,lower(email)"): the
+            # uniqueness lives on a *function* index (lower(email)) that
+            # PostgREST can't target in ON CONFLICT (42703 "column lower does
+            # not exist"). The unique index still enforces dedup at the DB.
+            db.table("roster_students").delete().eq("roster_id", roster_id).execute()
+            # Insert every student with no account link yet. They must exist in
+            # roster_students *before* the profile lookup below, because the RLS
+            # policy "Instructors resolve their roster emails" only lets an
+            # instructor read a profile whose email is in one of their own
+            # rosters. (Matching before the insert would always find nothing.)
+            initial = [
+                {
+                    "roster_id": roster_id,
+                    "user_id": None,
+                    "email": row["email"],
+                    "name": row["name"][:300],
+                }
+                for row in rows
+            ]
+            for offset in range(0, len(initial), 50):
+                db.table("roster_students").insert(initial[offset : offset + 50]).execute()
+            # Now the emails are in the roster, so the profiles RLS policy
+            # matches — resolve which of them have a signed-up account.
             matched_accounts: dict[str, str] = {}
             emails = [row["email"] for row in rows]
             if emails:
@@ -141,20 +165,11 @@ def import_roster(
                     email = profile.get("email")
                     if email:
                         matched_accounts[str(email).lower()] = str(profile["id"])
-            values = [
-                {
-                    "roster_id": roster_id,
-                    "user_id": matched_accounts.get(row["email"]),
-                    "email": row["email"],
-                    "name": row["name"][:300],
-                }
-                for row in rows
-            ]
-            for offset in range(0, len(values), 50):
-                db.table("roster_students").upsert(
-                    values[offset : offset + 50],
-                    on_conflict="roster_id,lower(email)",
-                ).execute()
+            # Link each matched account back to its roster student.
+            for email, account_id in matched_accounts.items():
+                db.table("roster_students").update({"user_id": account_id}).eq(
+                    "roster_id", roster_id
+                ).eq("email", email).execute()
         except ApiError:
             raise
         except Exception as error:

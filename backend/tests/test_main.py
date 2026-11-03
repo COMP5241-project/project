@@ -1419,6 +1419,7 @@ def _course_tables(auth_client: Mock, role: str = "student"):
         "course_progress": progress_table,
     }[name]
     source_table.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    progress_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = []
     return materials_table, answers_table, progress_table
 
 
@@ -1448,17 +1449,38 @@ def test_courses_require_student_role(client: HttpxClient, auth_client: Mock) ->
 
 
 def test_course_list_returns_published_courses(client: HttpxClient, auth_client: Mock) -> None:
-    materials_table, _, _ = _course_tables(auth_client)
+    materials_table, _, progress_table = _course_tables(auth_client)
     auth_login(client)
-    row = _published_row("6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817", title="My quiz")
-    materials_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [row]
+    started_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    completed_id = "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d"
+    untouched_id = "8e1f3d4b-9a2f-4c6b-8d3e-4f5a6b7c8d9e"
+    materials_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _published_row(started_id, title="Quiz in progress"),
+        _published_row(completed_id, title="Finished deck"),
+        _published_row(untouched_id, title="Fresh quiz"),
+    ]
+    progress_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
+        {"material_id": started_id, "started_at": "2026-10-29T00:00:00+00:00", "completed_at": None},
+        {"material_id": completed_id, "started_at": "2026-10-29T01:00:00+00:00", "completed_at": "2026-10-29T02:00:00+00:00"},
+    ]
 
     response = client.get("/api/courses")
 
     assert response.status_code == 200
     body = response.json()
-    assert [item["title"] for item in body] == ["My quiz"]
+    by_title = {item["title"]: item for item in body}
+    assert [item["title"] for item in body] == ["Quiz in progress", "Finished deck", "Fresh quiz"]
     assert body[0]["publishedAt"] == "2026-10-28T00:00:00+00:00"
+    # Per-student delivery status is joined from the caller's course_progress.
+    assert by_title["Quiz in progress"]["status"] == "in_progress"
+    assert by_title["Quiz in progress"]["completedAt"] is None
+    assert by_title["Finished deck"]["status"] == "completed"
+    assert by_title["Finished deck"]["completedAt"] == "2026-10-29T02:00:00+00:00"
+    assert by_title["Fresh quiz"]["status"] == "none"
+    # The progress lookup must be scoped to this student and the listed courses.
+    progress_eq = progress_table.select.return_value.eq
+    assert progress_eq.call_args.args[0] == "user_id"
+    assert progress_table.select.return_value.eq.return_value.in_.call_args.args == ("material_id", [started_id, completed_id, untouched_id])
     # The stored material (with its answer keys) must not leak into the list.
     assert "data" not in body[0]
 
@@ -1588,6 +1610,29 @@ def test_publish_material_requires_instructor(client: HttpxClient, auth_client: 
     assert response.json()["error"]["code"] == "instructor_required"
 
 
+def test_publish_material_missing_column_reports_course_delivery_migration(
+    client: HttpxClient, auth_client: Mock
+) -> None:
+    materials_table, _, _ = _course_tables(auth_client, role="instructor")
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id, published=False)
+    materials_table.update.return_value.eq.return_value.eq.return_value.execute.side_effect = (
+        PostgrestAPIError({
+            "message": "Could not find the column 'public.materials.published' in the payload",
+            "code": "PGRST204",
+        })
+    )
+
+    response = client.post(f"/api/materials/{material_id}/publish", json={"published": True})
+
+    # PGRST204 means the live schema lacks a column the code needs — point at
+    # the exact migration instead of a generic "try again" 503.
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "materials_not_configured"
+    assert "20261028000000_course_delivery.sql" in response.json()["error"]["message"]
+
+
 def test_roster_csv_parsing() -> None:
     from app.identity.errors import ApiError
     from app.routers.rosters import _parse_roster_csv
@@ -1685,11 +1730,24 @@ def test_roster_import_creates_students_and_matches(client: HttpxClient, auth_cl
     assert body["imported"] == 2
     assert body["matched"] == 1
     assert body["roster"]["name"] == "Fall 2026"
-    upserted = students_table.upsert.call_args.args[0]
-    assert [row["email"] for row in upserted] == ["a@x.edu", "b@x.edu"]
-    assert upserted[0]["user_id"] == "student-id"
-    assert upserted[1]["user_id"] is None
-    assert students_table.upsert.call_args.kwargs["on_conflict"] == "roster_id,lower(email)"
+    # Re-import is a full refresh: existing rows are cleared first, then every
+    # student is inserted unlinked, and finally the matched accounts are linked
+    # back via update. Students must be inserted before the profile lookup
+    # because the "Instructors resolve their roster emails" RLS policy only
+    # matches emails that are already in one of the instructor's rosters.
+    students_table.delete.return_value.eq.return_value.execute.assert_called_once()
+    assert students_table.delete.return_value.eq.call_args.args == ("roster_id", "r-1")
+    inserted = students_table.insert.call_args.args[0]
+    assert [row["email"] for row in inserted] == ["a@x.edu", "b@x.edu"]
+    assert all(row["user_id"] is None for row in inserted)
+    updates = [c.args[0] for c in students_table.update.call_args_list]
+    assert updates == [{"user_id": "student-id"}]
+    # The link is scoped to the roster (first .eq) and the matched email
+    # (second .eq).
+    first_eq = students_table.update.return_value.eq
+    second_eq = first_eq.return_value.eq
+    assert ("roster_id", "r-1") in [c.args for c in first_eq.call_args_list]
+    assert ("email", "a@x.edu") in [c.args for c in second_eq.call_args_list]
 
 
 def test_roster_analytics_aggregates(client: HttpxClient, auth_client: Mock) -> None:
