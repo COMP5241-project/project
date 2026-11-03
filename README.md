@@ -93,7 +93,8 @@ npm run build
 * **Server persistence & export:** Resources are saved in Supabase through the backend. Slide decks and quizzes export as PPTX (built server-side; quiz answer keys stay in speaker notes) or as PDF through a print view.
 
 #### C4. Course Publishing & Roster Analytics
-* **Publishing Pipeline:** Instructors toggle "Publish for students" on a slide deck or quiz; published courses appear instantly in the student dashboard's "Your courses" list, and the student link (`/courses/:id`) can be copied for sharing.
+* **Publishing Pipeline:** Instructors toggle "Publish for students" on a slide deck or quiz; published courses appear instantly in the student dashboard's "Your courses" section, and the student link (`/courses/:id`) can be copied for sharing.
+* **Categorized student dashboard:** The hub groups content by purpose: **Your courses** (published instructor courses, split into "Continue where you left off", "Get started", and "Completed" from the student's own `course_progress` records, with In progress / Completed badges), **Games & training** (Spot the Hallucination, the sample mini-course, Gold Rush Hook, and Testers & the Bar), **Course resources · COMP5241** (the static chapter-notes catalogue), and **Coming soon** (locked CS-track content).
 * **Student course player:** Students view published slide decks (themed 16:9 slides) and sit quizzes; answers are checked server-side (answer keys never reach the client) and every attempt plus course start/completion is recorded for analytics.
 * **Roster Analytics Dashboard:** Instructors import a student roster (CSV with `name,email` columns) in the "Student Analytics" view, and re-imports refresh it. Roster emails are matched to signed-up accounts automatically, and the dashboard reports enrollment, matched accounts, recent activity, participation rate, quiz averages, and per-course start/completion counts.
 

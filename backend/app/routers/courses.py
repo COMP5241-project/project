@@ -30,6 +30,10 @@ class CourseSummary(BaseModel):
     title: str
     type: str
     published_at: str | None = Field(default=None, alias="publishedAt")
+    # This student's own delivery status for the course:
+    # "completed" (finished), "in_progress" (started, not finished), or "none".
+    status: str = "none"
+    completed_at: str | None = Field(default=None, alias="completedAt")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -60,7 +64,11 @@ def _require_student(
 
 def _course_db_error(error: Exception) -> ApiError:
     logger.exception("Course delivery storage operation failed.")
-    if getattr(error, "code", None) == "PGRST205":
+    code = getattr(error, "code", None)
+    # PGRST205: table missing; PGRST204: column missing (e.g. materials.published
+    # was never added). Both mean the course-delivery migration has not been
+    # applied to this project.
+    if code in ("PGRST204", "PGRST205"):
         return ApiError(
             503,
             "courses_not_configured",
@@ -84,25 +92,54 @@ def _published_material(db: Client, material_id: str) -> dict[str, Any]:
     return response.data
 
 
+def _progress_status(progress_row: dict[str, Any] | None) -> str:
+    if not progress_row:
+        return "none"
+    if progress_row.get("completed_at"):
+        return "completed"
+    if progress_row.get("started_at"):
+        return "in_progress"
+    return "none"
+
+
 @router.get("", response_model=list[CourseSummary])
 def list_courses(
     request: Request,
     client: OptionalClientDependency,
     store: StoreDependency,
 ):
-    for _user_id, db in _require_student(request, client, store):
+    for user_id, db in _require_student(request, client, store):
         try:
             rows = db.table("materials").select("id,title,type,published_at").eq(
                 "published", True
             ).order("published_at", desc=True).limit(50).execute().data or []
         except Exception as error:
             raise _course_db_error(error) from None
+        # Join this student's own progress so the dashboard can show
+        # Continue / Completed badges. RLS scopes the rows to the caller.
+        progress: dict[str, dict[str, Any]] = {}
+        if rows:
+            try:
+                progress_rows = (
+                    db.table("course_progress")
+                    .select("material_id,started_at,completed_at")
+                    .eq("user_id", user_id)
+                    .in_("material_id", [str(row["id"]) for row in rows])
+                    .execute().data
+                    or []
+                )
+            except Exception as error:
+                raise _course_db_error(error) from None
+            for row in progress_rows:
+                progress[str(row["material_id"])] = row
         return [
             CourseSummary(
                 id=str(row["id"]),
                 title=row["title"],
                 type=row["type"],
                 publishedAt=row.get("published_at"),
+                status=_progress_status(progress.get(str(row["id"]))),
+                completedAt=(progress.get(str(row["id"])) or {}).get("completed_at"),
             )
             for row in rows
         ]

@@ -1419,6 +1419,7 @@ def _course_tables(auth_client: Mock, role: str = "student"):
         "course_progress": progress_table,
     }[name]
     source_table.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    progress_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = []
     return materials_table, answers_table, progress_table
 
 
@@ -1448,17 +1449,38 @@ def test_courses_require_student_role(client: HttpxClient, auth_client: Mock) ->
 
 
 def test_course_list_returns_published_courses(client: HttpxClient, auth_client: Mock) -> None:
-    materials_table, _, _ = _course_tables(auth_client)
+    materials_table, _, progress_table = _course_tables(auth_client)
     auth_login(client)
-    row = _published_row("6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817", title="My quiz")
-    materials_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [row]
+    started_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    completed_id = "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d"
+    untouched_id = "8e1f3d4b-9a2f-4c6b-8d3e-4f5a6b7c8d9e"
+    materials_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _published_row(started_id, title="Quiz in progress"),
+        _published_row(completed_id, title="Finished deck"),
+        _published_row(untouched_id, title="Fresh quiz"),
+    ]
+    progress_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
+        {"material_id": started_id, "started_at": "2026-10-29T00:00:00+00:00", "completed_at": None},
+        {"material_id": completed_id, "started_at": "2026-10-29T01:00:00+00:00", "completed_at": "2026-10-29T02:00:00+00:00"},
+    ]
 
     response = client.get("/api/courses")
 
     assert response.status_code == 200
     body = response.json()
-    assert [item["title"] for item in body] == ["My quiz"]
+    by_title = {item["title"]: item for item in body}
+    assert [item["title"] for item in body] == ["Quiz in progress", "Finished deck", "Fresh quiz"]
     assert body[0]["publishedAt"] == "2026-10-28T00:00:00+00:00"
+    # Per-student delivery status is joined from the caller's course_progress.
+    assert by_title["Quiz in progress"]["status"] == "in_progress"
+    assert by_title["Quiz in progress"]["completedAt"] is None
+    assert by_title["Finished deck"]["status"] == "completed"
+    assert by_title["Finished deck"]["completedAt"] == "2026-10-29T02:00:00+00:00"
+    assert by_title["Fresh quiz"]["status"] == "none"
+    # The progress lookup must be scoped to this student and the listed courses.
+    progress_eq = progress_table.select.return_value.eq
+    assert progress_eq.call_args.args[0] == "user_id"
+    assert progress_table.select.return_value.eq.return_value.in_.call_args.args == ("material_id", [started_id, completed_id, untouched_id])
     # The stored material (with its answer keys) must not leak into the list.
     assert "data" not in body[0]
 
