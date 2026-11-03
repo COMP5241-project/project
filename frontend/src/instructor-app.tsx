@@ -623,6 +623,8 @@ export function InstructorApp() {
   // publish is visible where the button lives (previously it only surfaced as
   // a small line at the bottom of the AI panel, if at all).
   const [publishStatus, setPublishStatus] = useState<{ ok: boolean; text: string; forId: string } | null>(null)
+  // Publish/unpublish confirmation: next is the target value (true = publish).
+  const [publishConfirm, setPublishConfirm] = useState<{ next: boolean; forId: string } | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Artifact | null>(null)
@@ -1502,7 +1504,9 @@ export function InstructorApp() {
             disabled={!activeArtifact || activeContentCount === 0 || isSending}
             icon={activeArtifact?.published ? CloudOff : CloudUpload}
             label={activeArtifact?.published ? 'Unpublish from students' : 'Publish for students'}
-            onClick={() => void togglePublish()}
+            onClick={() => {
+              if (activeArtifact) setPublishConfirm({ next: !activeArtifact.published, forId: activeArtifact.id })
+            }}
           />
           <IconButton
             disabled={!activeArtifact || isSending}
@@ -2052,6 +2056,28 @@ export function InstructorApp() {
           onConfirm={() => void confirmDeleteArtifact()}
         />
       )}
+
+      {studioView === 'workspace' &&
+        publishConfirm &&
+        activeArtifact &&
+        publishConfirm.forId === activeArtifact.id && (
+          <ConfirmPublishDialog
+            contentCountLabel={
+              activeContentCount > 0
+                ? activeArtifact.kind === 'quiz'
+                  ? `This quiz currently has ${activeContentCount} ${activeContentCount === 1 ? 'question' : 'questions'}.`
+                  : `This deck currently has ${activeContentCount} ${activeContentCount === 1 ? 'slide' : 'slides'}.`
+                : ''
+            }
+            onCancel={() => setPublishConfirm(null)}
+            onConfirm={() => {
+              setPublishConfirm(null)
+              void togglePublish()
+            }}
+            publishing={publishConfirm.next}
+            resourceTitle={activeArtifact.title}
+          />
+        )}
     </div>
   )
 }
@@ -2351,6 +2377,88 @@ function ConfirmDeleteDialog({
             type="button"
           >
             Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmPublishDialog({
+  contentCountLabel,
+  onCancel,
+  onConfirm,
+  publishing,
+  resourceTitle,
+}: {
+  contentCountLabel: string
+  onCancel: () => void
+  onConfirm: () => void
+  publishing: boolean
+  resourceTitle: string
+}) {
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const latest = useRef({ onCancel, onConfirm })
+  useEffect(() => {
+    latest.current = { onCancel, onConfirm }
+  })
+
+  // Same behaviour as ConfirmDeleteDialog: focus lands on Cancel (the safe
+  // default) and Escape / backdrop click dismiss without publishing.
+  useEffect(() => {
+    cancelRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        latest.current.onCancel()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const message = publishing
+    ? `“${resourceTitle}” will be available to all students immediately and will appear in the “Your courses” section of their dashboard. ${contentCountLabel} Confirm the content is complete before publishing.`
+    : `“${resourceTitle}” will no longer be openable by students. Progress and quiz answers they already submitted are kept.`
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-[#262626]/60 p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) latest.current.onCancel()
+      }}
+      role="presentation"
+    >
+      <div
+        aria-describedby="publish-dialog-message"
+        aria-labelledby="publish-dialog-title"
+        className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl"
+        role="alertdialog"
+      >
+        <span aria-hidden="true" className="grid size-12 place-items-center rounded-full bg-[#A21942]/10 text-[#A21942]">
+          {publishing ? <CloudUpload size={22} /> : <CloudOff size={22} />}
+        </span>
+        <h2 className="mt-4 text-lg font-bold tracking-tight text-[#262626]" id="publish-dialog-title">
+          {publishing ? 'Publish this course?' : 'Unpublish this course?'}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-gray-600" id="publish-dialog-message">
+          {message}
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            onClick={onCancel}
+            ref={cancelRef}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+            onClick={onConfirm}
+            type="button"
+          >
+            {publishing ? 'Publish' : 'Unpublish'}
           </button>
         </div>
       </div>

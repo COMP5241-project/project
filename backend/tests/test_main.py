@@ -1730,11 +1730,24 @@ def test_roster_import_creates_students_and_matches(client: HttpxClient, auth_cl
     assert body["imported"] == 2
     assert body["matched"] == 1
     assert body["roster"]["name"] == "Fall 2026"
-    upserted = students_table.upsert.call_args.args[0]
-    assert [row["email"] for row in upserted] == ["a@x.edu", "b@x.edu"]
-    assert upserted[0]["user_id"] == "student-id"
-    assert upserted[1]["user_id"] is None
-    assert students_table.upsert.call_args.kwargs["on_conflict"] == "roster_id,lower(email)"
+    # Re-import is a full refresh: existing rows are cleared first, then every
+    # student is inserted unlinked, and finally the matched accounts are linked
+    # back via update. Students must be inserted before the profile lookup
+    # because the "Instructors resolve their roster emails" RLS policy only
+    # matches emails that are already in one of the instructor's rosters.
+    students_table.delete.return_value.eq.return_value.execute.assert_called_once()
+    assert students_table.delete.return_value.eq.call_args.args == ("roster_id", "r-1")
+    inserted = students_table.insert.call_args.args[0]
+    assert [row["email"] for row in inserted] == ["a@x.edu", "b@x.edu"]
+    assert all(row["user_id"] is None for row in inserted)
+    updates = [c.args[0] for c in students_table.update.call_args_list]
+    assert updates == [{"user_id": "student-id"}]
+    # The link is scoped to the roster (first .eq) and the matched email
+    # (second .eq).
+    first_eq = students_table.update.return_value.eq
+    second_eq = first_eq.return_value.eq
+    assert ("roster_id", "r-1") in [c.args for c in first_eq.call_args_list]
+    assert ("email", "a@x.edu") in [c.args for c in second_eq.call_args_list]
 
 
 def test_roster_analytics_aggregates(client: HttpxClient, auth_client: Mock) -> None:
