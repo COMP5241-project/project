@@ -140,13 +140,24 @@ def _authorize_instructor(
 
 def _database_error(error: Exception) -> ApiError:
     logger.exception("Supabase material storage operation failed.")
-    if getattr(error, "code", None) == "PGRST205":
+    code = getattr(error, "code", None)
+    if code == "PGRST205":
         return ApiError(
             503,
             "materials_not_configured",
             "Instructor materials storage is not configured. Apply "
             "supabase/migrations/20261015000000_create_instructor_materials.sql "
             "to your Supabase project, then try again.",
+        )
+    # PGRST204: the table exists but a column is missing from this project's
+    # schema (e.g. materials.published before the course-delivery migration).
+    if code == "PGRST204":
+        return ApiError(
+            503,
+            "materials_not_configured",
+            "The materials schema in your Supabase project is out of date. "
+            "Apply supabase/migrations/20261028000000_course_delivery.sql, "
+            "then try again.",
         )
     if type(error).__name__ == "StorageApiError":
         status = str(getattr(error, "status", ""))

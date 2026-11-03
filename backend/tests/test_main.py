@@ -1610,6 +1610,29 @@ def test_publish_material_requires_instructor(client: HttpxClient, auth_client: 
     assert response.json()["error"]["code"] == "instructor_required"
 
 
+def test_publish_material_missing_column_reports_course_delivery_migration(
+    client: HttpxClient, auth_client: Mock
+) -> None:
+    materials_table, _, _ = _course_tables(auth_client, role="instructor")
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id, published=False)
+    materials_table.update.return_value.eq.return_value.eq.return_value.execute.side_effect = (
+        PostgrestAPIError({
+            "message": "Could not find the column 'public.materials.published' in the payload",
+            "code": "PGRST204",
+        })
+    )
+
+    response = client.post(f"/api/materials/{material_id}/publish", json={"published": True})
+
+    # PGRST204 means the live schema lacks a column the code needs — point at
+    # the exact migration instead of a generic "try again" 503.
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "materials_not_configured"
+    assert "20261028000000_course_delivery.sql" in response.json()["error"]["message"]
+
+
 def test_roster_csv_parsing() -> None:
     from app.identity.errors import ApiError
     from app.routers.rosters import _parse_roster_csv

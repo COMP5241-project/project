@@ -619,6 +619,10 @@ export function InstructorApp() {
   // Explicit chip choice; null means "follow the active resource's kind".
   const [chipChoice, setChipChoice] = useState<ArtifactKind | null>(null)
   const [feedback, setFeedback] = useState('')
+  // Publish/unpublish outcome, shown directly under the toolbar so a failed
+  // publish is visible where the button lives (previously it only surfaced as
+  // a small line at the bottom of the AI panel, if at all).
+  const [publishStatus, setPublishStatus] = useState<{ ok: boolean; text: string; forId: string } | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Artifact | null>(null)
@@ -1139,13 +1143,23 @@ export function InstructorApp() {
             : artifact,
         ),
       )
-      setFeedback(
-        next
-          ? 'Published — students can now open this course from their hub.'
-          : 'Unpublished — students can no longer open this course.',
-      )
+      setPublishStatus({
+        ok: true,
+        text:
+          next
+            ? 'Published — students can now open this course from their hub.'
+            : 'Unpublished — students can no longer open this course.',
+        forId: activeArtifact.id,
+      })
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Unable to update this material.')
+      setPublishStatus({
+        ok: false,
+        text:
+          error instanceof Error
+            ? error.message
+            : 'Unable to publish this resource. Check your connection and try again.',
+        forId: activeArtifact.id,
+      })
     }
   }
 
@@ -1395,6 +1409,7 @@ export function InstructorApp() {
           )}
         </div>
         {studioView === 'workspace' && (
+          <>
           <div className="flex items-center gap-2">
             <IconButton icon={FilePlus2} label="New slide deck" disabled={isLoading} onClick={() => void createAndSelectArtifact('slides')} />
           <IconButton icon={MessageSquare} label="New quiz" disabled={isLoading} onClick={() => void createAndSelectArtifact('quiz')} />
@@ -1506,6 +1521,15 @@ export function InstructorApp() {
           />
             <IconButton icon={Bookmark} label="Save to library" onClick={saveArtifact} />
           </div>
+          {publishStatus && activeArtifact && publishStatus.forId === activeArtifact.id && (
+            <p
+              className={`mt-2 rounded-md border px-3 py-1.5 text-xs ${publishStatus.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}
+              role="status"
+            >
+              {publishStatus.text}
+            </p>
+          )}
+          </>
         )}
       </div>
 
