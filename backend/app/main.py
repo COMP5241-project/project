@@ -4,11 +4,8 @@ from supabase import Client
 from app.services.openai.openai_client import get_openai_client
 from openai import OpenAI
 from app.database.supabase import get_supabase_client
-from app.routes.auth import router as auth_router
 
 app = FastAPI()
-app.include_router(auth_router)
-
 
 @app.get("/")
 def read_root():
