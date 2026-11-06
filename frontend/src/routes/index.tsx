@@ -23,6 +23,37 @@ const requiredCourses = [
   },
 ];
 
+const presentationFormat = [
+  {
+    id: 1,
+    name: "Text and Images",
+  },
+  {
+    id: 2,
+    name: "Interactive Simulations",
+  },
+  {
+    id: 3,
+    name: "Interactive Role-Play Activities",
+  },
+  {
+    id: 4,
+    name: "Games",
+  },
+  {
+    id: 5,
+    name: "Animations",
+  },
+  {
+    id: 6,
+    name: "Slides Based",
+  },
+  {
+    id: 7,
+    name: "Online Coding",
+  },
+];
+
 function RouteComponent() {
   return (
     <div>
@@ -32,6 +63,14 @@ function RouteComponent() {
         <ul>
           {requiredCourses.map((course) => (
             <li key={course.id}>{course.name}</li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <p>Presentation Format</p>
+        <ul>
+          {presentationFormat.map((format) => (
+            <li key={format.id}>{format.name}</li>
           ))}
         </ul>
       </div>
