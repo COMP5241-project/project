@@ -24,30 +24,37 @@ const presentationFormat = [
   {
     id: 1,
     name: "Text and Images",
+    value: "text-and-images"
   },
   {
     id: 2,
     name: "Interactive Simulations",
+    value: "interactive-simulations"
   },
   {
     id: 3,
     name: "Interactive Role-Play Activities",
+    value: "interactive-role-play-activities"
   },
   {
     id: 4,
     name: "Games",
+    value: "games"
   },
   {
     id: 5,
     name: "Animations",
+    value: "animations"
   },
   {
     id: 6,
     name: "Slides Based",
+    value: "slides-based"
   },
   {
     id: 7,
     name: "Online Coding",
+    value: "online-coding"
   },
 ];
 
