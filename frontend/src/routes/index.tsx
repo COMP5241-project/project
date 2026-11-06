@@ -1,10 +1,31 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+
+import { fetchCurrentProfile, profileQueryKey } from "../lib/profile";
 
 export const Route = createFileRoute("/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const queryClient = useQueryClient();
+  const profileQuery = useQuery({
+    queryKey: profileQueryKey,
+    queryFn: fetchCurrentProfile,
+    retry: false,
+  });
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/v1/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error("Unable to log out. Please try again.");
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(profileQueryKey, null);
+    },
+  });
+
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900 sm:px-10 sm:py-16">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col sm:min-h-[calc(100vh-8rem)]">
@@ -16,22 +37,54 @@ function RouteComponent() {
             Welcome. Choose a role to continue.
           </p>
 
-          <p className="mt-4 text-sm text-slate-600">
-            <Link
-              to="/login"
-              className="font-semibold text-indigo-700 hover:text-indigo-800"
-            >
-              Log in
-            </Link>
-            <span className="mx-2 text-slate-400">or</span>
-            <Link
-              to="/signup"
-              className="font-semibold text-indigo-700 hover:text-indigo-800"
-            >
-              sign up
-            </Link>
-            <span> with your email</span>
-          </p>
+          <div className="mt-4 min-h-8 text-sm text-slate-600">
+            {profileQuery.isPending && <p>Checking your session...</p>}
+            {profileQuery.isError && (
+              <p role="alert" className="text-red-700">
+                Unable to check your session. Please refresh to try again.
+              </p>
+            )}
+            {profileQuery.data ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p>
+                  Signed in as{" "}
+                  <span className="font-semibold text-slate-900">
+                    {profileQuery.data.email}
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  disabled={logoutMutation.isPending}
+                  onClick={() => logoutMutation.mutate()}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {logoutMutation.isPending ? "Logging out..." : "Log out"}
+                </button>
+              </div>
+            ) : profileQuery.data === null ? (
+              <>
+                <Link
+                  to="/login"
+                  className="font-semibold text-indigo-700 hover:text-indigo-800"
+                >
+                  Log in
+                </Link>
+                <span className="mx-2 text-slate-400">or</span>
+                <Link
+                  to="/signup"
+                  className="font-semibold text-indigo-700 hover:text-indigo-800"
+                >
+                  sign up
+                </Link>
+                <span> with your email</span>
+              </>
+            ) : null}
+            {logoutMutation.isError && (
+              <p role="alert" className="mt-2 text-red-700">
+                {logoutMutation.error.message}
+              </p>
+            )}
+          </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <Link
