@@ -13,7 +13,18 @@ class EmailRequest(BaseModel):
     email: EmailStr
 
 
-def accept_email(email: EmailStr, supabase_client: Client) -> dict:
+class AuthUser(BaseModel):
+    email: EmailStr
+
+
+class AuthResponse(BaseModel):
+    status: str
+    message: str
+    created: bool
+    user: AuthUser
+
+
+def accept_email(email: EmailStr, supabase_client: Client) -> AuthResponse:
     response = (
         supabase_client.table("user")
         .upsert(
