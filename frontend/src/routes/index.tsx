@@ -54,6 +54,17 @@ const presentationFormat = [
   },
 ];
 
+const experienceLevel = [
+  {
+    id: 1,
+    name: "Non Computer Science Background",
+  },
+  {
+    id: 2,
+    name: "Computer Science Background",
+  },
+];
+
 function RouteComponent() {
   return (
     <div>
@@ -71,6 +82,14 @@ function RouteComponent() {
         <ul>
           {presentationFormat.map((format) => (
             <li key={format.id}>{format.name}</li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <p>Experience Level</p>
+        <ul>
+          {experienceLevel.map((level) => (
+            <li key={level.id}>{level.name}</li>
           ))}
         </ul>
       </div>
