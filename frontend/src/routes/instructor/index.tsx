@@ -29,7 +29,7 @@ function RouteComponent() {
               Hello, instructor.
             </h1>
             <p className="mt-4 max-w-xl leading-7 text-slate-600">
-              Welcome to your learning platform workspace.
+              Welcome to your workspace.
             </p>
           </div>
         </section>
