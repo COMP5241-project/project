@@ -1,53 +1,62 @@
-import { useState, type FormEvent } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 type AuthMode = "login" | "signup";
 
-type AuthResponse = {
-  message: string;
-  user: { email: string };
-};
+const emailSchema = z.object({
+  email: z.email("Enter a valid email address"),
+});
+
+const authResponseSchema = z.object({
+  message: z.string(),
+  user: z.object({ email: z.email() }),
+});
+
+type EmailFormValues = z.infer<typeof emailSchema>;
+type AuthResponse = z.infer<typeof authResponseSchema>;
+
+async function submitEmail(
+  endpoint: string,
+  values: EmailFormValues,
+): Promise<AuthResponse> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+  const result: unknown = await response.json();
+
+  if (!response.ok) {
+    const detail =
+      typeof result === "object" &&
+      result !== null &&
+      "detail" in result &&
+      typeof result.detail === "string"
+        ? result.detail
+        : "Unable to continue. Please try again.";
+    throw new Error(detail);
+  }
+
+  return authResponseSchema.parse(result);
+}
 
 export function EmailAuthForm({ mode }: { mode: AuthMode }) {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const isSignup = mode === "signup";
   const endpoint = isSignup ? "/api/v1/auth/register" : "/api/v1/auth/login";
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage("");
-    setError("");
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const result = (await response.json()) as AuthResponse & {
-        detail?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(result.detail ?? "Unable to continue. Please try again.");
-      }
-
-      setMessage(`${result.message}. You are signed in for this demo.`);
-    } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to reach the server. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<EmailFormValues>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: "" },
+  });
+  const authMutation = useMutation({
+    mutationFn: (values: EmailFormValues) => submitEmail(endpoint, values),
+  });
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-5 py-10 text-slate-900">
@@ -69,7 +78,10 @@ export function EmailAuthForm({ mode }: { mode: AuthMode }) {
           authentication is not part of this demo.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form
+          onSubmit={handleSubmit((values) => authMutation.mutate(values))}
+          className="mt-8 space-y-5"
+        >
           <div>
             <label
               htmlFor={`${mode}-email`}
@@ -80,21 +92,30 @@ export function EmailAuthForm({ mode }: { mode: AuthMode }) {
             <input
               id={`${mode}-email`}
               type="email"
-              name="email"
               autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={
+                errors.email ? `${mode}-email-error` : undefined
+              }
+              {...register("email")}
               className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               placeholder="you@example.com"
             />
+            {errors.email && (
+              <p
+                id={`${mode}-email-error`}
+                className="mt-2 text-sm text-red-700"
+              >
+                {errors.email.message}
+              </p>
+            )}
           </div>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={authMutation.isPending}
             className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-wait disabled:opacity-60"
           >
-            {isSubmitting
+            {authMutation.isPending
               ? "Please wait..."
               : isSignup
                 ? "Sign up"
@@ -102,14 +123,20 @@ export function EmailAuthForm({ mode }: { mode: AuthMode }) {
           </button>
         </form>
 
-        {message && (
-          <p role="status" className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
-            {message}
+        {authMutation.isSuccess && (
+          <p
+            role="status"
+            className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800"
+          >
+            {authMutation.data.message}. You are signed in for this demo.
           </p>
         )}
-        {error && (
-          <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-            {error}
+        {authMutation.isError && (
+          <p
+            role="alert"
+            className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700"
+          >
+            {authMutation.error.message}
           </p>
         )}
 
