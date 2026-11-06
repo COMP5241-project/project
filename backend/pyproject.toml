@@ -12,4 +12,5 @@ dependencies = [
     "httpx2>=2.16.0",
     "openai>=3.46.0",
     "python-dotenv>=1.2.4",
+    "supabase>=2.34.0",
 ]
