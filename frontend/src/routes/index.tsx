@@ -93,6 +93,10 @@ function RouteComponent() {
           ))}
         </ul>
       </div>
+
+      <div>
+        <p>Design my own Learning Path</p>
+      </div>
     </div>
   );
 }
