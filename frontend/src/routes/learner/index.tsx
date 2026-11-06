@@ -62,10 +62,12 @@ const experienceLevel = [
   {
     id: 1,
     name: "Non Computer Science Background",
+    value: "non-cs-background"
   },
   {
     id: 2,
     name: "Computer Science Background",
+    value: "cs-background"
   },
 ];
 
