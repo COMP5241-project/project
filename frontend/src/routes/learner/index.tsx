@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 
-export const Route = createFileRoute('/learner/')({
+export const Route = createFileRoute("/learner/")({
   component: RouteComponent,
-})
+});
 
 const requiredCourses = [
   {
@@ -16,10 +17,6 @@ const requiredCourses = [
   {
     id: 3,
     name: "Soft skills and product skills used in software development",
-  },
-  {
-    id: 4,
-    name: "Others",
   },
 ];
 
@@ -66,6 +63,12 @@ const experienceLevel = [
 ];
 
 function RouteComponent() {
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<number | null>(null);
+  const [selectedExperienceLevel, setSelectedExperienceLevel] = useState<
+    number | null
+  >(null);
+
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 text-slate-900 sm:px-8 sm:py-12">
       <div className="mx-auto max-w-4xl">
@@ -77,68 +80,149 @@ function RouteComponent() {
         </Link>
 
         <header className="mb-8 mt-10">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-indigo-600">Learner</p>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-indigo-600">
+            Learner
+          </p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
             Welcome!
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-            Explore the topics and learning styles that shape your learning path.
+            Explore the topics and learning styles that shape your learning
+            path.
           </p>
         </header>
 
         <div className="space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">01</span>
-              <h2 className="text-lg font-semibold text-slate-900">Courses</h2>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">
+                  01
+                </span>
+                <h2 id="courses-heading" className="text-lg font-semibold text-slate-900">Courses</h2>
+              </div>
+              <span className="text-xs font-medium text-slate-400">Choose one</span>
             </div>
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <div role="radiogroup" aria-labelledby="courses-heading" className="grid gap-3 sm:grid-cols-2">
               {requiredCourses.map((course) => (
-                <li key={course.id} className="flex gap-3 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                  <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-indigo-500" />
+                <label
+                  key={course.id}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm leading-6 transition ${
+                    selectedCourse === course.id
+                      ? "border-indigo-500 bg-indigo-50/70 text-slate-800 ring-2 ring-indigo-100"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="course"
+                    value={course.id}
+                    checked={selectedCourse === course.id}
+                    onChange={() => {
+                      setSelectedCourse(course.id);
+                    }}
+                    className="mt-1 size-4 shrink-0 accent-indigo-600"
+                  />
                   {course.name}
-                </li>
+                </label>
               ))}
-            </ul>
+            </div>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">02</span>
-              <h2 className="text-lg font-semibold text-slate-900">Presentation format</h2>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">
+                  02
+                </span>
+                <h2 id="presentation-heading" className="text-lg font-semibold text-slate-900">
+                  Presentation format
+                </h2>
+              </div>
+              <span className="text-xs font-medium text-slate-400">Choose one</span>
             </div>
-            <ul className="flex flex-wrap gap-2">
+            <div role="radiogroup" aria-labelledby="presentation-heading" className="flex flex-wrap gap-2">
               {presentationFormat.map((format) => (
-                <li key={format.id} className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-600">
+                <label
+                  key={format.id}
+                  className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
+                    selectedFormat === format.id
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-100"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="presentation-format"
+                    value={format.id}
+                    checked={selectedFormat === format.id}
+                    onChange={() => {
+                      setSelectedFormat(format.id);
+                    }}
+                    className="size-4 accent-indigo-600"
+                  />
                   {format.name}
-                </li>
+                </label>
               ))}
-            </ul>
+            </div>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">03</span>
-              <h2 className="text-lg font-semibold text-slate-900">Experience level</h2>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">
+                  03
+                </span>
+                <h2 id="experience-heading" className="text-lg font-semibold text-slate-900">
+                  Experience level
+                </h2>
+              </div>
+              <span className="text-xs font-medium text-slate-400">Choose one</span>
             </div>
-            <ul className="flex flex-wrap gap-2">
+            <div role="radiogroup" aria-labelledby="experience-heading" className="flex flex-wrap gap-2">
               {experienceLevel.map((level) => (
-                <li key={level.id} className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-600">
+                <label
+                  key={level.id}
+                  className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
+                    selectedExperienceLevel === level.id
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-100"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="experience-level"
+                    value={level.id}
+                    checked={selectedExperienceLevel === level.id}
+                    onChange={() => {
+                      setSelectedExperienceLevel(level.id);
+                    }}
+                    className="size-4 accent-indigo-600"
+                  />
                   {level.name}
-                </li>
+                </label>
               ))}
-            </ul>
+            </div>
           </section>
 
           <section className="flex flex-col gap-4 rounded-2xl bg-indigo-600 p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-7">
             <div>
-              <h2 className="text-lg font-semibold">Design my own learning path</h2>
-              <p className="mt-1 text-sm text-indigo-100">Make a path that fits the way you want to learn.</p>
+              <h2 className="text-lg font-semibold">
+                Design my own learning path
+              </h2>
+              <p className="mt-1 text-sm text-indigo-100">
+                Make a path that fits the way you want to learn.
+              </p>
             </div>
-            <span aria-hidden="true" className="hidden text-2xl text-indigo-200 sm:block">→</span>
+            <span
+              aria-hidden="true"
+              className="hidden text-2xl text-indigo-200 sm:block"
+            >
+              →
+            </span>
           </section>
         </div>
       </div>
     </main>
-  )
+  );
 }
