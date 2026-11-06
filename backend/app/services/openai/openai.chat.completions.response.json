@@ -1,51 +1,48 @@
 {
-  "status": "OK",
-  "response": {
-    "id": "8e9fe546-1304-4acf-be96-8c45568ed462",
-    "choices": [
-      {
-        "finish_reason": "stop",
-        "index": 0,
-        "logprobs": null,
-        "message": {
-          "content": "Hello! How can I help you today?",
-          "refusal": null,
-          "role": "assistant",
-          "annotations": null,
-          "audio": null,
-          "function_call": null,
-          "tool_calls": null,
-          "reasoning_content": "The user greeted me with \"Hello\". I should respond warmly and simply, inviting them to share what they need help with. No need for tools."
-        }
+  "id": "1356f18c-df0e-41f9-bc2a-ad45f8617574",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "Hello! How can I help you today?",
+        "refusal": null,
+        "role": "assistant",
+        "annotations": null,
+        "audio": null,
+        "function_call": null,
+        "tool_calls": null,
+        "reasoning_content": "The user just said \"Hello\". This is a\n\n simple greeting. I should respond warmly and helpfully, and maybe invite them to ask a question. Keep it brief and natural."
       }
-    ],
-    "created": 1793955545,
-    "model": "deepseek-flash",
-    "object": "chat.completion",
-    "metadata": null,
-    "moderation": null,
-    "service_tier": null,
-    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-    "usage": {
-      "completion_tokens": 40,
-      "prompt_tokens": 37,
-      "total_tokens": 77,
-      "completion_tokens_details": {
-        "accepted_prediction_tokens": null,
-        "audio_tokens": null,
-        "reasoning_tokens": 30,
-        "rejected_prediction_tokens": null,
-        "text_tokens": null
-      },
-      "prompt_tokens_details": {
-        "audio_tokens": null,
-        "cache_write_tokens": null,
-        "cached_tokens": 0,
-        "image_tokens": null,
-        "text_tokens": null
-      },
-      "prompt_cache_hit_tokens": 0,
-      "prompt_cache_miss_tokens": 37
     }
+  ],
+  "created": 1793955738,
+  "model": "deepseek-flash",
+  "object": "chat.completion",
+  "metadata": null,
+  "moderation": null,
+  "service_tier": null,
+  "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+  "usage": {
+    "completion_tokens": 47,
+    "prompt_tokens": 37,
+    "total_tokens": 84,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 37,
+      "rejected_prediction_tokens": null,
+      "text_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0,
+      "image_tokens": null,
+      "text_tokens": null
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 37
   }
 }
