@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
-
-from typing import Annotated
-from supabase import Client
-from app.database.supabase import get_supabase_client
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, EmailStr
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
-@router.get("/me")
-def get_profile(
-    supabase_client: Annotated[Client, Depends(get_supabase_client)]
-):
-    # Implementation for fetching user profile
-    pass
+
+class ProfileResponse(BaseModel):
+    email: EmailStr
+
+
+@router.get("/me", response_model=ProfileResponse)
+def get_profile(session: Request) -> ProfileResponse:
+    user = session.session.get("user")
+    if not isinstance(user, dict) or not isinstance(user.get("email"), str):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    return ProfileResponse.model_validate(user)

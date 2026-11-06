@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { profileQueryKey } from "../lib/profile";
 
 type AuthMode = "login" | "signup";
 
@@ -46,6 +48,8 @@ async function submitEmail(
 export function EmailAuthForm({ mode }: { mode: AuthMode }) {
   const isSignup = mode === "signup";
   const endpoint = isSignup ? "/api/v1/auth/register" : "/api/v1/auth/login";
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -56,6 +60,10 @@ export function EmailAuthForm({ mode }: { mode: AuthMode }) {
   });
   const authMutation = useMutation({
     mutationFn: (values: EmailFormValues) => submitEmail(endpoint, values),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: profileQueryKey });
+      await navigate({ to: "/" });
+    },
   });
 
   return (

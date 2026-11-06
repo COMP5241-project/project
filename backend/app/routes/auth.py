@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, EmailStr
 from supabase import Client
 
@@ -49,25 +49,37 @@ def accept_email(email: EmailStr, supabase_client: Client) -> AuthResponse:
         )
         user = existing_user.data
 
-    return {
-        "status": "success",
-        "message": "Account created" if created else "Signed in",
-        "created": created,
-        "user": {"email": user["email"]},
-    }
+    return AuthResponse(
+        status="success",
+        message="Account created" if created else "Signed in",
+        created=created,
+        user=AuthUser(email=user["email"]),
+    )
 
 
 @router.post("/login")
 def login(
     request: EmailRequest,
+    session: Request,
     supabase_client: Annotated[Client, Depends(get_supabase_client)],
 ):
-    return accept_email(request.email, supabase_client)
+    auth_response = accept_email(request.email, supabase_client)
+    session.session["user"] = auth_response.user.model_dump(mode="json")
+    return auth_response
 
 
 @router.post("/register")
 def register(
     request: EmailRequest,
+    session: Request,
     supabase_client: Annotated[Client, Depends(get_supabase_client)],
 ):
-    return accept_email(request.email, supabase_client)
+    auth_response = accept_email(request.email, supabase_client)
+    session.session["user"] = auth_response.user.model_dump(mode="json")
+    return auth_response
+
+
+@router.post("/logout")
+def logout(session: Request):
+    session.session.clear()
+    return {"status": "success", "message": "Signed out"}
