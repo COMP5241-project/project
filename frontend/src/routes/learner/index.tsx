@@ -68,6 +68,10 @@ function RouteComponent() {
   const [selectedExperienceLevel, setSelectedExperienceLevel] = useState<
     number | null
   >(null);
+  const canStartLearning =
+    selectedCourse !== null &&
+    selectedFormat !== null &&
+    selectedExperienceLevel !== null;
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 text-slate-900 sm:px-8 sm:py-12">
@@ -204,23 +208,33 @@ function RouteComponent() {
               ))}
             </div>
           </section>
+          <button
+            type="button"
+            disabled={!canStartLearning}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:bg-indigo-400 disabled:text-indigo-100 disabled:hover:bg-indigo-400"
+          >
+            Start Learning <span aria-hidden="true">→</span>
+          </button>
 
-          <section className="flex flex-col gap-4 rounded-2xl bg-indigo-600 p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-7">
-            <div>
-              <h2 className="text-lg font-semibold">
+          <button
+            type="button"
+            className="group flex w-full items-center justify-between rounded-2xl border border-indigo-200 bg-white p-6 text-left transition hover:border-indigo-400 hover:bg-indigo-50/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:p-7"
+          >
+            <span>
+              <span className="block text-lg font-semibold text-slate-900">
                 Design my own learning path
-              </h2>
-              <p className="mt-1 text-sm text-indigo-100">
+              </span>
+              <span className="mt-1 block text-sm text-slate-600">
                 Make a path that fits the way you want to learn.
-              </p>
-            </div>
+              </span>
+            </span>
             <span
               aria-hidden="true"
-              className="hidden text-2xl text-indigo-200 sm:block"
+              className="ml-4 text-2xl text-indigo-500 transition group-hover:translate-x-1"
             >
               →
             </span>
-          </section>
+          </button>
         </div>
       </div>
     </main>
