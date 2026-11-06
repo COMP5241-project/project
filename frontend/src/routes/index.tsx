@@ -16,6 +16,23 @@ function RouteComponent() {
             Welcome. Choose a role to continue.
           </p>
 
+          <p className="mt-4 text-sm text-slate-600">
+            <Link
+              to="/login"
+              className="font-semibold text-indigo-700 hover:text-indigo-800"
+            >
+              Log in
+            </Link>
+            <span className="mx-2 text-slate-400">or</span>
+            <Link
+              to="/signup"
+              className="font-semibold text-indigo-700 hover:text-indigo-800"
+            >
+              sign up
+            </Link>
+            <span> with your email</span>
+          </p>
+
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <Link
               to="/learner"
