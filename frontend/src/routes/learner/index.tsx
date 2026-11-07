@@ -94,6 +94,20 @@ const learningChoicesSchema = z.object({
   experience_level: z.enum(experienceLevels),
 });
 
+function shouldDisableCreateSession(
+  isPending: boolean,
+  selectedCourse?: string,
+  selectedFormat?: string,
+  selectedExperienceLevel?: string,
+) {
+  return (
+    isPending ||
+    !selectedCourse ||
+    !selectedFormat ||
+    !selectedExperienceLevel
+  );
+}
+
 export const Route = createFileRoute("/learner/")({
   component: RouteComponent,
 });
@@ -381,7 +395,12 @@ function RouteComponent() {
           </section>
           <button
             type="submit"
-            disabled={createSessionMutation.isPending}
+            disabled={shouldDisableCreateSession(
+              createSessionMutation.isPending,
+              selectedCourse,
+              selectedFormat,
+              selectedExperienceLevel,
+            )}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600 disabled:hover:bg-gray-300"
           >
             {createSessionMutation.isPending
