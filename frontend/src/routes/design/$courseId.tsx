@@ -1,6 +1,20 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import {
+  BlockQuote,
+  Bold,
+  ClassicEditor,
+  Essentials,
+  Heading,
+  Italic,
+  Link as LinkPlugin,
+  List,
+  Markdown,
+  Paragraph,
+  type EditorConfig,
+} from "ckeditor5";
 import {
   ArrowLeft,
   Check,
@@ -19,6 +33,36 @@ import {
   type CourseDetail,
   type CreatedCourse,
 } from "@/lib/courses";
+
+const MAX_LEARNING_PROMPT_LENGTH = 50000;
+
+const editorConfig: EditorConfig = {
+  licenseKey: "GPL",
+  plugins: [
+    Essentials,
+    Paragraph,
+    Heading,
+    Bold,
+    Italic,
+    LinkPlugin,
+    List,
+    BlockQuote,
+    Markdown,
+  ],
+  toolbar: [
+    "heading",
+    "|",
+    "bold",
+    "italic",
+    "link",
+    "bulletedList",
+    "numberedList",
+    "blockQuote",
+    "|",
+    "undo",
+    "redo",
+  ],
+};
 
 export const Route = createFileRoute("/design/$courseId")({
   component: RouteComponent,
@@ -248,21 +292,33 @@ function CourseEditor({
                   Edit the Markdown prompt used to generate this course.
                 </p>
               </div>
-              <div className="min-h-0 flex-1 p-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 p-4">
                 <label htmlFor="edit-learning-prompt" className="sr-only">
                   Learning plan Markdown
                 </label>
-                <textarea
-                  id="edit-learning-prompt"
-                  value={learningPrompt}
-                  onChange={(event) => {
-                    setLearningPrompt(event.target.value);
-                    setSaveMessage("");
-                  }}
-                  maxLength={50000}
-                  required
-                  className="h-full min-h-0 w-full resize-none overflow-y-auto rounded-lg border border-slate-200 bg-[#fcfcfd] px-3 py-3 font-mono text-[11px] leading-5 text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                />
+                <div className="course-learning-editor min-h-0 flex-1">
+                  <CKEditor
+                    id="edit-learning-prompt"
+                    editor={ClassicEditor}
+                    config={editorConfig}
+                    data={learningPrompt}
+                    onChange={(_event, editor) => {
+                      setLearningPrompt(editor.getData());
+                      setSaveMessage("");
+                    }}
+                  />
+                </div>
+                <p
+                  aria-live="polite"
+                  className={`shrink-0 text-right text-[10px] ${
+                    learningPrompt.length > MAX_LEARNING_PROMPT_LENGTH
+                      ? "text-red-700"
+                      : "text-slate-400"
+                  }`}
+                >
+                  {learningPrompt.length.toLocaleString()} /{" "}
+                  {MAX_LEARNING_PROMPT_LENGTH.toLocaleString()} characters
+                </p>
               </div>
             </section>
           </Panel>
@@ -329,6 +385,7 @@ function CourseEditor({
                   disabled={
                     !title.trim() ||
                     !learningPrompt.trim() ||
+                    learningPrompt.length > MAX_LEARNING_PROMPT_LENGTH ||
                     saveMutation.isPending
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"

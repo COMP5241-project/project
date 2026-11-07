@@ -1,1 +1,25 @@
 @import "tailwindcss";
+@import "ckeditor5/ckeditor5.css";
+
+.course-learning-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.course-learning-editor .ck-editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.course-learning-editor .ck-editor__main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.course-learning-editor .ck-editor__editable_inline {
+  min-height: 100%;
+}
