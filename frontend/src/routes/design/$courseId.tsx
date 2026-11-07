@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import {
   Autoformat,
@@ -49,6 +52,25 @@ const welcomeMessage: DesignChatMessage = {
 };
 
 const MAX_LEARNING_PROMPT_LENGTH = 50000;
+
+const courseEditSchema = z.object({
+  title: z
+    .string()
+    .max(200, "Course title must be 200 characters or fewer.")
+    .refine((value) => value.trim().length > 0, "Enter a course title."),
+  description: z
+    .string()
+    .max(2000, "Description must be 2,000 characters or fewer."),
+  learning_prompt: z
+    .string()
+    .max(
+      MAX_LEARNING_PROMPT_LENGTH,
+      `Learning plan must be ${MAX_LEARNING_PROMPT_LENGTH.toLocaleString()} characters or fewer.`,
+    )
+    .refine((value) => value.trim().length > 0, "Learning plan cannot be empty."),
+});
+
+type CourseEditValues = z.infer<typeof courseEditSchema>;
 
 const editorConfig: EditorConfig = {
   licenseKey: "GPL",
@@ -197,9 +219,7 @@ function CourseEditor({
 }) {
   const { courseId } = Route.useParams();
   const [isCompact, setIsCompact] = useState(false);
-  const [title, setTitle] = useState(course.title);
-  const [description, setDescription] = useState(course.description ?? "");
-  const [learningPrompt, setLearningPrompt] = useState(course.learning_prompt);
+  const [planEditorRevision, setPlanEditorRevision] = useState(0);
   const [saveMessage, setSaveMessage] = useState("");
   const [messages, setMessages] = useState<DesignChatMessage[]>([
     welcomeMessage,
@@ -209,10 +229,32 @@ function CourseEditor({
   const [isSending, setIsSending] = useState(false);
   const [planView, setPlanView] = useState<"edit" | "preview">("edit");
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const {
+    control,
+    register,
+    setValue,
+    reset,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CourseEditValues>({
+    resolver: zodResolver(courseEditSchema),
+    defaultValues: {
+      title: course.title,
+      description: course.description ?? "",
+      learning_prompt: course.learning_prompt,
+    },
+  });
+  const title = useWatch({ control, name: "title" });
+  const learningPrompt = useWatch({ control, name: "learning_prompt" });
   const saveMutation = useMutation({
     mutationFn: updateMyCourse,
     onSuccess: (updatedCourse) => {
       onSave(updatedCourse);
+      reset({
+        title: updatedCourse.title,
+        description: updatedCourse.description ?? "",
+        learning_prompt: updatedCourse.learning_prompt,
+      });
       setSaveMessage("Course saved.");
     },
   });
@@ -272,7 +314,11 @@ function CourseEditor({
         ...conversation,
         { role: "assistant", content: response.message },
       ]);
-      setLearningPrompt(response.learning_prompt_draft);
+      setValue("learning_prompt", response.learning_prompt_draft, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setPlanEditorRevision((revision) => revision + 1);
       setSaveMessage("");
     } catch (requestError) {
       setChatError(
@@ -295,15 +341,12 @@ function CourseEditor({
     void requestReply(conversation);
   }
 
-  function handleSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function handleSave(values: CourseEditValues) {
     if (saveMutation.isPending) return;
     setSaveMessage("");
     saveMutation.mutate({
       id: courseId,
-      title,
-      description,
-      learning_prompt: learningPrompt,
+      ...values,
     });
   }
 
@@ -344,15 +387,23 @@ function CourseEditor({
                 </label>
                 <input
                   id="edit-course-title"
-                  value={title}
-                  onChange={(event) => {
-                    setTitle(event.target.value);
-                    setSaveMessage("");
-                  }}
-                  maxLength={200}
-                  required
+                  {...register("title", {
+                    onChange: () => setSaveMessage(""),
+                  })}
+                  disabled={isSending || saveMutation.isPending}
+                  aria-invalid={Boolean(errors.title)}
+                  aria-describedby={errors.title ? "edit-course-title-error" : undefined}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
+                {errors.title && (
+                  <p
+                    id="edit-course-title-error"
+                    role="alert"
+                    className="mt-1 text-[11px] text-red-700"
+                  >
+                    {errors.title.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label
@@ -363,15 +414,26 @@ function CourseEditor({
                 </label>
                 <textarea
                   id="edit-course-description"
-                  value={description}
-                  onChange={(event) => {
-                    setDescription(event.target.value);
-                    setSaveMessage("");
-                  }}
-                  maxLength={2000}
+                  {...register("description", {
+                    onChange: () => setSaveMessage(""),
+                  })}
+                  disabled={isSending || saveMutation.isPending}
+                  aria-invalid={Boolean(errors.description)}
+                  aria-describedby={
+                    errors.description ? "edit-course-description-error" : undefined
+                  }
                   rows={6}
                   className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-xs leading-5 text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
+                {errors.description && (
+                  <p
+                    id="edit-course-description-error"
+                    role="alert"
+                    className="mt-1 text-[11px] text-red-700"
+                  >
+                    {errors.description.message}
+                  </p>
+                )}
               </div>
               <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
                 <span className="font-semibold text-slate-700">Status:</span>{" "}
@@ -606,17 +668,37 @@ function CourseEditor({
                 </label>
                 <div className="course-learning-editor min-h-0 flex-1">
                   <CKEditor
+                    key={planEditorRevision}
                     id="edit-learning-prompt"
                     editor={ClassicEditor}
                     config={editorConfig}
                     data={learningPrompt}
                     disabled={isSending || saveMutation.isPending}
+                    aria-label="Learning plan Markdown"
+                    aria-invalid={Boolean(errors.learning_prompt)}
+                    aria-describedby={
+                      errors.learning_prompt
+                        ? "edit-learning-prompt-error"
+                        : undefined
+                    }
                     onChange={(_event, editor) => {
-                      setLearningPrompt(editor.getData());
+                      setValue("learning_prompt", editor.getData(), {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
                       setSaveMessage("");
                     }}
                   />
                 </div>
+                {errors.learning_prompt && (
+                  <p
+                    id="edit-learning-prompt-error"
+                    role="alert"
+                    className="text-[11px] text-red-700"
+                  >
+                    {errors.learning_prompt.message}
+                  </p>
+                )}
                 <p
                   aria-live="polite"
                   className={`shrink-0 text-right text-[10px] ${
@@ -647,7 +729,8 @@ function CourseEditor({
               </div>
             )}
             <form
-              onSubmit={handleSave}
+              noValidate
+              onSubmit={handleSubmit(handleSave)}
               className="shrink-0 space-y-3 border-t border-slate-100 p-4"
             >
               {saveMutation.isError && (
@@ -670,9 +753,6 @@ function CourseEditor({
               <button
                 type="submit"
                 disabled={
-                  !title.trim() ||
-                  !learningPrompt.trim() ||
-                  learningPrompt.length > MAX_LEARNING_PROMPT_LENGTH ||
                   isSending ||
                   saveMutation.isPending
                 }
@@ -686,7 +766,11 @@ function CourseEditor({
                 ) : (
                   <Save aria-hidden="true" className="size-3.5" />
                 )}
-                {saveMutation.isPending ? "Saving..." : "Save changes"}
+                {saveMutation.isPending
+                  ? "Saving..."
+                  : saveMessage
+                    ? "Saved"
+                    : "Save changes"}
               </button>
             </form>
           </aside>
