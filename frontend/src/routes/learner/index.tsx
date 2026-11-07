@@ -1,104 +1,121 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 import { createLearningSession } from "@/lib/learningSessions";
+
+const courseTopics = {
+  softwareEngineering: "software-engineering-fundamentals",
+  aiCodingAgents: "ai-coding-agents",
+  softwareDevelopmentSoftSkills: "software-development-soft-skills",
+} as const;
+
+const requiredCourses = [
+  {
+    id: courseTopics.softwareEngineering,
+    name: "Fundamentals of software engineering and software development",
+  },
+  {
+    id: courseTopics.aiCodingAgents,
+    name: "Effective use of AI coding agents in software development",
+  },
+  {
+    id: courseTopics.softwareDevelopmentSoftSkills,
+    name: "Soft skills and product skills used in software development",
+  },
+] as const;
+
+const presentationFormats = {
+  textAndImages: "text-and-images",
+  interactiveSimulations: "interactive-simulations",
+  interactiveRolePlayActivities: "interactive-role-play-activities",
+  games: "games",
+  animations: "animations",
+  slidesBased: "slides-based",
+  onlineCoding: "online-coding",
+} as const;
+
+const presentationFormat = [
+  {
+    name: "Text and Images",
+    value: presentationFormats.textAndImages,
+  },
+  {
+    name: "Interactive Simulations",
+    value: presentationFormats.interactiveSimulations,
+  },
+  {
+    name: "Interactive Role-Play Activities",
+    value: presentationFormats.interactiveRolePlayActivities,
+  },
+  {
+    name: "Games",
+    value: presentationFormats.games,
+  },
+  {
+    name: "Animations",
+    value: presentationFormats.animations,
+  },
+  {
+    name: "Slides Based",
+    value: presentationFormats.slidesBased,
+  },
+  {
+    name: "Online Coding",
+    value: presentationFormats.onlineCoding,
+  },
+] as const;
+
+const experienceLevels = {
+  beginner: "beginner",
+  intermediate: "intermediate",
+} as const;
+
+const experienceLevel = [
+  {
+    name: "Beginner",
+    value: experienceLevels.beginner,
+  },
+  {
+    name: "Intermediate",
+    value: experienceLevels.intermediate,
+  },
+] as const;
+
+const learningChoicesSchema = z.object({
+  course_topic: z.enum(courseTopics),
+  presentation_format: z.enum(presentationFormats),
+  experience_level: z.enum(experienceLevels),
+});
 
 export const Route = createFileRoute("/learner/")({
   component: RouteComponent,
 });
 
-const requiredCourses = [
-  {
-    id: "software-engineering-fundamentals",
-    name: "Fundamentals of software engineering and software development",
-  },
-  {
-    id: "ai-coding-agents",
-    name: "Effective use of AI coding agents in software development",
-  },
-  {
-    id: "software-development-soft-skills",
-    name: "Soft skills and product skills used in software development",
-  },
-];
-
-const presentationFormat = [
-  {
-    name: "Text and Images",
-    value: "text-and-images",
-  },
-  {
-    name: "Interactive Simulations",
-    value: "interactive-simulations",
-  },
-  {
-    name: "Interactive Role-Play Activities",
-    value: "interactive-role-play-activities",
-  },
-  {
-    name: "Games",
-    value: "games",
-  },
-  {
-    name: "Animations",
-    value: "animations",
-  },
-  {
-    name: "Slides Based",
-    value: "slides-based",
-  },
-  {
-    name: "Online Coding",
-    value: "online-coding",
-  },
-];
-
-const experienceLevel = [
-  {
-    name: "Beginner",
-    value: "beginner",
-  },
-  {
-    name: "Intermediate",
-    value: "intermediate",
-  },
-];
-
 function RouteComponent() {
   const navigate = useNavigate();
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
-  const [selectedExperienceLevel, setSelectedExperienceLevel] = useState<
-    string | null
-  >(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const canStartLearning =
-    selectedCourse !== null &&
-    selectedFormat !== null &&
-    selectedExperienceLevel !== null;
-
-  async function startLearning() {
-    if (!selectedCourse || !selectedFormat || !selectedExperienceLevel) return;
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-    try {
-      const session = await createLearningSession({
-        course_topic: selectedCourse,
-        presentation_format: selectedFormat,
-        experience_level: selectedExperienceLevel,
-      });
+  const {
+    handleSubmit,
+    register,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(learningChoicesSchema),
+  });
+  const selectedCourse = watch("course_topic");
+  const selectedFormat = watch("presentation_format");
+  const selectedExperienceLevel = watch("experience_level");
+  const createSessionMutation = useMutation({
+    mutationFn: createLearningSession,
+    onSuccess: async (session) => {
       await navigate({
         to: "/learner/session/$id",
         params: { id: session.id },
       });
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to start your lesson.",
-      );
-      setIsSubmitting(false);
-    }
-  }
+    },
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 text-slate-900 sm:px-8 sm:py-12">
@@ -123,18 +140,33 @@ function RouteComponent() {
           </p>
         </header>
 
-        <div className="space-y-4">
+        <form
+          onSubmit={handleSubmit((values) => createSessionMutation.mutate(values))}
+          className="space-y-4"
+        >
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">
                   01
                 </span>
-                <h2 id="courses-heading" className="text-lg font-semibold text-slate-900">Courses</h2>
+                <h2
+                  id="courses-heading"
+                  className="text-lg font-semibold text-slate-900"
+                >
+                  Courses
+                </h2>
               </div>
-              <span className="text-xs font-medium text-slate-400">Choose one</span>
+              <span className="text-xs font-medium text-slate-400">
+                Choose one
+              </span>
             </div>
-            <div role="radiogroup" aria-labelledby="courses-heading" className="grid gap-3 sm:grid-cols-2">
+            <div
+              role="radiogroup"
+              aria-labelledby="courses-heading"
+              aria-describedby={errors.course_topic ? "course-error" : undefined}
+              className="grid gap-3 sm:grid-cols-2"
+            >
               {requiredCourses.map((course) => (
                 <label
                   key={course.id}
@@ -146,16 +178,19 @@ function RouteComponent() {
                 >
                   <input
                     type="radio"
-                    name="course"
                     value={course.id}
-                    checked={selectedCourse === course.id}
-                    onChange={() => setSelectedCourse(course.id)}
+                    {...register("course_topic")}
                     className="mt-1 size-4 shrink-0 accent-indigo-600"
                   />
                   {course.name}
                 </label>
               ))}
             </div>
+            {errors.course_topic && (
+              <p id="course-error" className="mt-3 text-sm text-red-700">
+                {errors.course_topic.message}
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -164,13 +199,25 @@ function RouteComponent() {
                 <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">
                   02
                 </span>
-                <h2 id="presentation-heading" className="text-lg font-semibold text-slate-900">
+                <h2
+                  id="presentation-heading"
+                  className="text-lg font-semibold text-slate-900"
+                >
                   Presentation format
                 </h2>
               </div>
-              <span className="text-xs font-medium text-slate-400">Choose one</span>
+              <span className="text-xs font-medium text-slate-400">
+                Choose one
+              </span>
             </div>
-            <div role="radiogroup" aria-labelledby="presentation-heading" className="flex flex-wrap gap-2">
+            <div
+              role="radiogroup"
+              aria-labelledby="presentation-heading"
+              aria-describedby={
+                errors.presentation_format ? "format-error" : undefined
+              }
+              className="flex flex-wrap gap-2"
+            >
               {presentationFormat.map((format) => (
                 <label
                   key={format.value}
@@ -182,16 +229,19 @@ function RouteComponent() {
                 >
                   <input
                     type="radio"
-                    name="presentation-format"
                     value={format.value}
-                    checked={selectedFormat === format.value}
-                    onChange={() => setSelectedFormat(format.value)}
+                    {...register("presentation_format")}
                     className="size-4 accent-indigo-600"
                   />
                   {format.name}
                 </label>
               ))}
             </div>
+            {errors.presentation_format && (
+              <p id="format-error" className="mt-3 text-sm text-red-700">
+                {errors.presentation_format.message}
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -200,13 +250,25 @@ function RouteComponent() {
                 <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-700">
                   03
                 </span>
-                <h2 id="experience-heading" className="text-lg font-semibold text-slate-900">
+                <h2
+                  id="experience-heading"
+                  className="text-lg font-semibold text-slate-900"
+                >
                   Experience level
                 </h2>
               </div>
-              <span className="text-xs font-medium text-slate-400">Choose one</span>
+              <span className="text-xs font-medium text-slate-400">
+                Choose one
+              </span>
             </div>
-            <div role="radiogroup" aria-labelledby="experience-heading" className="flex flex-wrap gap-2">
+            <div
+              role="radiogroup"
+              aria-labelledby="experience-heading"
+              aria-describedby={
+                errors.experience_level ? "experience-error" : undefined
+              }
+              className="flex flex-wrap gap-2"
+            >
               {experienceLevel.map((level) => (
                 <label
                   key={level.value}
@@ -218,29 +280,35 @@ function RouteComponent() {
                 >
                   <input
                     type="radio"
-                    name="experience-level"
                     value={level.value}
-                    checked={selectedExperienceLevel === level.value}
-                    onChange={() => setSelectedExperienceLevel(level.value)}
+                    {...register("experience_level")}
                     className="size-4 accent-indigo-600"
                   />
                   {level.name}
                 </label>
               ))}
             </div>
+            {errors.experience_level && (
+              <p id="experience-error" className="mt-3 text-sm text-red-700">
+                {errors.experience_level.message}
+              </p>
+            )}
           </section>
           <button
-            type="button"
-            disabled={!canStartLearning || isSubmitting}
-            onClick={startLearning}
+            type="submit"
+            disabled={createSessionMutation.isPending}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600 disabled:hover:bg-gray-300"
           >
-            {isSubmitting ? "Generating lesson..." : "Start Learning"}{" "}
-            {!isSubmitting && <span aria-hidden="true">→</span>}
+            {createSessionMutation.isPending
+              ? "Generating lesson..."
+              : "Start Learning"}{" "}
+            {!createSessionMutation.isPending && (
+              <span aria-hidden="true">→</span>
+            )}
           </button>
-          {errorMessage && (
+          {createSessionMutation.isError && (
             <p role="alert" className="text-sm font-medium text-red-700">
-              {errorMessage}
+              {createSessionMutation.error.message}
             </p>
           )}
 
@@ -263,7 +331,7 @@ function RouteComponent() {
               →
             </span>
           </button>
-        </div>
+        </form>
       </div>
     </main>
   );

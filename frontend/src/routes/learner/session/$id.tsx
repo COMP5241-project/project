@@ -1,10 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
-import {
-  fetchLearningSession,
-  type LearningSession,
-} from "@/lib/learningSessions";
+import { fetchLearningSession } from "@/lib/learningSessions";
 
 export const Route = createFileRoute("/learner/session/$id")({
   component: RouteComponent,
@@ -12,31 +10,11 @@ export const Route = createFileRoute("/learner/session/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams();
-  const [result, setResult] = useState<
-    | { id: string; session: LearningSession }
-    | { id: string; error: string }
-    | null
-  >(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchLearningSession(id, controller.signal)
-      .then((session) => setResult({ id, session }))
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setResult({
-            id,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Unable to load this lesson.",
-          });
-        }
-      });
-    return () => controller.abort();
-  }, [id]);
-
-  const currentResult = result?.id === id ? result : null;
+  const sessionQuery = useQuery({
+    queryKey: ["learning-session", id],
+    queryFn: ({ signal }) => fetchLearningSession(id, signal),
+    retry: false,
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 text-slate-900 sm:px-8 sm:py-12">
@@ -47,15 +25,15 @@ function RouteComponent() {
         >
           <span aria-hidden="true">←</span> Back to learning choices
         </Link>
-        {currentResult && "error" in currentResult ? (
+        {sessionQuery.isError ? (
           <p role="alert" className="mt-6 text-red-700">
-            {currentResult.error}
+            {sessionQuery.error.message}
           </p>
-        ) : currentResult ? (
-          currentResult.session.status === "ready" &&
-          currentResult.session.content ? (
+        ) : sessionQuery.data ? (
+          sessionQuery.data.status === "ready" &&
+          sessionQuery.data.content ? (
             <MarkdownRenderer
-              content={currentResult.session.content}
+              content={sessionQuery.data.content}
               className="mt-8"
             />
           ) : (
@@ -65,7 +43,9 @@ function RouteComponent() {
           )
         ) : (
           <p role="status" className="mt-6 text-slate-600">
-            Loading your lesson...
+            {sessionQuery.isPending
+              ? "Loading your lesson..."
+              : "This lesson is unavailable."}
           </p>
         )}
       </article>
