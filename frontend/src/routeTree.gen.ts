@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DesignRouteRouteImport } from './routes/design/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as DesignIndexRouteImport } from './routes/design/index'
 import { Route as DesignCourseIdRouteImport } from './routes/design/$courseId'
 import { Route as DesignNewRouteImport } from './routes/design/new'
 import { Route as InstructorIndexRouteImport } from './routes/instructor/index'
@@ -38,6 +39,11 @@ const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DesignIndexRoute = DesignIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DesignRouteRoute,
 } as any)
 const DesignCourseIdRoute = DesignCourseIdRouteImport.update({
   id: '/$courseId',
@@ -72,17 +78,18 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/design/$courseId': typeof DesignCourseIdRoute
   '/design/new': typeof DesignNewRoute
+  '/design/': typeof DesignIndexRoute
   '/instructor/': typeof InstructorIndexRoute
   '/learner/': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/design': typeof DesignRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/design/$courseId': typeof DesignCourseIdRoute
   '/design/new': typeof DesignNewRoute
+  '/design': typeof DesignIndexRoute
   '/instructor': typeof InstructorIndexRoute
   '/learner': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -95,6 +102,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/design/$courseId': typeof DesignCourseIdRoute
   '/design/new': typeof DesignNewRoute
+  '/design/': typeof DesignIndexRoute
   '/instructor/': typeof InstructorIndexRoute
   '/learner/': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -108,17 +116,18 @@ export interface FileRouteTypes {
     | '/signup'
     | '/design/$courseId'
     | '/design/new'
+    | '/design/'
     | '/instructor/'
     | '/learner/'
     | '/learner/session/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/design'
     | '/login'
     | '/signup'
     | '/design/$courseId'
     | '/design/new'
+    | '/design'
     | '/instructor'
     | '/learner'
     | '/learner/session/$id'
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/design/$courseId'
     | '/design/new'
+    | '/design/'
     | '/instructor/'
     | '/learner/'
     | '/learner/session/$id'
@@ -175,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/design/': {
+      id: '/design/'
+      path: '/'
+      fullPath: '/design/'
+      preLoaderRoute: typeof DesignIndexRouteImport
+      parentRoute: typeof DesignRouteRoute
+    }
     '/design/$courseId': {
       id: '/design/$courseId'
       path: '/$courseId'
@@ -216,11 +233,13 @@ declare module '@tanstack/react-router' {
 interface DesignRouteRouteChildren {
   DesignCourseIdRoute: typeof DesignCourseIdRoute
   DesignNewRoute: typeof DesignNewRoute
+  DesignIndexRoute: typeof DesignIndexRoute
 }
 
 const DesignRouteRouteChildren: DesignRouteRouteChildren = {
   DesignCourseIdRoute: DesignCourseIdRoute,
   DesignNewRoute: DesignNewRoute,
+  DesignIndexRoute: DesignIndexRoute,
 }
 
 const DesignRouteRouteWithChildren = DesignRouteRoute._addFileChildren(
