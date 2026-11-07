@@ -6,16 +6,6 @@ SYSTEM_PROMPT_PATH = (
     Path(__file__).resolve().parents[2] / "learning-content-system-prompt.md"
 )
 
-COURSE_TOPICS = {
-    "software-engineering-fundamentals": (
-        "Fundamentals of software engineering and software development"
-    ),
-    "ai-coding-agents": "Effective use of AI coding agents in software development",
-    "software-development-soft-skills": (
-        "Soft skills and product skills used in software development"
-    ),
-}
-
 PRESENTATION_FORMATS = {
     "text-and-images": "Text and images",
     "interactive-simulations": "Interactive simulation",
@@ -34,9 +24,7 @@ def load_system_prompt(
 ) -> str:
     prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     replacements = {
-        "{{course_topic}}": COURSE_TOPICS.get(
-            course_topic, course_topic.replace("-", " ")
-        ),
+        "{{course_topic}}": course_topic,
         "{{presentation_format}}": PRESENTATION_FORMATS[presentation_format],
         "{{experience_level}}": experience_level,
         "{{learner_background}}": "unspecified",
