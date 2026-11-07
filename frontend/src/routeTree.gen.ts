@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DesignRouteRouteImport } from './routes/design/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as DesignSessionIdRouteImport } from './routes/design/$sessionId'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DesignRouteRoute = DesignRouteRouteImport.update({
+  id: '/design',
+  path: '/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -34,14 +40,14 @@ const SignupRoute = SignupRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesignSessionIdRoute = DesignSessionIdRouteImport.update({
-  id: '/design/$sessionId',
-  path: '/design/$sessionId',
-  getParentRoute: () => rootRouteImport,
+  id: '/$sessionId',
+  path: '/$sessionId',
+  getParentRoute: () => DesignRouteRoute,
 } as any)
 const DesignNewRoute = DesignNewRouteImport.update({
-  id: '/design/new',
-  path: '/design/new',
-  getParentRoute: () => rootRouteImport,
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => DesignRouteRoute,
 } as any)
 const InstructorIndexRoute = InstructorIndexRouteImport.update({
   id: '/instructor/',
@@ -61,6 +67,7 @@ const LearnerSessionIdRoute = LearnerSessionIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/design': typeof DesignRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/design/$sessionId': typeof DesignSessionIdRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/design': typeof DesignRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/design/$sessionId': typeof DesignSessionIdRoute
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/design': typeof DesignRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/design/$sessionId': typeof DesignSessionIdRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/design'
     | '/login'
     | '/signup'
     | '/design/$sessionId'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/design'
     | '/login'
     | '/signup'
     | '/design/$sessionId'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/design'
     | '/login'
     | '/signup'
     | '/design/$sessionId'
@@ -125,10 +137,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DesignRouteRoute: typeof DesignRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
-  DesignSessionIdRoute: typeof DesignSessionIdRoute
-  DesignNewRoute: typeof DesignNewRoute
   InstructorIndexRoute: typeof InstructorIndexRoute
   LearnerIndexRoute: typeof LearnerIndexRoute
   LearnerSessionIdRoute: typeof LearnerSessionIdRoute
@@ -141,6 +152,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -159,17 +177,17 @@ declare module '@tanstack/react-router' {
     }
     '/design/$sessionId': {
       id: '/design/$sessionId'
-      path: '/design/$sessionId'
+      path: '/$sessionId'
       fullPath: '/design/$sessionId'
       preLoaderRoute: typeof DesignSessionIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DesignRouteRoute
     }
     '/design/new': {
       id: '/design/new'
-      path: '/design/new'
+      path: '/new'
       fullPath: '/design/new'
       preLoaderRoute: typeof DesignNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DesignRouteRoute
     }
     '/instructor/': {
       id: '/instructor/'
@@ -195,12 +213,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LoginRoute: LoginRoute,
-  SignupRoute: SignupRoute,
+interface DesignRouteRouteChildren {
+  DesignSessionIdRoute: typeof DesignSessionIdRoute
+  DesignNewRoute: typeof DesignNewRoute
+}
+
+const DesignRouteRouteChildren: DesignRouteRouteChildren = {
   DesignSessionIdRoute: DesignSessionIdRoute,
   DesignNewRoute: DesignNewRoute,
+}
+
+const DesignRouteRouteWithChildren = DesignRouteRoute._addFileChildren(
+  DesignRouteRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  DesignRouteRoute: DesignRouteRouteWithChildren,
+  LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   InstructorIndexRoute: InstructorIndexRoute,
   LearnerIndexRoute: LearnerIndexRoute,
   LearnerSessionIdRoute: LearnerSessionIdRoute,
