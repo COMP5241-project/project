@@ -93,23 +93,26 @@ function RouteComponent() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] table-fixed text-left text-sm">
+              <table className="w-full min-w-[1000px] table-fixed text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th scope="col" className="w-[18%] px-5 py-4 font-semibold">
+                    <th scope="col" className="w-[16%] px-5 py-4 font-semibold">
                       Title
                     </th>
-                    <th scope="col" className="w-[28%] px-5 py-4 font-semibold">
+                    <th scope="col" className="w-[24%] px-5 py-4 font-semibold">
                       Description
                     </th>
-                    <th scope="col" className="w-[12%] px-5 py-4 font-semibold">
+                    <th scope="col" className="w-[10%] px-5 py-4 font-semibold">
                       Status
                     </th>
-                    <th scope="col" className="w-[21%] px-5 py-4 font-semibold">
+                    <th scope="col" className="w-[18%] px-5 py-4 font-semibold">
                       Created at
                     </th>
-                    <th scope="col" className="w-[21%] px-5 py-4 font-semibold">
+                    <th scope="col" className="w-[18%] px-5 py-4 font-semibold">
                       Updated at
+                    </th>
+                    <th scope="col" className="w-[14%] px-5 py-4 font-semibold">
+                      Edit
                     </th>
                   </tr>
                 </thead>
@@ -146,6 +149,15 @@ function RouteComponent() {
                         <time dateTime={course.updated_at}>
                           {new Date(course.updated_at).toLocaleString()}
                         </time>
+                      </td>
+                      <td className="px-5 py-4">
+                        <Link
+                          to="/design/$courseId"
+                          params={{ courseId: course.id }}
+                          className="inline-flex items-center justify-center rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                        >
+                          Edit
+                        </Link>
                       </td>
                     </tr>
                   ))}

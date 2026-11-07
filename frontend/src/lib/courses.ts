@@ -12,8 +12,13 @@ const createdCourseSchema = courseSchema.extend({
   updated_at: z.string(),
 });
 
+const courseDetailSchema = createdCourseSchema.extend({
+  learning_prompt: z.string(),
+});
+
 export type Course = z.infer<typeof courseSchema>;
 export type CreatedCourse = z.infer<typeof createdCourseSchema>;
+export type CourseDetail = z.infer<typeof courseDetailSchema>;
 export const courseListQueryKey = ["courses"] as const;
 export const createdCourseListQueryKey = ["courses", "mine"] as const;
 
@@ -71,4 +76,44 @@ export async function toggleCourseStatus(
     );
   }
   return createdCourseSchema.parse(await response.json());
+}
+
+export async function fetchMyCourse(
+  courseId: string,
+  signal?: AbortSignal,
+): Promise<CourseDetail> {
+  const response = await fetch(`/api/v1/courses/${courseId}`, {
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Unable to load this course."),
+    );
+  }
+  return courseDetailSchema.parse(await response.json());
+}
+
+export async function updateMyCourse(input: {
+  id: string;
+  title: string;
+  description: string;
+  learning_prompt: string;
+}): Promise<CourseDetail> {
+  const response = await fetch(`/api/v1/courses/${input.id}`, {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: input.title,
+      description: input.description,
+      learning_prompt: input.learning_prompt,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Unable to save your course."),
+    );
+  }
+  return courseDetailSchema.parse(await response.json());
 }
