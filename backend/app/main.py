@@ -8,6 +8,7 @@ from supabase import Client
 
 from app.database.supabase import get_supabase_client
 from app.routes.auth import router as auth_router
+from app.routes.learning_sessions import router as learning_sessions_router
 from app.routes.profile import router as profile_router
 from app.routes.model import router as model_router
 from app.services.openai.openai_client import get_openai_client
@@ -28,6 +29,7 @@ app.add_middleware(
     max_age=60 * 60 * 24 * 7,
 )
 app.include_router(auth_router)
+app.include_router(learning_sessions_router)
 app.include_router(profile_router)
 app.include_router(model_router)
 
