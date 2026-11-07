@@ -7,7 +7,7 @@ const createdSessionSchema = z.object({
 
 const learningSessionSummarySchema = z.object({
   id: z.uuid(),
-  course_topic: z.string(),
+  course_id: z.uuid(),
   presentation_format: z.string(),
   experience_level: z.string(),
   status: z.enum(["generating", "ready", "failed"]),
@@ -16,7 +16,7 @@ const learningSessionSummarySchema = z.object({
 
 export const learningSessionSchema = z.object({
   id: z.uuid(),
-  course_topic: z.string(),
+  course_id: z.uuid(),
   presentation_format: z.string(),
   experience_level: z.string(),
   learner_background: z.string().nullable(),
@@ -32,7 +32,7 @@ export type LearningSessionSummary = z.infer<
 export const learningSessionListQueryKey = ["learning-sessions"] as const;
 
 type LearningSessionChoices = {
-  course_topic: string;
+  course_id: string;
   presentation_format: string;
   experience_level: string;
 };
