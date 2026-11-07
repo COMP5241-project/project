@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { createLearningSession } from "@/lib/learningSessions";
 
 export const Route = createFileRoute("/learner/")({
   component: RouteComponent,
@@ -7,80 +8,97 @@ export const Route = createFileRoute("/learner/")({
 
 const requiredCourses = [
   {
-    id: 1,
+    id: "software-engineering-fundamentals",
     name: "Fundamentals of software engineering and software development",
   },
   {
-    id: 2,
+    id: "ai-coding-agents",
     name: "Effective use of AI coding agents in software development",
   },
   {
-    id: 3,
+    id: "software-development-soft-skills",
     name: "Soft skills and product skills used in software development",
   },
 ];
 
 const presentationFormat = [
   {
-    id: 1,
     name: "Text and Images",
-    value: "text-and-images"
+    value: "text-and-images",
   },
   {
-    id: 2,
     name: "Interactive Simulations",
-    value: "interactive-simulations"
+    value: "interactive-simulations",
   },
   {
-    id: 3,
     name: "Interactive Role-Play Activities",
-    value: "interactive-role-play-activities"
+    value: "interactive-role-play-activities",
   },
   {
-    id: 4,
     name: "Games",
-    value: "games"
+    value: "games",
   },
   {
-    id: 5,
     name: "Animations",
-    value: "animations"
+    value: "animations",
   },
   {
-    id: 6,
     name: "Slides Based",
-    value: "slides-based"
+    value: "slides-based",
   },
   {
-    id: 7,
     name: "Online Coding",
-    value: "online-coding"
+    value: "online-coding",
   },
 ];
 
 const experienceLevel = [
   {
-    id: 1,
     name: "Beginner",
-    value: "beginner"
+    value: "beginner",
   },
   {
-    id: 2,
     name: "Intermediate",
-    value: "intermediate"
+    value: "intermediate",
   },
 ];
 
 function RouteComponent() {
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<number | null>(null);
+  const navigate = useNavigate();
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [selectedExperienceLevel, setSelectedExperienceLevel] = useState<
-    number | null
+    string | null
   >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const canStartLearning =
     selectedCourse !== null &&
     selectedFormat !== null &&
     selectedExperienceLevel !== null;
+
+  async function startLearning() {
+    if (!selectedCourse || !selectedFormat || !selectedExperienceLevel) return;
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const session = await createLearningSession({
+        course_topic: selectedCourse,
+        presentation_format: selectedFormat,
+        experience_level: selectedExperienceLevel,
+      });
+      await navigate({
+        to: "/learner/session/$id",
+        params: { id: session.id },
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to start your lesson.",
+      );
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 text-slate-900 sm:px-8 sm:py-12">
@@ -131,9 +149,7 @@ function RouteComponent() {
                     name="course"
                     value={course.id}
                     checked={selectedCourse === course.id}
-                    onChange={() => {
-                      setSelectedCourse(course.id);
-                    }}
+                    onChange={() => setSelectedCourse(course.id)}
                     className="mt-1 size-4 shrink-0 accent-indigo-600"
                   />
                   {course.name}
@@ -157,9 +173,9 @@ function RouteComponent() {
             <div role="radiogroup" aria-labelledby="presentation-heading" className="flex flex-wrap gap-2">
               {presentationFormat.map((format) => (
                 <label
-                  key={format.id}
+                  key={format.value}
                   className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
-                    selectedFormat === format.id
+                    selectedFormat === format.value
                       ? "border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-100"
                       : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
                   }`}
@@ -167,11 +183,9 @@ function RouteComponent() {
                   <input
                     type="radio"
                     name="presentation-format"
-                    value={format.id}
-                    checked={selectedFormat === format.id}
-                    onChange={() => {
-                      setSelectedFormat(format.id);
-                    }}
+                    value={format.value}
+                    checked={selectedFormat === format.value}
+                    onChange={() => setSelectedFormat(format.value)}
                     className="size-4 accent-indigo-600"
                   />
                   {format.name}
@@ -195,9 +209,9 @@ function RouteComponent() {
             <div role="radiogroup" aria-labelledby="experience-heading" className="flex flex-wrap gap-2">
               {experienceLevel.map((level) => (
                 <label
-                  key={level.id}
+                  key={level.value}
                   className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
-                    selectedExperienceLevel === level.id
+                    selectedExperienceLevel === level.value
                       ? "border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-100"
                       : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
                   }`}
@@ -205,11 +219,9 @@ function RouteComponent() {
                   <input
                     type="radio"
                     name="experience-level"
-                    value={level.id}
-                    checked={selectedExperienceLevel === level.id}
-                    onChange={() => {
-                      setSelectedExperienceLevel(level.id);
-                    }}
+                    value={level.value}
+                    checked={selectedExperienceLevel === level.value}
+                    onChange={() => setSelectedExperienceLevel(level.value)}
                     className="size-4 accent-indigo-600"
                   />
                   {level.name}
@@ -219,11 +231,18 @@ function RouteComponent() {
           </section>
           <button
             type="button"
-            disabled={!canStartLearning}
+            disabled={!canStartLearning || isSubmitting}
+            onClick={startLearning}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600 disabled:hover:bg-gray-300"
           >
-            Start Learning <span aria-hidden="true">→</span>
+            {isSubmitting ? "Generating lesson..." : "Start Learning"}{" "}
+            {!isSubmitting && <span aria-hidden="true">→</span>}
           </button>
+          {errorMessage && (
+            <p role="alert" className="text-sm font-medium text-red-700">
+              {errorMessage}
+            </p>
+          )}
 
           <button
             type="button"
