@@ -90,7 +90,7 @@ function RouteComponent() {
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 760px)");
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
     const updateCompactMode = () => setIsCompact(mediaQuery.matches);
     updateCompactMode();
     mediaQuery.addEventListener("change", updateCompactMode);

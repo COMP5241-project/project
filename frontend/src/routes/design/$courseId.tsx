@@ -124,7 +124,7 @@ function CourseEditor({
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 760px)");
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
     const updateCompactMode = () => setIsCompact(mediaQuery.matches);
     updateCompactMode();
     mediaQuery.addEventListener("change", updateCompactMode);
@@ -144,11 +144,14 @@ function CourseEditor({
   }
 
   return (
-        <Group
-          orientation={isCompact ? "vertical" : "horizontal"}
-          className={`min-h-0 flex-1 ${isCompact ? "min-h-[1200px]" : "h-[calc(100dvh-5rem)]"}`}
-          id="course-edit-workspace"
+        <div
+          className={`min-h-0 flex-none ${isCompact ? "h-[1200px]" : "h-[calc(100dvh-5rem)]"}`}
         >
+          <Group
+            orientation={isCompact ? "vertical" : "horizontal"}
+            className="h-full min-h-0"
+            id="course-edit-workspace"
+          >
           <Panel
             defaultSize={isCompact ? "33%" : "25%"}
             minSize={isCompact ? "25%" : "18%"}
@@ -258,7 +261,7 @@ function CourseEditor({
                   }}
                   maxLength={50000}
                   required
-                  className="h-full min-h-64 w-full resize-y rounded-lg border border-slate-200 bg-[#fcfcfd] px-3 py-3 font-mono text-[11px] leading-5 text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="h-full min-h-0 w-full resize-none overflow-y-auto rounded-lg border border-slate-200 bg-[#fcfcfd] px-3 py-3 font-mono text-[11px] leading-5 text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
             </section>
@@ -343,6 +346,7 @@ function CourseEditor({
               </form>
             </aside>
           </Panel>
-        </Group>
+          </Group>
+        </div>
   );
 }
