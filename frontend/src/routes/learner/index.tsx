@@ -9,6 +9,7 @@ import {
   fetchLearningSessions,
   learningSessionListQueryKey,
 } from "@/lib/learningSessions";
+import { fetchCurrentProfile, profileQueryKey } from "@/lib/profile";
 
 const courseTopics = {
   softwareEngineering: "software-engineering-fundamentals",
@@ -103,12 +104,14 @@ const learningChoicesSchema = z.object({
 
 function shouldDisableCreateSession(
   isPending: boolean,
+  isAuthenticated: boolean,
   selectedCourse?: string,
   selectedFormat?: string,
   selectedExperienceLevel?: string,
 ) {
   return (
     isPending ||
+    !isAuthenticated ||
     !selectedCourse ||
     !selectedFormat ||
     !selectedExperienceLevel
@@ -122,6 +125,11 @@ export const Route = createFileRoute("/learner/")({
 function RouteComponent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const profileQuery = useQuery({
+    queryKey: profileQueryKey,
+    queryFn: fetchCurrentProfile,
+    retry: false,
+  });
   const sessionsQuery = useQuery({
     queryKey: learningSessionListQueryKey,
     queryFn: ({ signal }) => fetchLearningSessions(signal),
@@ -247,7 +255,11 @@ function RouteComponent() {
         </section>
 
         <form
-          onSubmit={handleSubmit((values) => createSessionMutation.mutate(values))}
+          onSubmit={handleSubmit((values) => {
+            if (profileQuery.data) {
+              createSessionMutation.mutate(values);
+            }
+          })}
           className="space-y-4"
         >
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -406,10 +418,32 @@ function RouteComponent() {
               </p>
             )}
           </section>
+          {profileQuery.isPending && (
+            <p role="status" className="text-sm text-slate-600">
+              Checking your sign-in...
+            </p>
+          )}
+          {profileQuery.isError && (
+            <p role="alert" className="text-sm text-red-700">
+              Unable to check your sign-in. Please refresh to try again.
+            </p>
+          )}
+          {profileQuery.data === null && (
+            <p className="text-sm text-slate-600">
+              <Link
+                to="/login"
+                className="font-semibold text-indigo-700 hover:text-indigo-800"
+              >
+                Log in
+              </Link>{" "}
+              to start learning.
+            </p>
+          )}
           <button
             type="submit"
             disabled={shouldDisableCreateSession(
               createSessionMutation.isPending,
+              Boolean(profileQuery.data),
               selectedCourse,
               selectedFormat,
               selectedExperienceLevel,
