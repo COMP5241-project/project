@@ -51,6 +51,15 @@ class LearningSessionResponse(BaseModel):
     content: str | None
 
 
+class LearningSessionSummary(BaseModel):
+    id: UUID
+    course_topic: CourseTopic
+    presentation_format: PresentationFormat
+    experience_level: ExperienceLevel
+    status: Literal["generating", "ready", "failed"]
+    created_at: str
+
+
 def get_current_user_id(
     session: Request,
     supabase_client: Annotated[Client, Depends(get_supabase_client)],
@@ -117,6 +126,25 @@ def create_learning_session(
         .execute()
     )
     return LearningSessionCreated.model_validate(response.data)
+
+
+@router.get("", response_model=list[LearningSessionSummary])
+def list_learning_sessions(
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    supabase_client: Annotated[Client, Depends(get_supabase_client)],
+) -> list[LearningSessionSummary]:
+    response = (
+        supabase_client.table("learning_sessions")
+        .select(
+            "id,course_topic,presentation_format,experience_level,status,created_at"
+        )
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return [
+        LearningSessionSummary.model_validate(session) for session in response.data
+    ]
 
 
 @router.get("/{session_id}", response_model=LearningSessionResponse)

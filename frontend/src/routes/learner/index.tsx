@@ -1,10 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { createLearningSession } from "@/lib/learningSessions";
+import {
+  createLearningSession,
+  fetchLearningSessions,
+  learningSessionListQueryKey,
+} from "@/lib/learningSessions";
 
 const courseTopics = {
   softwareEngineering: "software-engineering-fundamentals",
@@ -96,6 +100,12 @@ export const Route = createFileRoute("/learner/")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const sessionsQuery = useQuery({
+    queryKey: learningSessionListQueryKey,
+    queryFn: ({ signal }) => fetchLearningSessions(signal),
+    retry: false,
+  });
   const {
     handleSubmit,
     register,
@@ -110,6 +120,9 @@ function RouteComponent() {
   const createSessionMutation = useMutation({
     mutationFn: createLearningSession,
     onSuccess: async (session) => {
+      await queryClient.invalidateQueries({
+        queryKey: learningSessionListQueryKey,
+      });
       await navigate({
         to: "/learner/session/$id",
         params: { id: session.id },
@@ -139,6 +152,78 @@ function RouteComponent() {
             path.
           </p>
         </header>
+
+        <section
+          aria-labelledby="previous-sessions-heading"
+          className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+        >
+          <div className="mb-4">
+            <h2
+              id="previous-sessions-heading"
+              className="text-lg font-semibold text-slate-900"
+            >
+              Your learning sessions
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Pick up where you left off with a previous lesson.
+            </p>
+          </div>
+          {sessionsQuery.isPending ? (
+            <p role="status" className="text-sm text-slate-500">
+              Loading your sessions...
+            </p>
+          ) : sessionsQuery.isError ? (
+            <p role="alert" className="text-sm text-red-700">
+              {sessionsQuery.error.message}
+            </p>
+          ) : sessionsQuery.data.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              Your lessons will appear here after you start learning.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {sessionsQuery.data.map((session) => {
+                const courseName =
+                  requiredCourses.find(
+                    (course) => course.id === session.course_topic,
+                  )?.name ?? session.course_topic;
+                const formatName =
+                  presentationFormat.find(
+                    (format) => format.value === session.presentation_format,
+                  )?.name ?? session.presentation_format;
+                const createdAt = new Date(session.created_at);
+
+                return (
+                  <li key={session.id}>
+                    <Link
+                      to="/learner/session/$id"
+                      params={{ id: session.id }}
+                      className="block rounded-xl border border-slate-200 p-4 transition hover:border-indigo-300 hover:bg-indigo-50/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    >
+                      <span className="flex flex-wrap items-start justify-between gap-2">
+                        <span className="font-medium text-slate-900">
+                          {courseName}
+                        </span>
+                        <span className="text-xs font-medium capitalize text-slate-500">
+                          {session.status}
+                        </span>
+                      </span>
+                      <span className="mt-1 block text-sm text-slate-600">
+                        {formatName} · {session.experience_level}
+                      </span>
+                      <time
+                        dateTime={session.created_at}
+                        className="mt-2 block text-xs text-slate-500"
+                      >
+                        {createdAt.toLocaleString()}
+                      </time>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
         <form
           onSubmit={handleSubmit((values) => createSessionMutation.mutate(values))}

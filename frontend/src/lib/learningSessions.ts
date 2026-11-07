@@ -5,6 +5,15 @@ const createdSessionSchema = z.object({
   status: z.literal("ready"),
 });
 
+const learningSessionSummarySchema = z.object({
+  id: z.uuid(),
+  course_topic: z.string(),
+  presentation_format: z.string(),
+  experience_level: z.string(),
+  status: z.enum(["generating", "ready", "failed"]),
+  created_at: z.string(),
+});
+
 export const learningSessionSchema = z.object({
   id: z.uuid(),
   course_topic: z.string(),
@@ -17,6 +26,10 @@ export const learningSessionSchema = z.object({
 });
 
 export type LearningSession = z.infer<typeof learningSessionSchema>;
+export type LearningSessionSummary = z.infer<
+  typeof learningSessionSummarySchema
+>;
+export const learningSessionListQueryKey = ["learning-sessions"] as const;
 
 type LearningSessionChoices = {
   course_topic: string;
@@ -50,6 +63,19 @@ export async function createLearningSession(choices: LearningSessionChoices) {
     );
   }
   return createdSessionSchema.parse(await response.json());
+}
+
+export async function fetchLearningSessions(signal?: AbortSignal) {
+  const response = await fetch("/api/v1/learning-sessions", {
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Unable to load your learning sessions."),
+    );
+  }
+  return z.array(learningSessionSummarySchema).parse(await response.json());
 }
 
 export async function fetchLearningSession(id: string, signal?: AbortSignal) {
