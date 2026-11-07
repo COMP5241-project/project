@@ -1,0 +1,92 @@
+import { Link, type ErrorComponentProps } from "@tanstack/react-router";
+import { AlertTriangle, ArrowLeft, BookOpen, RotateCcw } from "lucide-react";
+
+export function ErrorComponent({ error, reset }: ErrorComponentProps) {
+  const message =
+    error instanceof Error ? error.message : "An unknown error occurred.";
+
+  return (
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-50 px-5 py-10 text-slate-900 sm:px-8 sm:py-14">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-32 -top-40 size-96 rounded-full bg-rose-100/70 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-48 -left-32 size-96 rounded-full bg-amber-100/60 blur-3xl"
+      />
+
+      <section
+        role="alert"
+        className="relative w-full max-w-4xl rounded-3xl border border-slate-200/80 bg-white/95 p-7 shadow-xl shadow-slate-200/60 backdrop-blur sm:p-10 lg:p-12"
+      >
+        <header className="flex items-center gap-3 border-b border-slate-100 pb-6 sm:pb-8">
+          <span className="grid size-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700">
+            <BookOpen aria-hidden="true" className="size-5" strokeWidth={1.8} />
+          </span>
+          <span className="text-sm font-semibold tracking-wide text-slate-700 sm:text-base">
+            COMP5241 <span className="text-slate-400">·</span> GROUP 5
+          </span>
+        </header>
+
+        <div className="grid items-center gap-10 pt-8 sm:pt-10 md:grid-cols-[1.2fr_0.8fr] md:gap-12">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600 sm:text-sm">
+              Application error
+            </p>
+            <h1 className="mt-4 max-w-lg text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+              Something interrupted your learning.
+            </h1>
+            <p className="mt-4 max-w-md text-base leading-7 text-slate-600">
+              An unexpected issue stopped this page from loading. You can try
+              again, or return to the home page.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={reset}
+                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                <RotateCcw aria-hidden="true" className="size-4" />
+                Try again
+              </button>
+              <Link
+                to="/"
+                className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                <ArrowLeft aria-hidden="true" className="size-4" />
+                Back to home
+              </Link>
+            </div>
+
+            {message && (
+              <details className="mt-7 max-w-lg rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <summary className="cursor-pointer font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                  Technical details
+                </summary>
+                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs leading-5">
+                  {message}
+                </pre>
+              </details>
+            )}
+          </div>
+
+          <div
+            aria-hidden="true"
+            className="relative grid min-h-48 place-items-center overflow-hidden rounded-2xl border border-rose-100 bg-rose-50/70 sm:min-h-56"
+          >
+            <div className="absolute size-40 rounded-full border border-rose-200/80 sm:size-48" />
+            <div className="absolute size-28 rounded-full border border-rose-200/80 sm:size-36" />
+            <span className="relative grid size-20 place-items-center rounded-3xl bg-white text-rose-500 shadow-sm sm:size-24">
+              <AlertTriangle className="size-10 sm:size-12" strokeWidth={1.6} />
+            </span>
+            <span className="absolute bottom-4 right-5 rounded-full bg-white px-3 py-1 text-xs font-semibold tracking-wide text-rose-700 shadow-sm">
+              NEEDS A RESET
+            </span>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
