@@ -7,7 +7,7 @@ const courseSchema = z.object({
 
 const createdCourseSchema = courseSchema.extend({
   description: z.string().nullable(),
-  status: z.string(),
+  status: z.enum(["draft", "published"]),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -56,4 +56,19 @@ export async function fetchMyCourses(
     );
   }
   return z.array(createdCourseSchema).parse(await response.json());
+}
+
+export async function toggleCourseStatus(
+  courseId: string,
+): Promise<CreatedCourse> {
+  const response = await fetch(`/api/v1/courses/${courseId}/status`, {
+    method: "PATCH",
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Unable to update the course status."),
+    );
+  }
+  return createdCourseSchema.parse(await response.json());
 }

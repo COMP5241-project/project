@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import {
   createdCourseListQueryKey,
   fetchMyCourses,
+  toggleCourseStatus,
+  type CreatedCourse,
 } from "@/lib/courses";
 
 export const Route = createFileRoute("/design/")({
@@ -11,10 +13,23 @@ export const Route = createFileRoute("/design/")({
 });
 
 function RouteComponent() {
+  const queryClient = useQueryClient();
   const coursesQuery = useQuery({
     queryKey: createdCourseListQueryKey,
     queryFn: ({ signal }) => fetchMyCourses(signal),
     retry: false,
+  });
+  const statusMutation = useMutation({
+    mutationFn: toggleCourseStatus,
+    onSuccess: (updatedCourse) => {
+      queryClient.setQueryData(
+        createdCourseListQueryKey,
+        (courses: CreatedCourse[] | undefined) =>
+          courses?.map((course) =>
+            course.id === updatedCourse.id ? updatedCourse : course,
+          ),
+      );
+    },
   });
 
   return (
@@ -51,6 +66,14 @@ function RouteComponent() {
           aria-label="Courses created by you"
           className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
         >
+          {statusMutation.isError && (
+            <p
+              role="alert"
+              className="border-b border-red-100 bg-red-50 p-4 text-sm text-red-700"
+            >
+              {statusMutation.error.message}
+            </p>
+          )}
           {coursesQuery.isPending ? (
             <p role="status" className="p-6 text-sm text-slate-500">
               Loading your courses...
@@ -100,15 +123,19 @@ function RouteComponent() {
                         {course.description || "—"}
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                        <button
+                          type="button"
+                          disabled={statusMutation.isPending}
+                          aria-label={`Change status from ${course.status} to ${course.status === "draft" ? "published" : "draft"}`}
+                          onClick={() => statusMutation.mutate(course.id)}
+                          className={`inline-flex cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition hover:ring-2 hover:ring-offset-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-wait disabled:opacity-60 ${
                             course.status === "published"
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-slate-100 text-slate-700"
                           }`}
                         >
                           {course.status}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-5 py-4 text-slate-600">
                         <time dateTime={course.created_at}>
