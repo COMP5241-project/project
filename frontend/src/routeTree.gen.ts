@@ -10,9 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as DesignSessionIdRouteImport } from './routes/design/$sessionId'
+import { Route as DesignNewRouteImport } from './routes/design/new'
 import { Route as InstructorIndexRouteImport } from './routes/instructor/index'
 import { Route as LearnerIndexRouteImport } from './routes/learner/index'
 import { Route as LearnerSessionIdRouteImport } from './routes/learner/session/$id'
@@ -20,11 +21,6 @@ import { Route as LearnerSessionIdRouteImport } from './routes/learner/session/$
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignRoute = DesignRouteImport.update({
-  id: '/design',
-  path: '/design',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -35,6 +31,16 @@ const LoginRoute = LoginRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignSessionIdRoute = DesignSessionIdRouteImport.update({
+  id: '/design/$sessionId',
+  path: '/design/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignNewRoute = DesignNewRouteImport.update({
+  id: '/design/new',
+  path: '/design/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstructorIndexRoute = InstructorIndexRouteImport.update({
@@ -55,18 +61,20 @@ const LearnerSessionIdRoute = LearnerSessionIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/design': typeof DesignRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/design/$sessionId': typeof DesignSessionIdRoute
+  '/design/new': typeof DesignNewRoute
   '/instructor/': typeof InstructorIndexRoute
   '/learner/': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/design': typeof DesignRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/design/$sessionId': typeof DesignSessionIdRoute
+  '/design/new': typeof DesignNewRoute
   '/instructor': typeof InstructorIndexRoute
   '/learner': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -74,9 +82,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/design': typeof DesignRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/design/$sessionId': typeof DesignSessionIdRoute
+  '/design/new': typeof DesignNewRoute
   '/instructor/': typeof InstructorIndexRoute
   '/learner/': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -85,27 +94,30 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/design'
     | '/login'
     | '/signup'
+    | '/design/$sessionId'
+    | '/design/new'
     | '/instructor/'
     | '/learner/'
     | '/learner/session/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/design'
     | '/login'
     | '/signup'
+    | '/design/$sessionId'
+    | '/design/new'
     | '/instructor'
     | '/learner'
     | '/learner/session/$id'
   id:
     | '__root__'
     | '/'
-    | '/design'
     | '/login'
     | '/signup'
+    | '/design/$sessionId'
+    | '/design/new'
     | '/instructor/'
     | '/learner/'
     | '/learner/session/$id'
@@ -113,9 +125,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DesignRoute: typeof DesignRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  DesignSessionIdRoute: typeof DesignSessionIdRoute
+  DesignNewRoute: typeof DesignNewRoute
   InstructorIndexRoute: typeof InstructorIndexRoute
   LearnerIndexRoute: typeof LearnerIndexRoute
   LearnerSessionIdRoute: typeof LearnerSessionIdRoute
@@ -130,13 +143,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/design': {
-      id: '/design'
-      path: '/design'
-      fullPath: '/design'
-      preLoaderRoute: typeof DesignRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -149,6 +155,20 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design/$sessionId': {
+      id: '/design/$sessionId'
+      path: '/design/$sessionId'
+      fullPath: '/design/$sessionId'
+      preLoaderRoute: typeof DesignSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design/new': {
+      id: '/design/new'
+      path: '/design/new'
+      fullPath: '/design/new'
+      preLoaderRoute: typeof DesignNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/instructor/': {
@@ -177,9 +197,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DesignRoute: DesignRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  DesignSessionIdRoute: DesignSessionIdRoute,
+  DesignNewRoute: DesignNewRoute,
   InstructorIndexRoute: InstructorIndexRoute,
   LearnerIndexRoute: LearnerIndexRoute,
   LearnerSessionIdRoute: LearnerSessionIdRoute,

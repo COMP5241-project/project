@@ -22,7 +22,7 @@ const exampleTopics = [
   "Understand how AI coding agents work",
 ];
 
-export const Route = createFileRoute("/design")({
+export const Route = createFileRoute("/design/new")({
   component: RouteComponent,
 });
 

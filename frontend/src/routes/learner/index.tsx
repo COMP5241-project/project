@@ -464,7 +464,7 @@ function RouteComponent() {
           )}
 
           <Link
-            to="/design"
+            to="/design/new"
             className="group flex w-full items-center justify-between rounded-2xl border border-indigo-200 bg-white p-6 text-left transition hover:border-indigo-400 hover:bg-indigo-50/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:p-7"
           >
             <span>
