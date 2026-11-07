@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BookCheck, BookOpen } from "lucide-react";
 
 import { fetchCurrentProfile, profileQueryKey } from "../lib/profile";
 
@@ -92,16 +93,7 @@ function RouteComponent() {
               className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               <span className="mb-8 grid size-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="size-5 stroke-current"
-                  strokeWidth="1.8"
-                >
-                  <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" />
-                  <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20M8 7h8M8 10h6" />
-                </svg>
+                <BookOpen aria-hidden="true" className="size-5" strokeWidth={1.8} />
               </span>
               <span className="flex items-center justify-between">
                 <span>
@@ -126,16 +118,7 @@ function RouteComponent() {
               className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               <span className="mb-8 grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="size-5 stroke-current"
-                  strokeWidth="1.8"
-                >
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
-                  <path d="m9 10 2 2 4-4" />
-                </svg>
+                <BookCheck aria-hidden="true" className="size-5" strokeWidth={1.8} />
               </span>
               <span className="flex items-center justify-between">
                 <span>
