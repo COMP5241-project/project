@@ -118,7 +118,7 @@ function RouteComponent() {
                   Learning path designer
                 </p>
                 <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
-                  Let’s design your learning path
+                  Let's design your learning path
                 </h1>
               </div>
             </div>
