@@ -29,6 +29,12 @@ function RouteComponent() {
             <p className="mt-4 max-w-xl leading-7 text-slate-600">
               Welcome to your workspace.
             </p>
+            <Link
+              to="/design"
+              className="mt-6 inline-flex rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            >
+              View your courses
+            </Link>
           </div>
         </section>
       </div>
