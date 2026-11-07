@@ -34,7 +34,9 @@ def load_system_prompt(
 ) -> str:
     prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     replacements = {
-        "{{course_topic}}": COURSE_TOPICS[course_topic],
+        "{{course_topic}}": COURSE_TOPICS.get(
+            course_topic, course_topic.replace("-", " ")
+        ),
         "{{presentation_format}}": PRESENTATION_FORMATS[presentation_format],
         "{{experience_level}}": experience_level,
         "{{learner_background}}": "unspecified",
