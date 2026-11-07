@@ -61,13 +61,13 @@ const presentationFormat = [
 const experienceLevel = [
   {
     id: 1,
-    name: "Non Computer Science Background",
-    value: "non-cs-background"
+    name: "Beginner",
+    value: "beginner"
   },
   {
     id: 2,
-    name: "Computer Science Background",
-    value: "cs-background"
+    name: "Intermediate",
+    value: "intermediate"
   },
 ];
 
