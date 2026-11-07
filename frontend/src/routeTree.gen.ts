@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as InstructorIndexRouteImport } from './routes/instructor/index'
 import { Route as LearnerIndexRouteImport } from './routes/learner/index'
+import { Route as LearnerDesignRouteImport } from './routes/learner/design'
 import { Route as LearnerSessionIdRouteImport } from './routes/learner/session/$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const LearnerIndexRoute = LearnerIndexRouteImport.update({
   path: '/learner/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnerDesignRoute = LearnerDesignRouteImport.update({
+  id: '/learner/design',
+  path: '/learner/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LearnerSessionIdRoute = LearnerSessionIdRouteImport.update({
   id: '/learner/session/$id',
   path: '/learner/session/$id',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/learner/design': typeof LearnerDesignRoute
   '/instructor/': typeof InstructorIndexRoute
   '/learner/': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/learner/design': typeof LearnerDesignRoute
   '/instructor': typeof InstructorIndexRoute
   '/learner': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/learner/design': typeof LearnerDesignRoute
   '/instructor/': typeof InstructorIndexRoute
   '/learner/': typeof LearnerIndexRoute
   '/learner/session/$id': typeof LearnerSessionIdRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/learner/design'
     | '/instructor/'
     | '/learner/'
     | '/learner/session/$id'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/learner/design'
     | '/instructor'
     | '/learner'
     | '/learner/session/$id'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/learner/design'
     | '/instructor/'
     | '/learner/'
     | '/learner/session/$id'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  LearnerDesignRoute: typeof LearnerDesignRoute
   InstructorIndexRoute: typeof InstructorIndexRoute
   LearnerIndexRoute: typeof LearnerIndexRoute
   LearnerSessionIdRoute: typeof LearnerSessionIdRoute
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnerIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learner/design': {
+      id: '/learner/design'
+      path: '/learner/design'
+      fullPath: '/learner/design'
+      preLoaderRoute: typeof LearnerDesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/learner/session/$id': {
       id: '/learner/session/$id'
       path: '/learner/session/$id'
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  LearnerDesignRoute: LearnerDesignRoute,
   InstructorIndexRoute: InstructorIndexRoute,
   LearnerIndexRoute: LearnerIndexRoute,
   LearnerSessionIdRoute: LearnerSessionIdRoute,
