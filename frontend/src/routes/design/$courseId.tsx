@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -331,7 +331,7 @@ function CourseEditor({
     }
   }
 
-  function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleChatSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = messageDraft.trim();
     if (!content || isSending) return;

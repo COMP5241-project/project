@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type SubmitEvent,
+  type ChangeEvent,
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -129,7 +135,7 @@ function RouteComponent() {
     }
   }
 
-  function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleChatSubmit(event: SubmitEvent) {
     event.preventDefault();
     const content = messageDraft.trim();
     if (!content || isSending || !canChat) return;
@@ -175,8 +181,14 @@ function RouteComponent() {
     }
 
     const totalCharacters =
-      sourceMaterials.reduce((total, material) => total + material.content.length, 0) +
-      loadedMaterials.reduce((total, material) => total + material.content.length, 0);
+      sourceMaterials.reduce(
+        (total, material) => total + material.content.length,
+        0,
+      ) +
+      loadedMaterials.reduce(
+        (total, material) => total + material.content.length,
+        0,
+      );
     if (totalCharacters > 50000) {
       setUploadError("Source materials must total 50,000 characters or less.");
       return;
@@ -202,7 +214,7 @@ function RouteComponent() {
     setCreateError(null);
   }
 
-  function handleCreate(event: FormEvent<HTMLFormElement>) {
+  function handleCreate(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = courseTitle.trim();
     const prompt = learningPromptDraft.trim();
@@ -501,7 +513,11 @@ function RouteComponent() {
                   to chat with the learning designer.
                 </p>
               ) : (
-                <form onSubmit={handleChatSubmit}>
+                <form
+                  onSubmit={(ev) => {
+                    handleChatSubmit(ev);
+                  }}
+                >
                   <label htmlFor="design-message" className="sr-only">
                     Message the learning designer
                   </label>
