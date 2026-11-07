@@ -2,7 +2,6 @@ import { z } from "zod";
 
 const courseSchema = z.object({
   id: z.uuid(),
-  course_topic: z.string(),
   title: z.string(),
 });
 

@@ -12,7 +12,6 @@ router = APIRouter(prefix="/api/v1/courses", tags=["courses"])
 
 class CourseResponse(BaseModel):
     id: UUID
-    course_topic: str
     title: str
 
 
@@ -22,7 +21,7 @@ def list_published_courses(
 ) -> list[CourseResponse]:
     response = (
         supabase_client.table("courses")
-        .select("id,course_topic,title")
+        .select("id,title")
         .eq("status", "published")
         .order("title")
         .execute()
