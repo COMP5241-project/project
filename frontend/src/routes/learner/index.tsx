@@ -45,30 +45,37 @@ const presentationFormat = [
   {
     name: "Text and Images",
     value: presentationFormats.textAndImages,
+    enabled: true,
   },
   {
     name: "Interactive Simulations",
     value: presentationFormats.interactiveSimulations,
+    enabled: false,
   },
   {
     name: "Interactive Role-Play Activities",
     value: presentationFormats.interactiveRolePlayActivities,
+    enabled: false,
   },
   {
     name: "Games",
     value: presentationFormats.games,
+    enabled: false,
   },
   {
     name: "Animations",
     value: presentationFormats.animations,
+    enabled: false,
   },
   {
     name: "Slides Based",
     value: presentationFormats.slidesBased,
+    enabled: false,
   },
   {
     name: "Online Coding",
     value: presentationFormats.onlineCoding,
+    enabled: false,
   },
 ] as const;
 
@@ -320,19 +327,25 @@ function RouteComponent() {
               {presentationFormat.map((format) => (
                 <label
                   key={format.value}
-                  className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
-                    selectedFormat === format.value
+                  className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
+                    !format.enabled
+                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                      : selectedFormat === format.value
                       ? "border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-100"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
+                      : "cursor-pointer border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
                   }`}
                 >
                   <input
                     type="radio"
                     value={format.value}
                     {...register("presentation_format")}
+                    disabled={!format.enabled}
                     className="size-4 accent-indigo-600"
                   />
                   {format.name}
+                  {!format.enabled && (
+                    <span className="text-xs">(Coming soon)</span>
+                  )}
                 </label>
               ))}
             </div>
