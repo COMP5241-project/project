@@ -12,11 +12,6 @@ from app.services.openai.openai_client import OpenAIModel, get_openai_client
 
 router = APIRouter(prefix="/api/v1/learning-sessions", tags=["learning sessions"])
 
-CourseTopic = Literal[
-    "software-engineering-fundamentals",
-    "ai-coding-agents",
-    "software-development-soft-skills",
-]
 PresentationFormat = Literal[
     "text-and-images",
     "interactive-simulations",
@@ -30,7 +25,7 @@ ExperienceLevel = Literal["beginner", "intermediate"]
 
 
 class LearningSessionCreate(BaseModel):
-    course_topic: CourseTopic
+    course_id: UUID
     presentation_format: PresentationFormat
     experience_level: ExperienceLevel
 
@@ -42,7 +37,7 @@ class LearningSessionCreated(BaseModel):
 
 class LearningSessionResponse(BaseModel):
     id: UUID
-    course_topic: CourseTopic
+    course_id: UUID
     presentation_format: PresentationFormat
     experience_level: ExperienceLevel
     learner_background: str | None
@@ -53,7 +48,7 @@ class LearningSessionResponse(BaseModel):
 
 class LearningSessionSummary(BaseModel):
     id: UUID
-    course_topic: CourseTopic
+    course_id: UUID
     presentation_format: PresentationFormat
     experience_level: ExperienceLevel
     status: Literal["generating", "ready", "failed"]
@@ -91,12 +86,23 @@ def create_learning_session(
     supabase_client: Annotated[Client, Depends(get_supabase_client)],
     client_and_model: Annotated[tuple[OpenAI, str], Depends(get_learning_model)],
 ) -> LearningSessionCreated:
+    course_response = (
+        supabase_client.table("courses")
+        .select("title")
+        .eq("id", str(request.course_id))
+        .eq("status", "published")
+        .limit(1)
+        .execute()
+    )
+    if not course_response.data:
+        raise HTTPException(status_code=404, detail="Published course not found")
+
     client, model_name = client_and_model
     try:
         content = generate_lesson(
             client,
             model_name,
-            request.course_topic,
+            course_response.data[0]["title"],
             request.presentation_format,
             request.experience_level,
         )
@@ -114,7 +120,7 @@ def create_learning_session(
         .insert(
             {
                 "user_id": user_id,
-                "course_topic": request.course_topic,
+                "course_id": str(request.course_id),
                 "presentation_format": request.presentation_format,
                 "experience_level": request.experience_level,
                 "status": "ready",
@@ -135,16 +141,12 @@ def list_learning_sessions(
 ) -> list[LearningSessionSummary]:
     response = (
         supabase_client.table("learning_sessions")
-        .select(
-            "id,course_topic,presentation_format,experience_level,status,created_at"
-        )
+        .select("id,course_id,presentation_format,experience_level,status,created_at")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
     )
-    return [
-        LearningSessionSummary.model_validate(session) for session in response.data
-    ]
+    return [LearningSessionSummary.model_validate(session) for session in response.data]
 
 
 @router.get("/{session_id}", response_model=LearningSessionResponse)
@@ -156,7 +158,7 @@ def get_learning_session(
     response = (
         supabase_client.table("learning_sessions")
         .select(
-            "id,course_topic,presentation_format,experience_level,"
+            "id,course_id,presentation_format,experience_level,"
             "learner_background,learning_goal,status,content"
         )
         .eq("id", str(session_id))
