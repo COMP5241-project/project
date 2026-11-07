@@ -4,33 +4,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { courseListQueryKey, fetchCourses } from "@/lib/courses";
 import {
   createLearningSession,
   fetchLearningSessions,
   learningSessionListQueryKey,
 } from "@/lib/learningSessions";
 import { fetchCurrentProfile, profileQueryKey } from "@/lib/profile";
-
-const courseTopics = {
-  softwareEngineering: "software-engineering-fundamentals",
-  aiCodingAgents: "ai-coding-agents",
-  softwareDevelopmentSoftSkills: "software-development-soft-skills",
-} as const;
-
-const requiredCourses = [
-  {
-    id: courseTopics.softwareEngineering,
-    name: "Fundamentals of software engineering and software development",
-  },
-  {
-    id: courseTopics.aiCodingAgents,
-    name: "Effective use of AI coding agents in software development",
-  },
-  {
-    id: courseTopics.softwareDevelopmentSoftSkills,
-    name: "Soft skills and product skills used in software development",
-  },
-] as const;
 
 const presentationFormats = {
   textAndImages: "text-and-images",
@@ -97,7 +77,7 @@ const experienceLevel = [
 ] as const;
 
 const learningChoicesSchema = z.object({
-  course_topic: z.enum(courseTopics),
+  course_id: z.uuid(),
   presentation_format: z.enum(presentationFormats),
   experience_level: z.enum(experienceLevels),
 });
@@ -130,6 +110,11 @@ function RouteComponent() {
     queryFn: fetchCurrentProfile,
     retry: false,
   });
+  const coursesQuery = useQuery({
+    queryKey: courseListQueryKey,
+    queryFn: ({ signal }) => fetchCourses(signal),
+    retry: false,
+  });
   const sessionsQuery = useQuery({
     queryKey: learningSessionListQueryKey,
     queryFn: ({ signal }) => fetchLearningSessions(signal),
@@ -143,7 +128,7 @@ function RouteComponent() {
   } = useForm({
     resolver: zodResolver(learningChoicesSchema),
   });
-  const selectedCourse = watch("course_topic");
+  const selectedCourse = watch("course_id");
   const selectedFormat = watch("presentation_format");
   const selectedExperienceLevel = watch("experience_level");
   const createSessionMutation = useMutation({
@@ -213,9 +198,9 @@ function RouteComponent() {
             <ul className="space-y-3">
               {sessionsQuery.data.map((session) => {
                 const courseName =
-                  requiredCourses.find(
-                    (course) => course.id === session.course_topic,
-                  )?.name ?? session.course_topic;
+                  coursesQuery.data?.find(
+                    (course) => course.id === session.course_id,
+                  )?.title ?? session.course_id;
                 const formatName =
                   presentationFormat.find(
                     (format) => format.value === session.presentation_format,
@@ -282,10 +267,10 @@ function RouteComponent() {
             <div
               role="radiogroup"
               aria-labelledby="courses-heading"
-              aria-describedby={errors.course_topic ? "course-error" : undefined}
+              aria-describedby={errors.course_id ? "course-error" : undefined}
               className="grid gap-3 sm:grid-cols-2"
             >
-              {requiredCourses.map((course) => (
+              {coursesQuery.data?.map((course) => (
                 <label
                   key={course.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm leading-6 transition ${
@@ -297,16 +282,31 @@ function RouteComponent() {
                   <input
                     type="radio"
                     value={course.id}
-                    {...register("course_topic")}
+                    {...register("course_id")}
                     className="mt-1 size-4 shrink-0 accent-indigo-600"
                   />
-                  {course.name}
+                  {course.title}
                 </label>
               ))}
             </div>
-            {errors.course_topic && (
+            {coursesQuery.isPending && (
+              <p role="status" className="mt-3 text-sm text-slate-500">
+                Loading courses...
+              </p>
+            )}
+            {coursesQuery.isError && (
+              <p role="alert" className="mt-3 text-sm text-red-700">
+                {coursesQuery.error.message}
+              </p>
+            )}
+            {coursesQuery.isSuccess && coursesQuery.data.length === 0 && (
+              <p className="mt-3 text-sm text-slate-500">
+                No published courses are available yet.
+              </p>
+            )}
+            {errors.course_id && (
               <p id="course-error" className="mt-3 text-sm text-red-700">
-                {errors.course_topic.message}
+                {errors.course_id.message}
               </p>
             )}
           </section>
