@@ -130,7 +130,7 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | POST | `/api/auth/password-reset/request` | Sends a six-digit Supabase Auth email code when the account exists |
 | POST | `/api/auth/password-reset/verify` | Verifies the code and updates the account password |
 | GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
-| POST | `/api/auth/logout` | Clears local sessions and revokes Supabase refresh sessions globally |
+| POST | `/api/auth/logout` | Clears local sessions; best-effort global revocation of Supabase sessions |
 | POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |
 | GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
 | POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
@@ -206,9 +206,10 @@ owner-scoped storage policy.
 	forwarded to Supabase Auth and never stored.
 - Sessions expire after 24 hours. Expiring access tokens refresh on `/api/profiles/me` with
 	per-session locking. Invalid sessions return 401; temporary upstream failures return 503.
-- Logout invalidates this user's local sessions even if Supabase revocation fails.
-	A 503 with `signed_out: true` means local sign-out succeeded but global revocation
-	could not be confirmed. Supabase access JWTs remain valid until their own expiry.
+- Logout invalidates this user's local sessions and always returns 204. Global
+	revocation of Supabase sessions is best-effort; when it fails (it cannot be
+	confirmed with the public anon key) it is logged, not reported. Supabase
+	access JWTs remain valid until their own expiry.
 - Use one backend worker only. Restarting or auto-reloading the backend clears every
 	session. Previous frontend-SDK sessions require a fresh sign-in.
 - Before production, replace the in-memory store with shared persistent storage,

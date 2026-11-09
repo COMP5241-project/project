@@ -170,13 +170,15 @@ def end_session(request: Request, response: Response, store: SessionStore,
     if not session:
         return
     store.remove_user(session.user_id)
+    # Global revocation is best-effort: the local session is gone and the
+    # cookie is cleared above, so the sign-out has already succeeded for the
+    # browser. The client is keyed with the public anon key, so the admin
+    # sign-out call usually cannot be confirmed; raising here would turn
+    # every sign-out into an error response.
     with session.lock:
         try:
             if client is None:
                 raise RuntimeError("Sign-in service unavailable")
             client.auth.admin.sign_out(session.access_token, "global")
         except Exception:
-            raise ApiError(
-                503, "logout_incomplete", "Signed out locally, but other sessions could not be revoked.",
-                clear_cookie=True, signed_out=True,
-            ) from None
+            logger.warning("Global Supabase session revocation failed during sign-out")

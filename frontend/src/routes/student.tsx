@@ -97,7 +97,7 @@ function StudentPage() {
       />
     )
   } else if (!state.profile.assessment_completed) {
-    content = <CsValidationAssessment onComplete={() => window.location.assign('/student')} />
+    content = <CsValidationAssessment onComplete={() => window.location.assign('/#/student')} />
   } else {
     const { inProgress, notStarted, completed } = groupCourses(coursesState.courses ?? [])
     content = (
