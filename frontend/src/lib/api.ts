@@ -513,10 +513,9 @@ export interface HallucinationChallenge {
   id: string
   title: string
   emoji: string
-  language: string
   category: string
   scenario: string
-  code: string[]
+  segments: string[]
   hint_mild: string
   hint_strong: string
 }
@@ -529,7 +528,7 @@ export interface JudgeVerdict {
   identified: string[]
   missed: string[]
   feedback: string
-  flaw_line: number
+  flaw_segment: number
   flaw_summary: string
 }
 

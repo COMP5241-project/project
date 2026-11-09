@@ -568,9 +568,9 @@ def test_hallucination_challenges_hide_answers(client: HttpxClient):
     challenges = response.json()
     assert [item["id"] for item in challenges] == ["ncs-01", "ncs-02", "ncs-03", "ncs-04"]
     for item in challenges:
-        assert "flaw_line" not in item
+        assert "flaw_segment" not in item
         assert "flaw_summary" not in item
-        assert item["code"] and item["hint_mild"] and item["hint_strong"]
+        assert item["segments"] and item["hint_mild"] and item["hint_strong"]
 
 
 def test_hallucination_judge_requires_session(client: HttpxClient, auth_client: Mock):
@@ -607,8 +607,8 @@ def test_hallucination_judge_returns_verdict_with_reveal(client: HttpxClient, mo
     assert response.status_code == 200
     body = response.json()
     assert body["score"] == 90 and body["rating"] == "sharp"
-    assert body["flaw_line"] == 4
-    assert body["flaw_summary"].startswith("calendar.set_month_name()")
+    assert body["flaw_segment"] == 3
+    assert body["flaw_summary"].startswith("Line 4 is absurd")
 
 
 def test_hallucination_judge_upstream_failure_is_service_unavailable(client: HttpxClient, monkeypatch):

@@ -250,7 +250,7 @@ function Game({ csQualified }: GameProps) {
       // The backend checks the tapped line against the hidden flaw and
       // returns the revealed line in the verdict.
       const judged = await judgeHallucinationCritique(challenge.id, critique.trim(), selectedLine)
-      setLineTappedCorrectly(selectedLine === judged.flaw_line)
+      setLineTappedCorrectly(selectedLine === judged.flaw_segment)
       setVerdict(judged)
       setResults((previous) => [
         ...previous,
@@ -258,7 +258,7 @@ function Game({ csQualified }: GameProps) {
           challengeId: challenge.id,
           score: judged.score,
           rating: judged.rating,
-          lineTappedCorrectly: selectedLine === judged.flaw_line,
+          lineTappedCorrectly: selectedLine === judged.flaw_segment,
         },
       ])
       startTransition(() => setPhase('verdict'))
@@ -309,7 +309,7 @@ function Game({ csQualified }: GameProps) {
         isLast={challengeIndex + 1 >= challenges.length}
         lineTappedCorrectly={lineTappedCorrectly}
         onNext={handleNext}
-        tappedLine={selectedLine ?? verdict.flaw_line}
+        tappedLine={selectedLine ?? verdict.flaw_segment}
         verdict={verdict}
       />
     ) : phase === 'summary' ? (
@@ -382,12 +382,13 @@ function IntroScreen({ challengeCount, onStart }: IntroScreenProps) {
         Spot the Hallucination
       </h1>
       <p className="mt-3 text-sm leading-6 text-gray-600">
-        Your overconfident AI intern wrote {challengeCount} tiny programs — and each one hides
-        exactly one mistake. Tap the suspicious line, explain what is wrong in your own words, and
-        your AI tutor will score your detective work. No coding experience needed.
+        Your overconfident AI intern wrote {challengeCount} short everyday notes — and each one
+        hides exactly one ridiculous mistake. Tap the suspicious line, explain what is wrong in
+        your own words, and your AI tutor will score your detective work. No specialist knowledge
+        needed — just your everyday common sense.
       </p>
       <ul className="mt-5 space-y-3 text-sm text-gray-700">
-        <Rule icon={Bot} text="Read a short snippet written by our AI intern." />
+        <Rule icon={Bot} text="Read a short everyday note written by our AI intern." />
         <Rule icon={MousePointerClick} text="Tap the one line that looks suspicious." />
         <Rule icon={Lightbulb} text="Stuck? Hints are free — they never cost points." />
         <Rule icon={Sparkles} text="Your AI tutor grades your critique and reveals the flaw." />
@@ -535,43 +536,43 @@ function ChallengeScreen({
         <p className="mt-2 text-sm leading-6 text-gray-600">{challenge.scenario}</p>
 
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-5">
-          <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-[#262626] shadow-sm sm:min-w-0 sm:flex-1">
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-              <span className="flex items-center gap-2 text-xs font-medium text-gray-300">
+          <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm sm:min-w-0 sm:flex-1">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
+              <span className="flex items-center gap-2 text-xs font-medium text-gray-500">
                 <Bot aria-hidden="true" size={13} />
-                AI intern&apos;s code · {challenge.language}
+                {challenge.emoji} AI intern&apos;s note
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Tap a line
               </span>
             </div>
-            <div aria-label="Code snippet — tap the suspicious line" className="p-3" role="group">
-              {challenge.code.map((line, index) => {
+            <div aria-label="AI note — tap the suspicious line" className="p-3" role="group">
+              {challenge.segments.map((line, index) => {
                 const isSelected = selectedLine === index
                 return (
                   <button
                     aria-pressed={isSelected}
-                    className={`w-full rounded-md px-2 py-1 text-left transition-colors ${
+                    className={`w-full rounded-md px-2 py-1.5 text-left transition-colors ${
                       isSelected
-                        ? 'tap-pulse bg-[#A21942]/25 ring-1 ring-[#A21942]'
-                        : 'hover:bg-white/10'
+                        ? 'tap-pulse bg-[#A21942]/10 ring-1 ring-[#A21942]'
+                        : 'hover:bg-gray-50'
                     }`}
                     key={`${challenge.id}-line-${index}`}
                     onClick={() => onSelectLine(index)}
                     type="button"
                   >
                     <span
-                      className="code-line-in flex items-start gap-3 font-mono text-xs leading-6"
+                      className="code-line-in flex items-start gap-3 text-sm leading-6"
                       style={{ animationDelay: `${Math.min(index * 90, 900)}ms` }}
                     >
                       <span
                         className={`w-5 shrink-0 select-none text-right ${
-                          isSelected ? 'text-[#F3A9BE]' : 'text-gray-500'
+                          isSelected ? 'text-[#A21942]' : 'text-gray-400'
                         }`}
                       >
                         {index + 1}
                       </span>
-                      <span className={isSelected ? 'text-white' : 'text-gray-200'}>
+                      <span className={isSelected ? 'font-medium text-[#801333]' : 'text-[#262626]'}>
                         {line.length === 0 ? '\u00A0' : line}
                       </span>
                     </span>
@@ -585,10 +586,10 @@ function ChallengeScreen({
               </div>
             ) : null}
           </div>
-          {/* Hint buddy sits beside the code (bottom-right on desktop, just
-              under the code on mobile) so a stuck player finds it where they
+          {/* Hint buddy sits beside the note (bottom-right on desktop, just
+              under the note on mobile) so a stuck player finds it where they
               are already looking. The wide column gives the thinking bubble
-              room to overlap the code card. */}
+              room to overlap the note card. */}
           <div className="flex w-full items-center justify-center sm:w-56 sm:shrink-0 sm:items-end">
             <SpotterCharacter
               bubble={spotterBubble}
@@ -711,7 +712,7 @@ function VerdictScreen({
             bubble={
               lineTappedCorrectly
                 ? { title: 'Nice instincts!', content: 'Sharp eye — the full breakdown is below.' }
-                : { title: 'Good try —', content: `The sneaky line was ${verdict.flaw_line + 1}.` }
+                : { title: 'Good try —', content: `The sneaky line was ${verdict.flaw_segment + 1}.` }
             }
           />
         </div>
@@ -732,7 +733,7 @@ function VerdictScreen({
         ) : (
           <>
             <CircleAlert aria-hidden="true" size={16} />
-            You tapped line {tappedLine + 1}. The suspicious line was {verdict.flaw_line + 1}.
+            You tapped line {tappedLine + 1}. The suspicious line was {verdict.flaw_segment + 1}.
           </>
         )}
       </p>
