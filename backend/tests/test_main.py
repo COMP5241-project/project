@@ -445,10 +445,10 @@ def test_auth_logout_invalidates_sessions_even_when_revocation_fails(client: Htt
     if unavailable:
         auth_client.auth.admin.sign_out.side_effect = RuntimeError("provider-secret")
     response = client.post("/api/auth/logout", json={})
-    assert response.status_code == (503 if unavailable else 204)
-    if unavailable:
-        assert response.json()["error"]["signed_out"] is True
-        assert "provider-secret" not in response.text
+    # A failed global revocation must not fail the sign-out itself: the
+    # local session is invalidated and the cookie cleared either way.
+    assert response.status_code == 204
+    assert "provider-secret" not in response.text
     assert not store.sessions
     assert COOKIE_NAME not in client.cookies
     assert client.get("/api/profiles/me").status_code == 401
@@ -500,8 +500,7 @@ def test_auth_missing_configuration_does_not_block_local_logout(client: HttpxCli
     auth_login(client)
     app.dependency_overrides[get_optional_auth_client] = lambda: None
     response = client.post("/api/auth/logout", json={})
-    assert response.status_code == 503
-    assert response.json()["error"]["signed_out"] is True
+    assert response.status_code == 204
     assert not store.sessions
     assert client.get("/api/profiles/me").status_code == 401
 
