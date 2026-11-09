@@ -24,6 +24,7 @@ import {
   ViewTransition,
   type ReactNode,
 } from 'react'
+import { SigningOutOverlay } from '../components/SigningOutOverlay'
 import {
   getHallucinationChallenges,
   judgeHallucinationCritique,
@@ -103,7 +104,8 @@ function HallucinationGamePage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#F8F9FA]">
+    <>
+    <main inert={state.isSigningOut} className="flex min-h-screen flex-col bg-[#F8F9FA]">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4">
           <Link aria-label="PolyU Edu 4.0 home" className="inline-flex items-center gap-2.5" to="/">
@@ -125,10 +127,15 @@ function HallucinationGamePage() {
             {state.status === 'ready' && (
               <button
                 className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                disabled={state.isSigningOut}
                 onClick={() => void state.signOut()}
                 type="button"
               >
-                <LogOut aria-hidden="true" size={15} />
+                {state.isSigningOut ? (
+                  <LoaderCircle aria-hidden="true" className="animate-spin" size={15} />
+                ) : (
+                  <LogOut aria-hidden="true" size={15} />
+                )}
                 Sign out
               </button>
             )}
@@ -144,6 +151,8 @@ function HallucinationGamePage() {
         © {new Date().getFullYear()} PolyU Education 4.0
       </footer>
     </main>
+    {state.isSigningOut && <SigningOutOverlay />}
+    </>
   )
 }
 

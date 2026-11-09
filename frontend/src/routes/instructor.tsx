@@ -2,6 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { CircleAlert, GraduationCap, House, LoaderCircle, LogOut, NotebookPen } from 'lucide-react'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { SigningOutOverlay } from '../components/SigningOutOverlay'
 import { useProfile } from '../lib/useProfile'
 
 export const Route = createFileRoute('/instructor')({
@@ -76,7 +77,8 @@ function InstructorPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#F8F9FA]">
+    <>
+    <main inert={state.isSigningOut} className="flex min-h-screen flex-col bg-[#F8F9FA]">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4">
           <Link aria-label="PolyU Edu 4.0 home" className="inline-flex items-center gap-2.5" to="/">
@@ -129,6 +131,8 @@ function InstructorPage() {
         © {new Date().getFullYear()} PolyU Education 4.0
       </footer>
     </main>
+    {state.isSigningOut && <SigningOutOverlay />}
+    </>
   )
 }
 
