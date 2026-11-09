@@ -242,6 +242,21 @@ def test_auth_accepts_all_loopback_origin_spellings(
     assert response.status_code == 200
 
 
+def test_auth_accepts_same_origin_request(
+    client: HttpxClient, auth_client: Mock, monkeypatch: pytest.MonkeyPatch
+):
+    # Simulates the single-domain Vercel deployment: the page's Origin host
+    # matches the request Host, so it is trusted even though it is not in
+    # FRONTEND_ORIGINS.
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173")
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.com", "password": "secret-password"},
+        headers={"Origin": "http://testserver"},
+    )
+    assert response.status_code == 200
+
+
 def test_auth_rejects_wrong_port_origin(
     client: HttpxClient, auth_client: Mock, monkeypatch: pytest.MonkeyPatch
 ):

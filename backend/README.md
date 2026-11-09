@@ -145,7 +145,9 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
 Mutating JSON endpoints require `Content-Type: application/json`; the material file-upload
 endpoint uses `multipart/form-data`. Mutating requests require an `Origin` header matching
-`FRONTEND_ORIGINS`. Origins are normalized before comparison, so the local
+`FRONTEND_ORIGINS` — or a same-origin request, where the `Origin` host equals the request
+`Host` (which is how the single-domain Vercel deployment works, so no domain needs to be
+listed). Origins are normalized before comparison, so the local
 loopback spellings `localhost`, `127.0.0.1`, and `[::1]` are treated as the same
 origin (the browser picks whichever `localhost` resolves to); scheme and port are
 still matched strictly. Use the frontend's same-origin `/api` proxy; CORS is not
