@@ -23,7 +23,7 @@ class JudgeRequest(BaseModel):
 
 @router.get("/challenges")
 def list_challenges():
-    # Player view only — flaw_line/flaw_summary stay server-side.
+    # Player view only — flaw_segment/flaw_summary stay server-side.
     return [challenge.to_player_view() for challenge in HALLUCINATION_CHALLENGES]
 
 
@@ -57,4 +57,4 @@ def judge(
             ) from None
         # The verdict screen reveals the correct line and the flaw, so both are
         # safe to return now that the student has already submitted their tap.
-        return {**verdict.model_dump(), "flaw_line": challenge.flaw_line, "flaw_summary": challenge.flaw_summary}
+        return {**verdict.model_dump(), "flaw_segment": challenge.flaw_segment, "flaw_summary": challenge.flaw_summary}

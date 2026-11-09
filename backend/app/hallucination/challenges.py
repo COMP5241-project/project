@@ -1,10 +1,11 @@
 """Static challenge bank for the "Spot the Hallucination" game.
 
-Every snippet hides exactly ONE flaw that a non-CS student can spot with
-common sense — no programming knowledge required. ``flaw_line`` (0-based
-index into ``code``) and ``flaw_summary`` are the answers: they power the
-line-tap check and the AI judge prompt, so they live on the backend and are
-never returned by the player-facing endpoint.
+Every AI-authored note hides exactly ONE flaw that any learner can spot with
+everyday knowledge — no programming required. The planted flaw is always
+absurd or plainly impossible so it is unmistakable. ``flaw_segment`` (0-based
+index into ``segments``) and ``flaw_summary`` are the answers: they power the
+tap check and the AI judge prompt, so they live on the backend and are never
+returned by the player-facing endpoint.
 """
 from dataclasses import dataclass
 
@@ -14,11 +15,10 @@ class HallucinationChallenge:
     id: str
     title: str
     emoji: str
-    language: str
     category: str
     scenario: str
-    code: tuple[str, ...]
-    flaw_line: int
+    segments: tuple[str, ...]
+    flaw_segment: int
     hint_mild: str
     hint_strong: str
     flaw_summary: str
@@ -29,10 +29,9 @@ class HallucinationChallenge:
             "id": self.id,
             "title": self.title,
             "emoji": self.emoji,
-            "language": self.language,
             "category": self.category,
             "scenario": self.scenario,
-            "code": list(self.code),
+            "segments": list(self.segments),
             "hint_mild": self.hint_mild,
             "hint_strong": self.hint_strong,
         }
@@ -41,117 +40,99 @@ class HallucinationChallenge:
 HALLUCINATION_CHALLENGES: tuple[HallucinationChallenge, ...] = (
     HallucinationChallenge(
         id="ncs-01",
-        title="The Time-Travel Booking App",
-        emoji="\U0001F4C5",
-        language="Python",
-        category="Hallucinated API",
+        title="The Breakfast Recipe",
+        emoji="\U0001F363",
+        category="Impossible recipe",
         scenario=(
-            "Your AI intern was asked to schedule the project kickoff. It proudly handed you "
-            "this script and insists the function it calls is “standard Python”."
+            "Your AI intern drafted a 10-minute breakfast recipe for the office coffee corner. "
+            "Everything looks appetising — except one line that is impossible to do."
         ),
-        code=(
-            "# AI intern draft v1 - meeting scheduler",
-            "import calendar",
-            "",
-            "def schedule_kickoff(year, month):",
-            '    calendar.set_month_name(month, "Launch Month")',
-            '    event_date = f"{year}-{month}-03"',
-            '    print("Kickoff scheduled for", event_date)',
-            "    return event_date",
+        segments=(
+            "Melt a knob of butter in a pan until it bubbles.",
+            "Crack in two eggs and scramble them for a minute.",
+            "Top with a handful of fresh cherry tomatoes.",
+            "Fold in a spoonful of peanut butter, then pour in half a cup of milk and drink.",
         ),
-        flaw_line=4,
-        hint_mild="AI models sound confident, but not every function they write actually exists.",
-        hint_strong="Look at what the calendar module is being asked to do. Can a calendar really rename a month?",
+        flaw_segment=3,
+        hint_mild="AI sounds confident about recipes, but not every combination you could mix is something you'd actually serve.",
+        hint_strong="Read that last line again. Would you really pour peanut butter and cold milk together into a pan, then drink it?",
         flaw_summary=(
-            "calendar.set_month_name() does not exist in Python’s calendar module — the AI "
-            "hallucinated this function. The script crashes immediately and the meeting never "
-            "gets scheduled."
+            "Line 4 is absurd: it tells you to fold peanut butter into scrambled eggs and then "
+            "pour in milk and drink the pan. No sensible breakfast combines peanut butter and "
+            "soured, lumpy egg-milk into a drink — the AI invented a step that simply cannot be "
+            "right."
         ),
     ),
     HallucinationChallenge(
         id="ncs-02",
-        title="The Weather Bot With Amnesia",
-        emoji="\U0001F326️",
-        language="Python",
-        category="Missing parameter",
+        title="The Morning Weather Forecast",
+        emoji="\U0001F326",
+        category="Impossible forecast",
         scenario=(
-            "Your AI intern built a weather bot. Ask it about Tokyo, Paris or your own street "
-            "— it gives the exact same confident answer every time."
+            "Your AI intern drafted tomorrow's weather forecast for the company newsletter. It "
+            "reads like a proper forecast — but one line could never actually happen."
         ),
-        code=(
-            "# AI intern draft v1 - weather bot",
-            "import requests",
-            "",
-            "def get_weather(city):",
-            '    response = requests.get("https://api.weather.example/current")',
-            "    data = response.json()",
-            '    return f"{city}: {data[\'temperature\']}°C and {data[\'summary\']}"',
+        segments=(
+            "Expect light rain before 9 AM, clearing to sunny skies by lunch.",
+            "High temperature of 24°C, with a light breeze from the west.",
+            "Sunrise at 2:00 PM, sunset at 8:00 AM.",
+            "Ultraviolet index of 5 — wear sunscreen if you will be outside after noon.",
         ),
-        flaw_line=4,
-        hint_mild="Watch what the bot actually does with the city you give it.",
-        hint_strong=(
-            "The web address it calls is always identical — the requested city (and any API "
-            "key) never appear in it."
-        ),
+        flaw_segment=2,
+        hint_mild="Forecasts are usually written in a calm, factual tone — but does every line actually make sense?",
+        hint_strong="Read line 3 twice. Which of the two events is written to come first, and how does that feel?",
         flaw_summary=(
-            "The request never includes the requested city (or any API key), so the bot "
-            "fetches the same data no matter which city is asked about. Every city gets the "
-            "same “forecast”."
+            "Line 3 says the sun rises at 2:00 PM and sets at 8:00 AM — but the sun cannot set "
+            "before it rises, and a 2 PM sunrise never happens. The AI swapped the order and "
+            "wrote times that are simply impossible."
         ),
     ),
     HallucinationChallenge(
         id="ncs-03",
-        title="The Playlist That Skips Your Favourite Song",
-        emoji="\U0001F3B5",
-        language="Python",
-        category="Off-by-one error",
+        title="The City Travel Guide",
+        emoji="\U0001F3DB",
+        category="Made-up fact",
         scenario=(
-            "Your AI intern wrote the player for your 5-song workout playlist. Every workout "
-            "ends one song early and you can’t figure out why."
+            "Your AI intern wrote a short guide to a famous landmark for the visitors' blog. It "
+            "sounds knowledgeable — until one detail is completely made up."
         ),
-        code=(
-            "# AI intern draft v1 - playlist player",
-            'playlist = ["Sunrise", "Neon Lights", "Ocean Drive", "Midnight Run", "Encore"]',
-            "",
-            "def play_all_songs(songs):",
-            "    for index in range(len(songs) - 1):",
-            '        print("Now playing:", songs[index])',
-            "",
-            "play_all_songs(playlist)",
+        segments=(
+            "The landmark was completed in the 1880s and has welcomed millions of visitors since.",
+            "You can take a lift to the top terrace for a view of the whole city.",
+            "On clear days, the terrace offers a 360-degree panorama of the skyline.",
+            "The entire tower is built from loose glass marbles and stands on no foundation at all.",
         ),
-        flaw_line=4,
-        hint_mild="Count the songs in the list, then count how many actually get played.",
-        hint_strong="range(len(songs) - 1) counts up to one less than the number of songs.",
+        flaw_segment=3,
+        hint_mild="Guides love to add impressive-sounding details, but not every detail is physically possible.",
+        hint_strong="A tower made of loose glass marbles, with nothing underneath it? Could that really stand up?",
         flaw_summary=(
-            "Off-by-one error: range(len(songs) - 1) loops one time too few, so the final song "
-            "(“Encore”) is silently skipped and never plays."
+            "Line 4 is nonsense: a tower cannot be built from loose glass marbles and have no "
+            "foundation — it would collapse straight away. The AI invented a physically "
+            "impossible “fact” and presented it as if it were true."
         ),
     ),
     HallucinationChallenge(
         id="ncs-04",
-        title="The Chatbot That Overshares",
-        emoji="\U0001F910",
-        language="Python",
-        category="Privacy leak",
+        title="The AI Health Coach",
+        emoji="\U0001F4AA",
+        category="Bad advice",
         scenario=(
-            "Your AI intern built a study-buddy chatbot. Users love it — until one of them "
-            "reads something that was never written for them."
+            "Your AI intern wrote a short “stay healthy” tip sheet for the staff noticeboard. "
+            "Most of it is reasonable — but one tip is the opposite of good sense."
         ),
-        code=(
-            "# AI intern draft v1 - study buddy chatbot",
-            'last_user_note = "I am really nervous about my exam tomorrow..."',
-            "",
-            "def greet_new_user(name):",
-            '    print("Hello " + name + ", welcome to Study Buddy!")',
-            '    print("A previous user wrote: " + last_user_note)',
-            '    return "session started"',
+        segments=(
+            "Aim for around eight hours of sleep each night.",
+            "Take a short walk after lunch to keep your energy up.",
+            "Drink two litres of fizzy soda every day to stay hydrated.",
+            "Put on sunscreen before you spend the afternoon outdoors.",
         ),
-        flaw_line=5,
-        hint_mild="Think about who exactly can read the message this bot prints.",
-        hint_strong="Would you be happy if a stranger read your private diary entry out loud?",
+        flaw_segment=2,
+        hint_mild="Health tips should make sense of your body — does every one of these actually help you?",
+        hint_strong="Line 3 suggests hydrating with soda. How much sugar is really in two litres of it?",
         flaw_summary=(
-            "Privacy leak: the bot prints the previous user’s private note to every new user. "
-            "One user’s personal data must never be shown to someone else."
+            "Line 3 is absurd: two litres of fizzy soda a day is loaded with sugar and is the "
+            "opposite of healthy hydration — you would recommend water instead. The AI gave "
+            "dangerous “advice” that sounds casual but is plainly wrong."
         ),
     ),
 )

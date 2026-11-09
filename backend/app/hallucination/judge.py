@@ -2,9 +2,14 @@
 
 One OpenRouter call per submission grades the student's critique against the
 challenge's hidden flaw. The key comes from ``OPENROUTER_API_KEY`` in
-``backend/.env`` and never reaches the browser. The model defaults to a
-free-tier OpenRouter model (paid models return 403 on credit-less keys) and
-can be overridden with ``OPENROUTER_MODEL``.
+``backend/.env`` and never reaches the browser.
+
+Model selection: ``judge_model()`` returns the primary model (``OPENROUTER_MODEL``
+when set, otherwise ``DEFAULT_JUDGE_MODEL``). OpenRouter regularly retires free
+slugs (they start returning 404 "unavailable for free"), so ``candidate_models()``
+pairs the primary with ``FALLBACK_JUDGE_MODELS`` and the judge transparently tries
+each in turn until one succeeds. This keeps the game working when a default goes
+stale.
 """
 import json
 import os
@@ -16,7 +21,14 @@ from pydantic import BaseModel
 from app.hallucination.challenges import HallucinationChallenge
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_JUDGE_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+DEFAULT_JUDGE_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+# Tried in order if the primary model is unavailable (404 retired, 403 no
+# credit, 429 rate-limited, 5xx) or returns no usable answer. Free slugs are
+# included so the judge degrades to free models if the key's credit runs out.
+FALLBACK_JUDGE_MODELS = (
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+)
 VALID_RATINGS = ("novice", "developing", "sharp")
 
 
@@ -41,29 +53,41 @@ def judge_model() -> str:
     return os.getenv("OPENROUTER_MODEL") or DEFAULT_JUDGE_MODEL
 
 
+def candidate_models() -> tuple[str, ...]:
+    """Primary model first, then the fallbacks (de-duplicated, in order)."""
+    primary = judge_model()
+    return (primary, *(model for model in FALLBACK_JUDGE_MODELS if model != primary))
+
+
 def openrouter_key() -> str | None:
     key = os.getenv("OPENROUTER_API_KEY")
     return key if key and key.strip() else None
 
 
 def build_system_prompt(challenge: HallucinationChallenge, tapped_correct_line: bool) -> str:
-    numbered_code = "\n".join(f"{index + 1}: {line}" for index, line in enumerate(challenge.code))
+    numbered_lines = "\n".join(
+        f"{index + 1}: {line}" for index, line in enumerate(challenge.segments)
+    )
     tap_note = (
         "The student correctly tapped this line as suspicious before writing their critique."
         if tapped_correct_line
         else "The student tapped a different line before writing their critique."
     )
     return (
-        "You are a friendly but fair grader for \"Spot the Hallucination\", a code-review game "
-        "for university students. Many players have NO programming background.\n\n"
-        f"The student was shown this {challenge.language} snippet:\n{numbered_code}\n\n"
-        f"The ONE real flaw in this snippet is on line {challenge.flaw_line + 1}:\n"
+        "You are a friendly but fair grader for \"Spot the Hallucination\", a game in which an "
+        "overconfident AI wrote a short everyday note (a recipe, a forecast, a guide, a tip "
+        "sheet) and slipped in ONE absurd or plainly wrong statement. Every player is a "
+        "university student with everyday knowledge only — no specialist background is needed.\n\n"
+        f"The note the student was shown:\n{numbered_lines}\n\n"
+        f"The ONE real flaw is on line {challenge.flaw_segment + 1}:\n"
         f"{challenge.flaw_summary}\n\n"
         f"{tap_note}\n\n"
         "Grade the critique in the user message. Rules:\n"
-        "- Reward correctly identifying the flaw and explaining its real-world consequence.\n"
-        "- Plain-language explanations earn full credit; never require technical jargon.\n"
-        "- Do not reward claims about problems that do not exist in the snippet.\n"
+        "- Reward correctly identifying the impossible or absurd statement and explaining in "
+        "plain words why it cannot be true.\n"
+        "- Plain-language, common-sense explanations earn full credit; never require technical "
+        "jargon.\n"
+        "- Do not reward claims about problems that do not exist in the note.\n"
         "- Keep feedback encouraging, specific, and addressed directly to the student.\n\n"
         "Respond with ONLY a JSON object - no markdown fences, no commentary - exactly in this "
         'shape:\n{"score": <integer 0-100>, "rating": "novice" | "developing" | "sharp", '
@@ -84,7 +108,7 @@ def judge_critique(
     JudgeNotConfiguredError when the key is missing and
     JudgeUnavailableError on any upstream failure (network, HTTP error,
     empty or unreadable answer)."""
-    tapped_correct_line = tapped_line == challenge.flaw_line
+    tapped_correct_line = tapped_line == challenge.flaw_segment
     key = openrouter_key()
     if not key:
         raise JudgeNotConfiguredError("The AI tutor service is not configured.")
@@ -92,28 +116,41 @@ def judge_critique(
         {"role": "system", "content": build_system_prompt(challenge, tapped_correct_line)},
         {"role": "user", "content": critique},
     ]
-    try:
-        response = http_client.post(
-            OPENROUTER_CHAT_URL,
-            headers={
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-            },
-            json={"model": judge_model(), "messages": messages},
-        )
-    except Exception:
-        raise JudgeUnavailableError("Unable to reach the AI tutor service.") from None
-    if response.status_code != 200:
-        raise JudgeUnavailableError(f"The AI tutor service returned an error ({response.status_code}).")
-    try:
-        payload = response.json()
-    except Exception:
-        raise JudgeUnavailableError("The AI tutor returned an unreadable answer.") from None
-    choices = payload.get("choices") or []
-    content = choices[0].get("message", {}).get("content") if choices else None
-    if not isinstance(content, str) or not content.strip():
-        raise JudgeUnavailableError("The AI tutor returned an empty response.")
-    return parse_verdict(content)
+    last_error = "Unable to reach the AI tutor service."
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+    for model in candidate_models():
+        try:
+            response = http_client.post(
+                OPENROUTER_CHAT_URL,
+                headers=headers,
+                json={"model": model, "messages": messages},
+            )
+        except Exception:
+            last_error = "Unable to reach the AI tutor service."
+            continue
+        if response.status_code != 200:
+            # This model is unusable for this key (404 retired, 403 no credit,
+            # 429 rate-limited, ...) - move on to the next candidate.
+            last_error = f"The AI tutor service returned an error ({response.status_code})."
+            continue
+        try:
+            payload = response.json()
+        except Exception:
+            last_error = "The AI tutor returned an unreadable answer."
+            continue
+        choices = payload.get("choices") or []
+        content = choices[0].get("message", {}).get("content") if choices else None
+        if not isinstance(content, str) or not content.strip():
+            last_error = "The AI tutor returned an empty response."
+            continue
+        try:
+            return parse_verdict(content)
+        except JudgeUnavailableError:
+            last_error = "The AI tutor returned an unreadable verdict."
+    raise JudgeUnavailableError(last_error)
 
 
 def parse_verdict(raw: str) -> JudgeVerdict:

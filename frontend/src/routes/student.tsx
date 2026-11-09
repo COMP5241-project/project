@@ -171,7 +171,7 @@ function StudentPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <GameCard
               cta="Play the game"
-              description="Your AI intern wrote some code — and every snippet hides one mistake. Tap the suspicious line, explain what&apos;s wrong, and let your AI tutor score your detective work."
+              description="Your AI intern wrote some everyday notes — and each one hides a ridiculous mistake. Tap the suspicious line, explain what&apos;s wrong, and let your AI tutor score your detective work."
               icon={<Bug aria-hidden="true" size={20} />}
               tag="New · 4D AI Fluency"
               title="Spot the Hallucination"
