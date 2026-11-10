@@ -88,6 +88,24 @@ def require_trusted_origin(request: Request) -> None:
 			and 1 <= int(codespace_match.group("port")) <= 65535
 		):
 			allowed.add(normalize_origin(origin))
+	# Trust same-origin requests: the frontend and backend are served from the
+	# same domain (a single Vercel project where the SPA sits at the root and
+	# /api proxies to this backend), so a real page's Origin host equals the
+	# request Host. This lets production, preview, and custom domains all work
+	# without listing every one in FRONTEND_ORIGINS, while a cross-site request
+	# (a different Origin host) is still rejected.
+	origin_header = request.headers.get("origin", "").strip().lower()
+	if origin_header:
+		origin_parts = urlsplit(origin_header)
+		origin_host = origin_parts.hostname or ""
+		host_header = request.headers.get("host", "").strip().lower()
+		host_only = host_header.split(":", 1)[0]
+		if (
+			origin_parts.scheme in ("http", "https")
+			and origin_host
+			and origin_host == host_only
+		):
+			allowed.add(normalize_origin(origin_header))
 	if normalize_origin(request.headers.get("origin", "")) not in allowed:
 		raise ApiError(403, "invalid_origin", "This request origin is not allowed.")
 

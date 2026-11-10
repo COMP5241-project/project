@@ -1,7 +1,5 @@
 # Softwareentwicklung im KI-Zeitalter
 
-> Aus den Kursfolien (83 Folien) destilliert. Wie KI die Softwareentwicklung verändert: Vibe Coding, Agentic Coding, Produktivitäts-Nachweise, Risiken und die Skills, die jetzt zählen.
-
 ---
 
 ## 1. Aufstieg KI-gestützter Programmierung
@@ -17,12 +15,20 @@
   - **Support & Scale (Betreuung & Skalierung)** — Fehler diagnostizieren, Logs analysieren, Fixes schneller als beim manuellen Debugging vorschlagen; Large-Scale-Refactoring unterstützen.
 - **Tool-Landschaft**: Consumer (Replit, v0, Lovable, bolt …) und Developer (GitHub Copilot, Cursor, Windsurf, Claude Code, Antigravity, Trae, Opencode), plus Design-Tools (Figma, Google Stitch).
 
+![Traditional SDLC vs agentic SDLC workflow](../notes_img/p74_01_p74_1.jpg)
+
 ## 2. Vibe Coding
 
 - Geprägt von **Andrej Karpathy**: „Sich voll und ganz den Vibes hingeben, Exponentialien umarmen und vergessen, dass Code überhaupt existiert." Fehlermeldungen einfach kopieren und zurückkleben — meistens löst sich das Problem dadurch.
 - Der Praktiker steuert nach **Ergebnis**, nicht durch Zeilen-Review.
 - Auch im Unternehmen angekommen: z. B. baute ein Sales- & Operations-Direktor ohne Engineering-Hintergrund bei iCHEF (Restaurant-Tech, TW) mehrere interne KI-Mini-Tools per „Vibe Coding" mit Gemini.
 - Agentic Coding macht Prototypen-Generierung zu einer Sache von Minuten/Stunden statt Wochen.
+
+![Comic: prompting the AI to fix it, then to fix the fix](../notes_img/p12_02_p12_2.jpg)
+
+![Vibe coding: hour 1 vs hour 11](../notes_img/p25_00_p25_0.jpg)
+
+![Emotional rollercoaster of an AI coding session](../notes_img/p25_02_p25_2.jpg)
 
 ## 3. Von LLM zu autonomen KI-Agenten
 
@@ -42,12 +48,18 @@ Drei Autonomie-Level:
 4. Coding-Agenten — Multi-File-Edits, Tool-Nutzung, Tests, Selbstkorrektur-Loop
 5. Autonome Agenten — Repos klonen, in Sandbox planen, Tests ausführen, PRs einreichen
 
+![Tool 2022, copilot 2023–2025, autonomous agent 2026 and beyond](../notes_img/p17_00_p17_0.jpg)
+
+![Autonomy ladder: autocomplete to autonomous agents, ~2021 to ~2026](../notes_img/p18_00_p18_0.jpg)
+
 ## 4. Wie Coding-Agenten arbeiten
 
 - Drei Phasen: **Kontext sammeln → handeln → Ergebnisse verifizieren**.
 - Tool-Familien: Dateioperationen (lesen, editieren, anlegen, umbenennen, reorganisieren); Suche (Dateien per Muster finden, Inhalte per Regex, Codebases erkunden); Ausführung (Shell-Befehle, Server starten, Tests, git); Web (suchen, Doku holen, Fehlermeldungen nachschlagen).
 - Beispiel: „Fixe die fehlschlagenden Tests" → 1. Test-Suite ausführen, um zu sehen, was fehlschlägt → 2. Fehler-Output lesen → 3. relevante Quelldateien suchen → 4. Dateien lesen, um den Code zu verstehen → 5. Dateien editieren → 6. Tests erneut ausführen, um zu verifizieren.
 - **Kontextfenster**: enthält alles, was der Agent über die Session weiß (Anweisungen, gelesene Dateien, eigene Antworten etc.). **Subagenten** bearbeiten Aufgaben in einem eigenen, separaten Kontextfenster, damit große Datei-Lesungen das eigene nicht belasten; nur Zusammenfassung und ein kleiner Metadaten-Anhang kommen zurück.
+
+![Agentic loop: gather context, take action, verify results](../notes_img/p20_00_p20_0.png)
 
 ## 5. Harness Engineering
 
@@ -82,6 +94,10 @@ Drei Autonomie-Level:
 - **Brownfield ist „die Küche renovieren, während die Bewohner noch in der Wohnung leben"**: Man kann nicht einfach das Wasser abschalten oder den Strom kappen; Wände einreißen oder Rohre verlegen muss mit extremer Präzision geschehen.
 - **Programmierung in der realen Welt ist messily (chaotisch)**: KI ist stark in abstrakter Mathematik und Algorithmen (GPT-5 erzielte einen perfekten Score bei der ICPC-Weltfinalrunde und löste alle 12 extrem schwierigen Probleme). Echte Codierung ist ganz anders: vage Business-Anforderungen in funktionierende Software übersetzen; Erwartungen managen, komplexe Legacy-Systeme verstehen, mit unberechenbaren menschlichen Faktoren umgehen. Herausforderungen für KI bei echtem Produktionscode: begrenzte Kontextfenster (100k–200k Tokens — nur ein Bruchteil einer mittelgroßen Codebase); komplexe Interdependenzen (Datenbanken, APIs, Microservices, Scripts, Wissen über Teams verstreut); Schwierigkeiten mit Business-Regeln, Edge Cases und menschlich getriebenen Ausnahmen; kann nicht einfach mit Menschen zusammenarbeiten, um unklare Anforderungen zu klären; versteckter Zustand und Infrastruktur-Komplexität (Caches, Message Queues, Session-Speicherung, verstreute Config-Dateien) — KI könnte Refactoring vorschlagen, ohne kritische Infrastruktur-Abhängigkeiten zu verstehen. **KI scheitert in chaotischen, realen Szenarien, die tiefes Kontextwissen erfordern.** Developer müssen weiterhin Kontext, Richtung und Qualitätskontrolle liefern; KI-Tools augmentieren Programmierer, ersetzen aber nicht menschliches Urteilsvermögen.
 
+![Productivity gains by project maturity and task complexity](../notes_img/p37_00_p37_0.jpg)
+
+![Greenfield vs brownfield codebases](../notes_img/p39_00_p39_0.jpg)
+
 ## 8. Arbeitsmarkt- und Karriere-Impact
 
 - Anthropic warnt: KI könnte in 1–5 Jahren **50 % der White-Collar-Einstiegsjobs** eliminieren; Salesforce kündigte an, 2025 keine Software-Engineers mehr einzustellen.
@@ -89,12 +105,20 @@ Drei Autonomie-Level:
 - Fall des Praktikanten: Vor der KI musste ein Manager, der eine Aufgabe delegierte, erst das Problem durchdenken, Anforderungen, Hintergrund und technische Spezifikationen schreiben, übergeben und dann Check-ins, Klärungen und Reviews durchführen. Mit KI kann der Manager, sobald Anforderungen und Design durchdacht sind, diese direkt an die KI zur schnellen Implementierung, Testung und Iteration geben — oft schneller als der komplette Praktikanten-Delegation-Zyklus. Während „Execution" zunehmend von KI erledigt wird, ist die wirklich wertvolle Fähigkeit für Praktikanten nicht mehr, gut spezifizierte Aufgaben auszuführen, sondern **lernen, wie man Probleme selbst definiert, scope-t und darüber nachdenkt**.
 - KI macht Coden zu einer **Grundlehensfähigkeit**: Früher verbrachten Software-Engineers viel Zeit damit, nachzudenken, wie man eine Feature schreibt oder einen Bug fixt — das Schreiben von Code war eine Hauptquelle des Programmierer-Werts (Java, Python, React, APIs, Debugging, Feature-Building). KI ist sehr effektiv darin, klare Anforderungen in funktionierenden Code zu verwandeln (Interfaces bauen, Bugs fixen, Tests schreiben, Code refactorn). **Nicht wissen, wie man Code schreibt, reicht nicht — aber nur wissen, wie man Code schreibt, reicht auch nicht.**
 
+![Theoretical vs observed AI coverage by occupation](../notes_img/p43_00_p43_0.jpg)
+
+![AI taking on boilerplate, bug fixes and tests; senior architect work above](../notes_img/p48_00_p48_0.jpg)
+
 ### Neue Rollen und Bausteine
 
 - **AI Engineer** (baut Anwendungen, die KI-Modelle per API nutzen) vs. **ML Engineer** (baut die KI-APIs selbst). Voraussetzungen: starke Software-Engineering-Grundlagen; Fähigkeit, verlässliche, skalierbare Anwendungen zu bauen; Wissen über moderne KI-Tools und Frameworks; Fokus auf User Experience und praktische Anwendungen.
 - Bausteine von GenAI-Apps über das bloße LLM-API-Call hinaus: Prompting-Techniken, Agentic-Frameworks, **Evals, Guardrails, RAG, Voice Stack, Async-Programming, Data-Extraction, Embeddings/VectorDBs, Model-Fine-Tuning, GraphDB-Nutzung mit LLMs, agentic Browser/Computer-Use, MCP, Reasoning-Modelle** …
 - **Tech-Job 2023 vs. 2026**: 2023 = HTML/CSS lernen → Demo-Projekte bauen → sich bewerben. 2026 = Systemdesign + Cloud-Infrastruktur + DevOps + Networking + Performance-Optimierung + Kommunikationsstärke … + LLM-API, AI-Agents, Prompt-/Context-Engineering … + echte Projekte bauen; sich von Tausenden Bewerbern abheben.
 - **Zara Zhang** (Humaniora-Hintergrund, non-technical Builder): Mit Claude Code und anderen Coding-Agenten konnte sie echte Produkte end-to-end shippen; sammelte **30k+ GitHub-Stars**, darunter 5+ Projekte mit über 1.000 Stars. Sie argumentiert, dass Coden von einem Beruf zu einer allgemeinen Fähigkeit wird, wie Schreiben; dass in der KI-Ära **das Stellen der richtigen Frage wichtiger sein kann als das Schreiben des perfekten Codes**; und dass Humanisten heute besonders gebraucht werden: um echte User-Bedürfnisse, Pain Points und Chancen wahrzunehmen; Ideen aus persönlichen Frustrationen, Gesprächen und Feedback zu gewinnen; nicht nur Technologie, sondern Menschen zu verstehen — ihre Kämpfe, ihre Szenarien, ihre Jobs-to-be-done; und Urteilsvermögen, Ästhetik und den Unterschied zwischen „gut" und „besser" zu kennen.
+
+![AI engineering skills map](../notes_img/p50_02_p50_2.jpg)
+
+![Getting a tech job in 2023 vs 2026](../notes_img/p58_00_p58_0.jpg)
 
 ## 9. Der neue menschliche Wert: vom Tun zum Definieren
 
@@ -108,10 +132,24 @@ Drei Autonomie-Level:
 - **Analogie des Restaurantmenüs**: Angenommen, eine KI designt ein Restaurantmenü — es kann fast sofort poliert aussehen. Aber: Ist das das richtige Menü für diese Kunden? Werden die Kunden das Essen mögen? Ist das Menük-Design gut? Passt es zur Marke? **Dafür gibt es keinen Pass/Fail-Test.** Die wahre Schwierigkeit hat sich zu „was als korrekt gilt" verschoben — das kann eine Maschine nicht allein entscheiden. *Ein Menü kann großartig aussehen und trotzdem das falsche Menü sein. Dafür gibt es keinen Test.* KI senkt die Kosten der Ausführung, aber die Richtung und das Urteil kommen immer noch von einem Menschen.
 - **Taste (Geschmack)**: „Für Software-Engineers sagen wir oft, euer Alpha liegt im Taste. Bauen wir das Richtige? Ist das, was wir bauen, tatsächlich gut? Manche sagen, ein Agent kann dir sagen, ob es gut ist. Ich widerspreche: Ein Agent kann dir sagen, ob eine Sache *aussehen* korrekt ist, ob sie eine Spezifikation erfüllt. Das bedeutet nicht, dass er sagen kann, was *gut* ist. Gut kann aus UX-Sicht gut bedeuten, es kann delightful sein, es kann etwas sein, zu dem eine Person tatsächlich zurückkehren will. Und es ist noch hinreichend nuanciert, dass es Modelle Zeit kosten wird, das voll zu ersetzen. Wir sagen den Leuten, dass Urteilsvermögen, Verifikation und all diese anderen Aspekte weiterhin wichtig sind. Aber selbst wenn man sagt, vielleicht in einem oder zwei Jahren holen die Modelle auf — wir brauchen immer noch Engineers, die für diese Systeme haftbar gemacht werden können. Das geschieht nicht über Nacht. Das geschieht, wenn du ein System verstehst, die Leute dir vertrauen und du diese Expertise hast."
 
+![Six soft skills: user empathy, systems thinking, problem framing, business awareness, communication, ownership](../notes_img/p65_00_p65_0.jpg)
+
+![FireCut: real problem plus an unfair advantage](../notes_img/p67_00_p67_0.jpg)
+
+![Fit the tool to how editors already work](../notes_img/p67_01_p67_1.jpg)
+
+![2-day rough prototype vs 6 weeks of daily iteration with 20 beta testers](../notes_img/p68_00_p68_0.jpg)
+
+![Building gets easier while attention stays scarce](../notes_img/p69_00_p69_0.jpg)
+
+![A good product nobody sees is invisible](../notes_img/p69_01_p69_1.jpg)
+
 ### Die neue Engstelle: Review-Kapazität
 - Code-Generierung ist leicht; **Verifikation ist der Differenzierer.**
 - Gute Tests schreiben (Unit/Integration/E2E); Code kritisch lesen; systematisch debuggen.
 - **Der Aufstieg des Architekten**: Die Rolle des Entwicklers wandelt sich. Statt nach geschriebenen Code-Zeilen beurteilt wird, wird man beurteilt nach: **der Klarheit seiner Spezifikationen** und **der Strenge seiner Verifikation**.
+
+![From the coder and syntax to the architect with system design and verification](../notes_img/p76_00_p76_0.jpg)
 
 ### Von Vibe Coding zu Agentic Engineering
 
@@ -126,6 +164,8 @@ Der entscheidende Differenzierer: **Wie viel Struktur, Verifikation und menschli
 | Passender Scope | Prototypen, Scripts, persönliche Projekte, Hackathons | Features innerhalb etablierter Codebases | Produktionssysteme, teamskalige Entwicklung |
 | Risikoprofil | Hoch; akzeptabel für Wegwerf-Code | Moderat; menschliches Urteilsvermögen an Checkpoints | Niedrig; systematische Verifikation in jeder Stufe |
 
+![Spectrum: vibe coding to structured AI-assisted to agentic engineering](../notes_img/p77_00_p77_0.jpg)
+
 ## 10. Wesentliche Skills im KI-Zeitalter
 
 1. **Wissen, was zu bauen ist und warum es zählt** — Welches Ziel dient diese Anforderung? Ist die Anforderung tatsächlich wichtig? Was sind die echten Probleme der User? Welche Features lohnen sich zu bauen und warum?
@@ -137,6 +177,8 @@ Der entscheidende Differenzierer: **Wie viel Struktur, Verifikation und menschli
 7. **Product- und Stakeholder-Skills** — mit Stakeholdern interagieren, um ihre Pain Points zu identifizieren, Feedback zu Prototypen zu sammeln und das Produkt iterativ zu verbessern; ein System bauen, das für Stakeholder wirklich nützlich ist und das sie gerne nutzen, dafür bezahlen und weiterempfehlen. **„Stakeholder-Skills" sind heute Kern-Engineering-Skills**: mit Stakeholdern sprechen, um ihre echten Probleme zu verstehen (User, Kunden, Geschäftsinhaber); der Engineer, der User tief versteht und das in präzise Agent-Anweisungen übersetzen kann, ist weit wertvoller.
 
 > Während KI (einen Teil / die Mehrheit) der Coding-Aufgaben automatisieren kann, ist der Bau einer guten Software-Produkt, das wirklich nützlich ist, in der Produktion deployed wird, robust, skalierbar und zuverlässig von einer großen Zahl von Nutzern verwendet wird, **nicht trivial**!
+
+![The AI-era skill pyramid](../notes_img/p78_00_p78_0.jpg)
 
 ### Im KI-Zeitalter wettbewerbsfähig bleiben
 - Ein „mediokeren" Prototypen zu produzieren ist heute mit KI viel leichter — **Mittelmaß ist in der KI-Ära nicht gut genug**.

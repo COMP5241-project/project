@@ -340,7 +340,7 @@ function setMusicUI(playing) {
 function showUnmutePrompt() {
   if (soundEnabled) return;
   unmuteBtn.classList.add("is-visible");
-  musicStatus.textContent = "Playing muted — click Enable Sound";
+  musicStatus.textContent = "Autoplay blocked — click Enable Sound";
   musicStatus.classList.add("is-visible");
 }
 
@@ -348,6 +348,7 @@ function enableSound() {
   if (!ytPlayer) return;
   ytPlayer.unMute();
   soundEnabled = true;
+  ytPlayer.playVideo();
   unmuteBtn.classList.remove("is-visible");
   musicStatus.textContent = "";
   musicStatus.classList.remove("is-visible");
@@ -364,11 +365,8 @@ function startMusic() {
 
 function onPlayerReady() {
   if (!autoplayRequested) return;
-  // Browsers block audible autoplay, but allow muted autoplay.
-  // Start muted so the video plays immediately, then prompt to unmute.
-  ytPlayer.mute();
+  ytPlayer.unMute();
   ytPlayer.playVideo();
-  showUnmutePrompt();
 }
 
 function onPlayerStateChange(event) {

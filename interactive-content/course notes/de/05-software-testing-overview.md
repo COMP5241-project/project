@@ -1,7 +1,5 @@
 # Überblick über Software-Testing
 
-> Aus den Kursfolien (60 Folien) destilliert. Testing-Grundlagen (Happy Path / Edge / Negativ), statisches vs. dynamisches Testing, DRE, Testpyramide, Unit-/Integration-/UI-Testing mit Playwright, TDD und Usability-Testing.
-
 ---
 
 ## 1. Was ist Software-Testing
@@ -15,6 +13,12 @@ Eine **Untersuchung, um Stakeholdern Informationen über die Qualität** des get
   - PDF genau bei Supabases maximaler Dateigröße; sehr langer Dateiname; Dokument, das das maximale Kontextfenster des LLMs ausschöpft; schnelles wiederholtes Klicken auf „Summarize"; während des Uploads wegnavigieren und zurückkehren.
   - Verwandte API-Fehler: `200 OK`, `400 Bad Request` (Content-Filter / ungültige Anfrage), `429 Too Many Requests` (Rate-Limit), `500 Internal Server Error`.
 - **Negatives Testing** — ungültige Eingaben & Fehlerbedingungen, die das System ablehnen oder sauber behandeln sollte: nicht unterstützte Dateitypen (`.exe`, `.mp4`, `.zip`), korrupte PDFs, überdimensionierte Dateien, LLM-API-Ausnahmen, schnelle wiederholte Einsendungen an den Summary-Endpoint.
+
+![Defect origins: specification and design dominate, then code and other](../notes_img/L5/p06_00_p06_0.jpg)
+
+![The final product includes code, manuals, help files, labels, error messages and more](../notes_img/L5/p07_00_p07_0.jpg)
+
+![Cost to fix a bug rises the later it is found: specification, design, code, test, release](../notes_img/L5/p08_00_p08_0.jpg)
 
 ## 2. Defekte, Test-Typen, Kosten
 
@@ -38,6 +42,10 @@ Eine **Untersuchung, um Stakeholdern Informationen über die Qualität** des get
 - **Übung**: Team A findet 30 im Testing / 70 bei den Usern (DRE ≈ 30 %); Team B findet 20 / 30 (DRE ≈ 40 %) → **B ist effektiver**, trotz weniger gesamt.
 - Jede Phase kann Defekte *einführen* und *entfernen*; Testing dient vor allem der Entfernung — und Defekte falsch zu fixen kann neue einführen.
 
+![Market Lane shop: storefront, shopping cart and checkout pages](../notes_img/L5/p15_00_p15_0.jpg)
+
+![Shopping cart with 3 items totalling $49.97](../notes_img/L5/p16_00_p16_0.jpg)
+
 ## 3. Manueller vs. automatisierter Test
 
 ### Manueller Test
@@ -56,6 +64,18 @@ Eine Person führt Testfälle manuell aus (z. B. Warenkorb-Beispiel: 2× 19,99 $
 Software steuert die Testausführung. Agiler kurze Zyklen machen manuelle Regression fast unmöglich. **Schichten** (schnell/billig → langsam/teuer): **Unit-Tests → Service-Layer-Tests → UI-Tests**.
 
 Weisen, automatisierte Tests zu schreiben: **Hand-scripted** (Testcode schreiben), **aufgezeichnet** (Tools erfassen UI-Interaktionen zur Wiedergabe), **GenAI-gestützt** (z. B. GitHub Copilot).
+
+![Test layers: UI, service and logic, as a pyramid of UI, integration and unit tests](../notes_img/L5/p18_00_p18_0.jpg)
+
+![Unit tests target the logic layer (circled)](../notes_img/L5/p20_00_p20_0.jpg)
+
+![Add to cart button](../notes_img/L5/p21_02_p21_2.jpg)
+
+![Cart holding two juices and a baguette](../notes_img/L5/p21_03_p21_3.jpg)
+
+![The same cart test written in JUnit and pytest](../notes_img/L5/p21_04_p21_4.jpg)
+
+![Flaky test: the same test passes, fails, then passes across runs](../notes_img/L5/p23_00_p23_0.jpg)
 
 ## 4. Unit-Testing
 
@@ -85,11 +105,31 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 - **Dependencies & Flaky-Tests**: Warten auf IO/externe Services killt die Test-Geschwindigkeit; Tests, die auf Live-Services/DBs/Netzwerke angewiesen sind, schlagen intermittierend fehl → **Flaky-Test** = inkonsistente Ergebnisse ohne Code-Änderung.
 - **Mock** — ein simuliertes Objekt, das eine echte Dependency mimt: Rückgabewerte steuern, Fehler simulieren, ohne echte externe Systeme anzufassen.
 
+![CheckoutService with its database and external payment and mail services](../notes_img/L5/p23_01_p23_1.jpg)
+
+![A mock API client returns a controlled response to the business logic](../notes_img/L5/p24_00_p24_0.jpg)
+
 ## 5. Integrationstesting
 
 - Verifizieren, dass mehrere Komponenten zusammenarbeiten: REST-API-Endpoints, Business-Logik, Datenbank.
 - HTTP ist das Request/Response-Protokoll des Webs; eine REST-API tauscht Daten über HTTP-Methoden (GET, POST, PUT, DELETE) aus.
 - **Mocking**: Die API führt echte Business-Logik gegen die eigene Datenbank der App aus, aber **externe Services (z. B. der Payment-Anbieter) werden gemockt**, da die App sie nicht kontrolliert.
+
+![Happy path checkout flow: browser, API, logic, Stripe, database and mail service](../notes_img/L5/p15_01_p15_1.jpg)
+
+![Checkout page showing payment successful and order abc12345](../notes_img/L5/p29_01_p29_1.jpg)
+
+![Playwright test: click Pay with an empty form and assert required-field errors](../notes_img/L5/p30_00_p30_0.jpg)
+
+![Playwright test: fill a declined card number and assert the declined message](../notes_img/L5/p30_01_p30_1.jpg)
+
+![Checkout form with all required fields flagged](../notes_img/L5/p30_02_p30_2.jpg)
+
+![Checkout page showing the transaction declined error](../notes_img/L5/p30_03_p30_3.jpg)
+
+![Playwright MCP: the IDE and MCP protocol drive a server that controls a browser](../notes_img/L5/p33_00_p33_0.jpg)
+
+![A Copilot agent drives the Market Lane checkout through the Playwright MCP server](../notes_img/L5/p33_01_p33_1.jpg)
 
 ## 6. UI-/End-to-End-Testing mit Playwright
 
@@ -104,6 +144,16 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 - **Playwright + MCP** (Model Context Protocol): ein offenes Protokoll, das LLM-Apps mit externen Tools/Services verknüpft — lässt einen KI-Agenten den Browser in natürlicher Sprache steuern, statt für jeden Schritt ein neues Script zu schreiben.
 - **Übung**: `git clone https://github.com/HKPolyUSE/playwright_testing`; `@playwright/mcp` MCP-Server in der IDE konfigurieren; das Login-Hilfs-Beispiel ausführen (`doLogin` mit `getByRole`-Locators).
 
+![UI and integration tests are good for integration testing](../notes_img/L5/p38_00_p38_0.jpg)
+
+![Smoke tests: quick checks like login and search](../notes_img/L5/p38_01_p38_1.jpg)
+
+![Test speed: UI ~1000ms, integration ~100ms, unit ~1ms; UI tests tend to be slow](../notes_img/L5/p39_00_p39_0.jpg)
+
+![A Submit button broken by an ID change, new animation or layout shift](../notes_img/L5/p39_01_p39_1.jpg)
+
+![Debugging a UI failure: is it the database, the API or the rendering?](../notes_img/L5/p39_02_p39_2.jpg)
+
 ### UI-Test-Trade-offs
 
 | Vorteile | Einschränkungen |
@@ -112,9 +162,17 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 | End-to-End-Abdeckung (UI → Services → DB) | Fragil: ein Label-Umbenennen („Submit"→„Confirm") bricht hard-coded Selectors |
 | Super für High-Level **Smoke Tests** (ist das System hoch, deployed, verbunden?) | Ein E2E-Fehler sagt, dass *irgendwas* falsch ist, aber selten *wo* |
 
+![Test automation infrastructure: case manager, controllers, machines, results and reports](../notes_img/L5/p40_00_p40_0.jpg)
+
 ### Vorteile der Automatisierung insgesamt
 
 **Schnell** (Load-Testing, massive Zufalls-Tests), **zuverlässig** (identische Operationen bei jedem Lauf, kein Menschenfehler), **wiederholbar** (Regressionstesting).
+
+![Ice cream cone: mostly manual testing with automation at the UI level](../notes_img/L5/p41_00_p41_0.jpg)
+
+![Unit vs integration vs E2E by focus, dependencies, speed and cost](../notes_img/L5/p41_01_p41_1.jpg)
+
+![Test pyramid: 70% unit, 20% integration, 10% E2E](../notes_img/L5/p42_00_p42_0.jpg)
 
 ## 7. Test-Form: Pyramide vs. Cone
 
@@ -123,6 +181,8 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
   - **Unit-Tests** (Basis) — isolierte Funktionen/Methoden; billig, Millisekunden, sofortiges Feedback.
   - **Integrationstests** (Mitte) — Komponenten/Services zusammen: API-Endpoints, DB-Operationen, Service-Kommunikation.
   - **UI-/E2E-Tests** (Spitze) — komplette User-Journeys durch die UI.
+
+![TDD circle of life: test fails, refactor, test passes](../notes_img/L5/p44_00_p44_0.jpg)
 
 ## 8. Testgetriebene Entwicklung (TDD)
 

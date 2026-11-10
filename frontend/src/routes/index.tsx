@@ -92,6 +92,10 @@ const fluencyDimensions: FluencyDimension[] = [
   },
 ]
 
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+}
+
 function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeAudience, setActiveAudience] = useState<'non-cs' | 'cs'>('non-cs')
@@ -131,12 +135,12 @@ interface NavbarProps {
 }
 
 function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: NavbarProps) {
-  const dashboardHref: '/instructor.html' | '/student' | '/login' =
+  const dashboardHref: '/instructor.html' | '#/student' | '#/login' =
     signedInRole === 'instructor'
       ? '/instructor.html'
       : signedInRole === 'student'
-        ? '/student'
-        : '/login'
+        ? '#/student'
+        : '#/login'
   const secondaryLabel =
     signedInRole === 'instructor'
       ? 'Instructor Studio'
@@ -171,6 +175,10 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
               className="text-[13px] font-medium text-gray-600 transition-colors hover:text-[#A21942]"
               href={link.href}
               key={link.label}
+              onClick={(event) => {
+                event.preventDefault()
+                scrollToId(link.href.slice(1))
+              }}
             >
               {link.label}
             </a>
@@ -210,7 +218,11 @@ function Navbar({ mobileMenuOpen, onMenuToggle, onNavigate, signedInRole }: Navb
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#A21942]"
                 href={link.href}
                 key={link.label}
-                onClick={onNavigate}
+                onClick={(event) => {
+                  event.preventDefault()
+                  scrollToId(link.href.slice(1))
+                  onNavigate()
+                }}
               >
                 {link.label}
               </a>
@@ -274,6 +286,10 @@ function Hero({ onDemoOpen }: HeroProps) {
             <a
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#A21942] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-8px_rgba(162,25,66,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
               href="#preview"
+              onClick={(event) => {
+                event.preventDefault()
+                scrollToId('preview')
+              }}
             >
               Explore mini-courses <ArrowRight aria-hidden="true" size={17} />
             </a>
@@ -313,6 +329,10 @@ function Hero({ onDemoOpen }: HeroProps) {
         aria-label="Scroll to learning paths"
         className="mx-auto mb-7 hidden w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 transition-colors hover:text-[#A21942] lg:flex"
         href="#audiences"
+        onClick={(event) => {
+          event.preventDefault()
+          scrollToId('audiences')
+        }}
       >
         Find your learning path <ArrowDown aria-hidden="true" size={14} />
       </a>
@@ -574,6 +594,10 @@ function AudienceSection({
             <a
               className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#A21942] transition-colors hover:text-[#801333]"
               href="#preview"
+              onClick={(event) => {
+                event.preventDefault()
+                scrollToId('preview')
+              }}
             >
               See your learning path <ArrowRight aria-hidden="true" size={16} />
             </a>
@@ -795,6 +819,10 @@ function AIFluencySection() {
             <a
               className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-white transition-colors hover:text-[#F3A9BE]"
               href="#preview"
+              onClick={(event) => {
+                event.preventDefault()
+                scrollToId('preview')
+              }}
             >
               See it in a mini-course <ArrowRight aria-hidden="true" size={16} />
             </a>
@@ -863,7 +891,7 @@ function InteractivePreview() {
               </div>
               <a
                 className="mt-8 inline-flex w-fit items-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-                href="/courses/sample"
+                href="#/courses/sample"
               >
                 Explore this course <ArrowRight aria-hidden="true" size={16} />
               </a>
@@ -991,13 +1019,17 @@ function CTASection() {
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
             <a
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#801333] transition-colors hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              href="/courses/sample"
+              href="#/courses/sample"
             >
               I’m a student <ArrowRight aria-hidden="true" size={16} />
             </a>
             <a
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-white/35 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               href="#instructors"
+              onClick={(event) => {
+                event.preventDefault()
+                scrollToId('instructors')
+              }}
             >
               I’m an instructor <ArrowRight aria-hidden="true" size={16} />
             </a>
@@ -1014,7 +1046,7 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12">
         <div className="flex flex-col justify-between gap-8 sm:flex-row">
           <div className="max-w-sm">
-            <a aria-label="PolyU Education 4.0 home" className="inline-flex items-center gap-2.5" href="#top">
+            <a aria-label="PolyU Education 4.0 home" className="inline-flex items-center gap-2.5" href="#top" onClick={(event) => { event.preventDefault(); scrollToId('top') }}>
               <span className="flex size-9 items-center justify-center rounded-xl bg-[#A21942] text-white">
                 <GraduationCap aria-hidden="true" size={20} />
               </span>
@@ -1035,17 +1067,17 @@ function Footer() {
             <div>
               <h3 className="text-xs font-bold text-gray-900">Explore</h3>
               <ul className="mt-3 space-y-2.5">
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#features">Features</a></li>
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#preview">Mini-courses</a></li>
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#fluency">AI Fluency</a></li>
+                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#features" onClick={(event) => { event.preventDefault(); scrollToId('features') }}>Features</a></li>
+                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#preview" onClick={(event) => { event.preventDefault(); scrollToId('preview') }}>Mini-courses</a></li>
+                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#fluency" onClick={(event) => { event.preventDefault(); scrollToId('fluency') }}>AI Fluency</a></li>
               </ul>
             </div>
             <div>
               <h3 className="text-xs font-bold text-gray-900">For you</h3>
               <ul className="mt-3 space-y-2.5">
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#audiences">Students</a></li>
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#instructors">Instructors</a></li>
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#get-started">Get started</a></li>
+                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#audiences" onClick={(event) => { event.preventDefault(); scrollToId('audiences') }}>Students</a></li>
+                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#instructors" onClick={(event) => { event.preventDefault(); scrollToId('instructors') }}>Instructors</a></li>
+                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#get-started" onClick={(event) => { event.preventDefault(); scrollToId('get-started') }}>Get started</a></li>
               </ul>
             </div>
           </div>

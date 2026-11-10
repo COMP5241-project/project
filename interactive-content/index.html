@@ -215,7 +215,13 @@
   </footer>
 
   <script>
-    const aboutPages = ["e_egg/tomori.html", "e_egg/arale.html"];
+    const aboutPages = [
+      "e_egg/milk-dragon.html",
+    ];
+    const contactPages = [
+      "e_egg/tomori.html",
+      "e_egg/arale.html",
+    ];
     document.getElementById("aboutUsBtn").addEventListener("click", () => {
       const page = aboutPages[Math.floor(Math.random() * aboutPages.length)];
       const popupUrl = new URL(page, window.location.href);
@@ -224,11 +230,10 @@
     });
 
     document.getElementById("contactUsBtn").addEventListener("click", () => {
-      window.open(
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "_blank",
-        "noopener,noreferrer",
-      );
+      const page = contactPages[Math.floor(Math.random() * contactPages.length)];
+      const popupUrl = new URL(page, window.location.href);
+      popupUrl.searchParams.set("autoplay", "1");
+      window.open(popupUrl.href, "_blank", "noopener,noreferrer");
     });
   </script>
 </body>

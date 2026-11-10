@@ -1,8 +1,8 @@
 # ソフトウェア開発における協働とバージョン管理
 
-> コース資料(46スライド)から抽出・整理したノート。Git の基礎、Alice/Bob による完全なコラボレーション実演、reset/revert/restore のセマンティクス、GitHub Flow、セマンティックバージョニング。
-
 ---
+
+![DevOps tool landscape across Collaborate, Build, Test, Deploy, and Run](../notes_img/L3/p02_01_p02_1.jpg)
 
 ## 1. なぜバージョン管理が必要か
 
@@ -13,6 +13,10 @@
 - **Git** — ソースコードの履歴を追跡するバージョン管理システム。
 - **リポジトリ** — プロジェクト全体の容器:全ファイル/フォルダ+完全な改訂履歴;プロジェクト作業が行われる場所(プロジェクトフォルダ)。
 - **GitHub** — Git リポジトリをクラウドホスティングするサービス(**リモートリポジトリ**は Git リポジトリをホストするサーバ全般、例:GitHub や Bitbucket)。
+
+![Clone: GitHub remote repository cloned to a local machine, with push back](../notes_img/L3/p05_00_p05_0.jpg)
+
+![Fork: original repository forked to a personal copy, cloned locally, contributing back via pull request](../notes_img/L3/p05_01_p05_1.jpg)
 
 ### Clone vs Fork
 
@@ -37,6 +41,8 @@
 | `git status` | 現在のリポジトリ状態、変更、ブランチ情報 |
 | `git diff` | ブランチ/コミット間の差分を表示 |
 
+![Working directory, staging area, local repository, and remote repository connected by git add, git commit, and git push](../notes_img/L3/p08_00_p08_0.jpg)
+
 ### 3 つのゾーン
 
 1. **ワーキングディレクトリ** — 実際にファイルを作成・編集・削除しているフォルダ。
@@ -47,6 +53,40 @@
 - **Push** = ローカルコミット(例:`main`)をリモート(`origin/main`)へアップロード。
 - **ブランチ** = `main` から分岐した独立した開発ライン;機能/バグ作業を完了まで隔離。
 - **マージ** = 完了したブランチを main に統合;**2 つの親**を持つ新しいコミットを作成し、両ブランチの全作業を含む。
+
+![git clone downloads the login-app repository with full history from GitHub to a local laptop](../notes_img/L3/p07_00_p07_0.jpg)
+
+![Making a commit with git commit and viewing commit history with git log](../notes_img/L3/p09_00_p09_0.jpg)
+
+![git push origin main pushes local commits to the remote origin](../notes_img/L3/p10_00_p10_0.jpg)
+
+![git checkout -b feature creates an isolated timeline for Alice's work](../notes_img/L3/p11_00_p11_0.jpg)
+
+![Two developers on diverging branches E and F merged together in a new commit G](../notes_img/L3/p12_00_p12_0.jpg)
+
+![Project folder downloaded from the origin remote to a local machine](../notes_img/L3/p13_01_p13_1.jpg)
+
+![Login form added to index.html, staged with git add and committed](../notes_img/L3/p14_01_p14_1.jpg)
+
+![Alice's local commits pushed to the remote origin](../notes_img/L3/p15_00_p15_0.jpg)
+
+![Feature branch split off main with HEAD at its tip](../notes_img/L3/p16_00_p16_0.jpg)
+
+![Alice commits the styled login button and previews it in the browser](../notes_img/L3/p17_00_p17_0.jpg)
+
+![Bob pushes an accessible version of the login button with an aria-label](../notes_img/L3/p18_00_p18_0.jpg)
+
+![Alice's feature branch compared with the origin/main remote-tracking branch after git fetch](../notes_img/L3/p19_00_p19_0.jpg)
+
+![git diff output showing Bob's remote change against Alice's local change on the same line](../notes_img/L3/p20_00_p20_0.jpg)
+
+![The diff reveals incompatible changes on the same line](../notes_img/L3/p20_01_p20_1.jpg)
+
+![Conflict markers: HEAD (Alice's changes), the dividing line, and origin/main (Bob's changes)](../notes_img/L3/p21_01_p21_1.jpg)
+
+![Conflict resolution keeps both the style and accessibility features](../notes_img/L3/p22_01_p22_1.jpg)
+
+![Merged code pushed from the local repository to the remote origin](../notes_img/L3/p23_01_p23_1.jpg)
 
 ## 3. シナリオ演習(Alice & Bob)
 
@@ -79,11 +119,15 @@
 | `test:` | テストの新規追加/変更 |
 | `chore:` | 維持管理(`package.json` の依存更新、`.gitignore` 等の設定変更、ドキュメントなど) |
 
+![git fetch is safe and does not touch current work; git pull downloads and immediately attempts to merge](../notes_img/L3/p29_00_p29_0.jpg)
+
 ## 5. Fetch vs Pull とブランチの衛生管理
 
 - **`git fetch`**:新データをダウンロードするがワーキングファイルには触れない — 安全で、マージ前にレビュー可能。
 - **`git pull`** = fetch + 現在の作業への即時マージ。
 - **頻繁に main から pull**:機能ブランチ上で最新を保ち、他人の更新と同期;マージ競合のリスクを低減;小さな競合を逐次解決し、最後に大量の複雑な競合に直面しない。
+
+![GitHub Flow: create branch, add commits, open pull request, review and discuss, deploy, merge](../notes_img/L3/p31_00_p31_0.jpg)
 
 ## 6. GitHub Flow
 
@@ -94,6 +138,22 @@
 3. **PR を開く** — ブランチの変更を main へのマージを提案;議論とレビューを開始。
 4. **レビューと議論** — レビュアーが改善提案・質問;開発者がブランチにコミットを続けフィードバックに対応。
 5. **main にマージ** — 機能が本番対応コードとなる。
+
+![HEAD history with commits C, B, A and the HEAD~2 target](../notes_img/L3/p32_00_p32_0.jpg)
+
+![git reset --soft: HEAD moves to commit A while index and working directory keep the changes](../notes_img/L3/p33_00_p33_0.jpg)
+
+![git reset --mixed: HEAD moves, the index is reset, and the working directory keeps the changes](../notes_img/L3/p34_00_p34_0.png)
+
+![git reset --hard: HEAD moves and the working directory changes are destroyed](../notes_img/L3/p35_00_p35_0.jpg)
+
+![Warning: this deletes uncommitted work; always check git status first](../notes_img/L3/p35_01_p35_1.jpg)
+
+![Reset modes compared: soft, mixed, and hard across HEAD, index, and working directory](../notes_img/L3/p36_00_p36_0.jpg)
+
+![git reset rewrites history for local mistakes; git revert preserves history with an inverse commit for shared branches](../notes_img/L3/p39_00_p39_0.jpg)
+
+![git restore discards local changes in a specific file](../notes_img/L3/p40_00_p40_0.jpg)
 
 ## 7. 取り消し操作
 
@@ -115,6 +175,8 @@
 - **GitHub Issues** — 拡張、タスク、バグの追跡(バグ報告 / 機能要望)。
 - **Release(リリース)** — 特定安定版のソフトウェアをユーザー/他システムへパッケージングして配布するプロセス。
 - **Release notes(リリースノート)** — そのリリースに含まれる変更、改善、修正、重要情報の文書化されたサマリー。
+
+![Semantic versioning: MAJOR for breaking changes, MINOR for new features, PATCH for bug fixes (2.1.2)](../notes_img/L3/p45_00_p45_0.jpg)
 
 ## 9. セマンティックバージョニング
 

@@ -12,7 +12,7 @@ self-contained pieces:
 | 🍺 Testers & the Bar | [`bar_animation/`](./bar_animation) | A 23-scene **animated SVG story** (single HTML file) |
 | 🪶 Whip demo | [`state your requirements clearly/`](./state%20your%20requirements%20clearly) | Two HTML interpretations of one prompt — a lesson in **prompt precision** |
 | 📚 Course notes | [`course notes/`](./course%20notes) | A self-contained **COMP5241 notes viewer** (5 chapters × 6 languages) |
-| 🥚 Tomori easter egg | [`e_egg/`](./e_egg) | A **colored ASCII-art** viewer of Tomori (single HTML file + source txt) |
+| 🥚 Easter eggs | [`e_egg/`](./e_egg) | Tomori and Arale ASCII-art viewers, plus a Milk Dragon university page |
 
 Each piece is independent and has its own `agents.md` / `AGENTS.md` and (for the
 game) a full `README.md`. This file is the project-level overview.
@@ -117,6 +117,7 @@ serverless function to keep its OpenRouter API key out of the browser.
    - `/state your requirements clearly/whip.html` — side-by-side whip-demo comparison
    - `/course notes/course-notes.html` — the course notes viewer
    - `/e_egg/tomori.html` — the Tomori ASCII art easter egg
+   - `/e_egg/milk-dragon.html` — the Milk Dragon university page
 
 ### How the build works
 
@@ -131,8 +132,8 @@ serverless function to keep its OpenRouter API key out of the browser.
 4. Copies the course notes viewer (`course-notes.html` + the six language
    folders) → `dist/course notes/` (the `recommended style.md` design guide is
    intentionally excluded).
-5. Copies the Tomori easter egg (`tomori.html` + `tomori_ascii-art.txt` + the
-   reference webp) → `dist/e_egg/`.
+5. Copies the complete easter egg folder, including its HTML pages, images,
+   and audio, → `dist/e_egg/`.
 
 Vercel separately deploys [`api/course-notes-chat.js`](./api/course-notes-chat.js)
 as `/api/course-notes-chat`; it proxies bounded chat requests to OpenRouter
@@ -174,9 +175,10 @@ site works from any host.
 ├── course notes/                       # course notes viewer — see course notes/agents.md
 │   ├── course-notes.html
 │   └── en/ zh-tw/ zh-cn/ ja/ de/ es/   #   5 chapter .md files each
-└── e_egg/                              # Tomori ASCII art easter egg
+└── e_egg/                              # ASCII-art viewers and Milk Dragon page
     ├── tomori.html
-    └── tomori_ascii-art.txt
+    ├── arale.html
+    └── milk-dragon.html
 ```
 
 ---
