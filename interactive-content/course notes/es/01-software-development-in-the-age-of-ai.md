@@ -1,7 +1,5 @@
 # Desarrollo de software en la era de la IA
 
-> Destilado de la presentación del curso (83 diapositivas). Cómo la IA está transformando el desarrollo de software: *vibe coding*, *agentic coding*, evidencia de productividad, riesgos y las habilidades que importan hoy.
-
 ---
 
 ## 1. El auge de la codificación asistida por IA
@@ -17,12 +15,20 @@
   - **Soportar y escalar** — diagnosticar errores, analizar registros, sugerir correcciones más rápido que el depurado manual; refactorización a gran escala.
 - **Paisaje de herramientas**: de consumo (Replit, v0, Lovable, bolt…) y de desarrolladores (GitHub Copilot, Cursor, Windsurf, Claude Code, Antigravity, Trae, Opencode), más herramientas de diseño (Figma, Google Stitch).
 
+![Traditional SDLC vs agentic SDLC workflow](../notes_img/p74_01_p74_1.jpg)
+
 ## 2. *Vibe coding*
 
 - Acuñado por **Andrej Karpathy**: "entregarse por completo a la corriente… y olvidar que el código existe". Los errores se arreglan pegando el mensaje de error de vuelta, y suele funcionar.
 - El practicante dirige por **resultado**, no revisando cada línea manualmente.
 - Ya llega a empresas: p. ej., un director de ventas y operaciones sin formación de ingeniería en iCHEF (tecnología para restaurantes, Taiwán) construyó varias mini-herramientas internas con Gemini.
 - El *agentic coding* reduce el prototipado de semanas a minutos/horas.
+
+![Comic: prompting the AI to fix it, then to fix the fix](../notes_img/p12_02_p12_2.jpg)
+
+![Vibe coding: hour 1 vs hour 11](../notes_img/p25_00_p25_0.jpg)
+
+![Emotional rollercoaster of an AI coding session](../notes_img/p25_02_p25_2.jpg)
 
 ## 3. De LLM a agentes autónomos
 
@@ -42,12 +48,18 @@ Tres niveles de autonomía:
 4. Agentes de codificación — ediciones multi-archivo, uso de herramientas, pruebas, bucles de autocorrección
 5. Agentes autónomos — clonan repositorios, planifican en sandbox, ejecutan pruebas, envían PRs
 
+![Tool 2022, copilot 2023–2025, autonomous agent 2026 and beyond](../notes_img/p17_00_p17_0.jpg)
+
+![Autonomy ladder: autocomplete to autonomous agents, ~2021 to ~2026](../notes_img/p18_00_p18_0.jpg)
+
 ## 4. Cómo funcionan los agentes de codificación
 
 - Tres fases: **reunir contexto → actuar → verificar resultados**.
 - Familias de herramientas: operaciones de archivo (leer/editar/crear/renombrar), búsqueda (por patrón, regex, explorar la base de código), ejecución (shell, servidores, pruebas, git), web (búsqueda, documentación, mensajes de error).
 - Ejemplo: "arregla las pruebas que fallen" → 1. ejecutar la suite para ver qué falla → 2. leer la salida de error → 3. buscar los archivos fuente relevantes → 4. leerlos para entender el código → 5. editarlos → 6. re-ejecutar las pruebas para verificar.
 - **Ventana de contexto**: contiene todo lo que el agente sabe de la sesión (instrucciones, archivos leídos, sus propias respuestas). **Subagentes** trabajan en ventanas de contexto separadas para que las lecturas grandes no ocupen la principal; solo regresa el resumen y un pequeño metadatos.
+
+![Agentic loop: gather context, take action, verify results](../notes_img/p20_00_p20_0.png)
 
 ## 5. Ingeniería del arnés (*harness engineering*)
 
@@ -82,6 +94,10 @@ Tres niveles de autonomía:
 - **Brownfield es "remodelar la cocina de una casa donde todavía viven personas"**: no puedes cortar el agua ni la electricidad; derribar muros o cambiar tuberías exige precisión extrema.
 - **Programar en el mundo real es desordenado**: la IA brilla en matemática y algoritmos abstractos (GPT-5 sacó puntaje perfecto en la final mundial del ICPC, resolviendo los 12 problemas), pero el mundo real implica traducir requisitos de negocio vagos, gestionar expectativas, entender sistemas legacy y lidiar con factores humanos impredecibles. Desafíos de la IA con código de producción real: ventanas de contexto limitadas (100k–200k tokens, una fracción de una base mediana); interdependencias complejas (BDs, APIs, microservicios, scripts, conocimiento esparcido entre equipos); dificultad con reglas de negocio, casos límite y excepciones humanas; incapacidad de coordinar con humanos para requisitos ambiguos; estados ocultos y complejidad de infraestructura (cachés, colas, sesiones, config dispersa) — puede sugerir refactorizar sin entender dependencias críticas. **La IA falla en escenarios reales desordenados que exigen conocimiento contextual profundo**; los desarrolladores siguen siendo necesarios para dar contexto, dirección y control de calidad.
 
+![Productivity gains by project maturity and task complexity](../notes_img/p37_00_p37_0.jpg)
+
+![Greenfield vs brownfield codebases](../notes_img/p39_00_p39_0.jpg)
+
 ## 8. Impacto laboral y de carrera
 
 - Anthropic advierte que la IA podría eliminar el **50% de los empleos de entrada de cuello blanco en 1–5 años**; Salesforce anunció que dejará de contratar ingenieros de software (2025).
@@ -89,12 +105,20 @@ Tres niveles de autonomía:
 - Caso del practicante: antes de la IA, delegar una tarea a un practicante exigía que el manager pensara el problema, escribiera requisitos, contexto y specs técnicas, hiciera handoff y luego check-ins, aclaraciones y reviews. Con IA, una vez pensados los requisitos y el diseño, se puede pasar todo directo a la IA para implementación, pruebas e iteración, a menudo más rápido que el ciclo completo de delegación. Mientras la "ejecución" la hace cada vez más la IA, **la habilidad valiosa del practicante deja de ser ejecutar tareas bien especificadas y pasa a ser aprender a definir, acotar y razonar sobre los problemas**.
 - La IA hace de la codificación una **habilidad básica**: antes, escribir código era la principal fuente de valor del programador (Java, Python, React, APIs, depuración, features). Hoy la IA convierte requisitos claros en código funcional con gran eficacia (interfaces, bugs, pruebas, refactors). **No saber programar no va a servir, pero solo saber programar tampoco va a ser suficiente.**
 
+![Theoretical vs observed AI coverage by occupation](../notes_img/p43_00_p43_0.jpg)
+
+![AI taking on boilerplate, bug fixes and tests; senior architect work above](../notes_img/p48_00_p48_0.jpg)
+
 ### Nuevos roles y bloques de construcción
 
 - **AI Engineer** (construye aplicaciones que usan modelos de IA vía APIs) vs **ML Engineer** (construye las APIs de IA). Requisitos: fundamentos sólidos de ingeniería de software, capacidad de construir aplicaciones confiables y escalables, conocimiento de herramientas y frameworks de IA modernos, foco en UX y aplicaciones prácticas.
 - Bloques de construcción de apps GenAI más allá de llamar la API de un LLM: técnicas de prompting, frameworks agénticos, **evals, guardarraíles, RAG, voice stack, programación asíncrona, extracción de datos, embeddings/vector DBs, fine-tuning, uso de graph DB con LLMs, agentes de navegador/computadora, MCP, modelos de razonamiento**…
 - **Empleo tech 2023 vs 2026**: 2023 = aprender HTML/CSS → proyectos demo → postular. 2026 = diseño de sistemas + infraestructura cloud + DevOps + redes + optimización de rendimiento + comunicación + APIs LLM + agentes de IA + ingeniería de prompt/contexto… + construir proyectos reales y destacar entre miles de postulantes.
 - **Zara Zhang** (humanidades, constructora no técnica): con Claude Code y otros agentes, shippeó productos reales de punta a punta; acumuló **30k+ estrellas de GitHub** (5+ proyectos con 1,000+). Argumenta que la codificación pasa de *profesión* a *habilidad general* como la escritura; que en la era de la IA **hacer la pregunta correcta puede importar más que escribir el código perfecto**; y que se necesitan humanistas: para detectar necesidades, dolores y oportunidades reales de usuarios; sacar ideas de frustraciones, conversaciones y feedback; entender no solo tecnología sino a las personas (sus luchas, escenarios, jobs-to-be-done); y tener juicio, estética y saber distinguir "bueno" de "mejor".
+
+![AI engineering skills map](../notes_img/p50_02_p50_2.jpg)
+
+![Getting a tech job in 2023 vs 2026](../notes_img/p58_00_p58_0.jpg)
 
 ## 9. El nuevo valor humano: de hacer a definir
 
@@ -109,11 +133,25 @@ Tres niveles de autonomía:
 - **Analogía del menú de restaurante**: la IA puede diseñar un menú que se vea pulido casi al instante. Pero: ¿es el menú correcto para estos clientes? ¿Les gustará la comida? ¿El diseño combina con la marca? **No hay prueba de paso/fallo para eso.** La dificultad real se desplazó a qué cuenta como "correcto", algo que una máquina no puede decidir sola. *Un menú puede verse increíble y seguir siendo el menú equivocado. No hay test para eso.* La IA abarata la ejecución; la dirección y el juicio siguen viniendo de una persona.
 - **El gusto (*taste*)**: "Un agente puede decirte si algo *se ve correcto*, si cumple una spec. No significa que pueda decirte qué es *bueno*. Bueno puede significar bueno en UX, que sea deleitable, que una persona quiera volver. Es lo suficientemente matizado que tomará tiempo a los modelos. Aun si en un año o dos los modelos alcanzan, seguimos necesitando ingenieros que respondan por estos sistemas. Eso no pasa de la noche a la mañana: pasa cuando entiendes un sistema, la gente te confía cosas y tienes ese expertise."
 
+![Six soft skills: user empathy, systems thinking, problem framing, business awareness, communication, ownership](../notes_img/p65_00_p65_0.jpg)
+
+![FireCut: real problem plus an unfair advantage](../notes_img/p67_00_p67_0.jpg)
+
+![Fit the tool to how editors already work](../notes_img/p67_01_p67_1.jpg)
+
+![2-day rough prototype vs 6 weeks of daily iteration with 20 beta testers](../notes_img/p68_00_p68_0.jpg)
+
+![Building gets easier while attention stays scarce](../notes_img/p69_00_p69_0.jpg)
+
+![A good product nobody sees is invisible](../notes_img/p69_01_p69_1.jpg)
+
 ### El nuevo cuello de botella: capacidad de revisión
 
 - Generar código es fácil; **la verificación es lo que diferencia**.
 - Escribir buenas pruebas (unit/integration/e2e); leer código críticamente; depurar sistemáticamente.
 - **El auge del arquitecto**: el rol del desarrollador evoluciona. Ya no eres juzgado por líneas de código escritas, sino por: **la claridad de tus especificaciones** y **el rigor de tu verificación**.
+
+![From the coder and syntax to the architect with system design and verification](../notes_img/p76_00_p76_0.jpg)
 
 ### De *vibe coding* a *agentic engineering*
 
@@ -128,6 +166,8 @@ El diferenciador clave: **cuánta estructura, verificación y juicio humano rode
 | Alcance apropiado | Prototipos, scripts, proyectos personales, hackathons | Features dentro de bases establecidas | Sistemas de producción, desarrollo a escala de equipo |
 | Perfil de riesgo | Alto; aceptable para código desechable | Moderado; juicio humano en checkpoints clave | Bajo; verificación sistemática en cada etapa |
 
+![Spectrum: vibe coding to structured AI-assisted to agentic engineering](../notes_img/p77_00_p77_0.jpg)
+
 ## 10. Habilidades esenciales en la era de la IA
 
 1. **Saber qué construir y por qué importa** — ¿qué meta sirve este requisito? ¿Es realmente importante? ¿Cuáles son los problemas reales de los usuarios? ¿Qué features valen la pena y por qué?
@@ -139,6 +179,8 @@ El diferenciador clave: **cuánta estructura, verificación y juicio humano rode
 7. **Habilidades de producto y de stakeholder** — interactuar con stakeholders para identificar sus dolores, recoger feedback sobre prototipos y mejorar iterativamente; construir un sistema que sea realmente útil y que los stakeholders quieran usar, pagar y recomendar. **Las "habilidades de stakeholder" son hoy habilidades centrales de ingeniería**: hablar con stakeholders para entender sus problemas reales; el ingeniero que entiende profundamente a los usuarios y lo traduce en instrucciones precisas para agentes vale mucho más.
 
 > Aunque la IA automatice (parte de / la mayor parte de) las tareas de codificación, construir un buen producto de software que sea realmente útil, desplegado en producción, robusto, escalable y usado de forma fiable por muchos usuarios **no es trivial**.
+
+![The AI-era skill pyramid](../notes_img/p78_00_p78_0.jpg)
 
 ### Mantenerse competitivo en la era de la IA
 

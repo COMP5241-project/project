@@ -138,6 +138,54 @@
     .reading-list .k { flex: none; min-width: 6.2rem; color: var(--muted); font-weight: 650; }
     .reading-list .v { color: var(--ink); }
     .reading-hint { margin: 0 1.15rem 1rem; color: var(--muted); font-size: .85rem; }
+    .result-button {
+      margin: 0 1.15rem 1.15rem;
+      padding: .6rem 1rem;
+      color: #fff;
+      background: var(--primary);
+      border: 0;
+      border-radius: .4rem;
+      cursor: pointer;
+      font: inherit;
+      font-size: .9rem;
+      font-weight: 700;
+      transition: background-color .15s ease;
+    }
+    .result-button:hover { background: var(--primary-dark); }
+    .result-dialog {
+      width: min(92vw, 72rem);
+      max-width: none;
+      max-height: 90vh;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      color: var(--ink);
+      background: #fff;
+      box-shadow: 0 16px 48px rgba(38, 38, 38, .24);
+    }
+    .result-dialog::backdrop { background: rgba(38, 38, 38, .65); }
+    .result-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .85rem 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .result-dialog-title { margin: 0; font-size: 1.05rem; }
+    .result-dialog-close {
+      flex: none;
+      padding: .45rem .8rem;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 650;
+    }
+    .result-dialog-close:hover { background: var(--page); }
+    .result-frame { display: block; width: 100%; height: min(72vh, 48rem); border: 0; }
 
     /* ---- Section 2: taxonomy ---- */
     .tax-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
@@ -257,23 +305,23 @@
         <p class="kicker">1 · The agent-guess map</p>
         <h2 id="map-title">One phrase, two whole scenes</h2>
         <p>
-          The highlighted phrase is grammatically ambiguous. The agent had to pick a reading — and that single choice
-          cascaded into a chain of downstream assumptions about who moves, what the whip hits, and what “受擊反饋” means.
-          Click each reading to see the assumptions it forced.
+         The highlighted phrase is ambiguous for agents, where the agent may take their own understanding of the prompt, which may cause a chain of downstream assumptions regarding the prompts.
+
+        Check the agent's interpretation to see what the agent assumes for the prompt.
         </p>
       </div>
       <div class="card map">
         <div class="map-phrase">
           <span class="tag">The ambiguous phrase · 含糊的短句</span>
           <span class="phrase" lang="zh-Hant">一個自行車騎著人往前走</span>
-          <p class="note">Who is riding whom? The sentence does not say. <span class="zh">誰騎著誰？句子沒有說明。</span></p>
+          <p class="note">Agent may not understand bicycle riding a man <span class="zh">Agent無法理解自行車騎著人</span></p>
         </div>
         <p class="map-connector">↓For the prompt above, agents will tend to choose A as it makes more sense in context ↓</p>
         <div class="readings">
           <article class="reading" id="readingA">
             <button class="reading-head" type="button" aria-expanded="false" aria-controls="readingA-body">
               <span>
-                <span class="rt">Reading A · the agent’s first guess</span>
+                <span class="rt">First Interpretation · the agent’s first assumes the prompt is writing a man is riding the bicycle</span><br>
                 <span class="rh">“A person rides a bicycle forward”<span class="zh" lang="zh-Hant">人騎著自行車往前走</span></span>
               </span>
               <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -287,6 +335,7 @@
                   <li><span class="k">Whip hits</span><span class="v">The pelican whips the <strong>rider</strong> on the bike.</span></li>
                   <li><span class="k">受擊反饋</span><span class="v">The <strong>rider</strong> flinches — face swap, sweat, head jolt.</span></li>
                 </ul>
+                <button class="result-button" type="button" data-demo-src="origin%20whip/origin%20whip.html" data-demo-title="First interpretation: a person rides a bicycle" aria-haspopup="dialog" aria-controls="resultDialog">see the result</button>
               </div>
             </div>
           </article>
@@ -294,7 +343,7 @@
           <article class="reading reading--b" id="readingB">
             <button class="reading-head" type="button" aria-expanded="false" aria-controls="readingB-body">
               <span>
-                <span class="rt">Reading B · after clarification</span>
+                <span class="rt">Second Interpretation: after user clarification</span><br>
                 <span class="rh">“A bicycle rides on top of a person”<span class="zh" lang="zh-Hant">自行車騎著人</span></span>
               </span>
               <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -308,6 +357,7 @@
                   <li><span class="k">Whip hits</span><span class="v">The pelican whips the <strong>person</strong> under the bike.</span></li>
                   <li><span class="k">受擊反饋</span><span class="v">The <strong>person underneath</strong> flinches and struggles.</span></li>
                 </ul>
+                <button class="result-button" type="button" data-demo-src="polyu-style/whip_pelican.html" data-demo-title="Second interpretation: a bicycle rides on top of a person" aria-haspopup="dialog" aria-controls="resultDialog">see the result</button>
               </div>
             </div>
           </article>
@@ -561,6 +611,14 @@
     </section>
   </main>
 
+  <dialog class="result-dialog" id="resultDialog" aria-labelledby="resultDialogTitle">
+    <div class="result-dialog-header">
+      <h2 class="result-dialog-title" id="resultDialogTitle">Interpretation result</h2>
+      <button class="result-dialog-close" id="closeResultDialog" type="button">Close</button>
+    </div>
+    <iframe class="result-frame" id="resultFrame" title="Interpretation result"></iframe>
+  </dialog>
+
   <footer class="site-footer">EduGenAI (PolyU) · COMP5241 prompt precision activity</footer>
 
   <script>
@@ -579,6 +637,25 @@
     }
     wireAccordion(".reading-head", ".reading");
     wireAccordion(".tax-head", ".tax");
+
+    // Load each demo only when its result button opens the dialog.
+    var resultDialog = document.getElementById("resultDialog");
+    var resultTitle = document.getElementById("resultDialogTitle");
+    var resultFrame = document.getElementById("resultFrame");
+    document.querySelectorAll(".result-button").forEach(function (button) {
+      button.addEventListener("click", function () {
+        resultTitle.textContent = button.dataset.demoTitle;
+        resultFrame.src = button.dataset.demoSrc;
+        resultFrame.title = button.dataset.demoTitle;
+        resultDialog.showModal();
+      });
+    });
+    document.getElementById("closeResultDialog").addEventListener("click", function () {
+      resultDialog.close();
+    });
+    resultDialog.addEventListener("close", function () {
+      resultFrame.removeAttribute("src");
+    });
 
     // Checklist progress.
     var list = document.getElementById("checkList");
