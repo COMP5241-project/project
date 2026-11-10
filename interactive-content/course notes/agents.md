@@ -74,9 +74,15 @@ Or, after a full build, serve `dist/` and open
    `localStorage["course-notes-viewer:v1"]` and restored on load.
 5. **Markdown parser** (`mdToHtml`) supports: headings (h1–h6, with generated
    `id`s for the TOC), paragraphs, nested ordered/unordered lists, tables,
-   fenced code blocks, blockquotes, horizontal rules, and inline
-   bold/italic/`code`/links. It is intentionally minimal — extend it only if a
-   chapter needs a construct it doesn't handle.
+   fenced code blocks, blockquotes, horizontal rules, inline
+   bold/italic/`code`/links, and images. Add images with standard Markdown, e.g.
+   `![Diagram description](images/diagram.png)` in a chapter file. Relative
+   image paths resolve from that chapter's language folder, so this example
+   refers to `de/images/diagram.png` when used in a German chapter. Keep image
+   files inside a language folder so the build copies them with the notes.
+   Images are responsive and limited to the content width. The parser is
+   intentionally minimal — extend it only if a chapter needs a construct it
+   doesn't handle.
 6. **TOC + scroll-spy.** `buildToc()` lists the h2/h3 headings; an
    `IntersectionObserver` highlights the entry for the section in view.
 

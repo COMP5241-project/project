@@ -5,11 +5,12 @@
 //   dist/index.html                                  <- landing page
 //   dist/course.html                                 <- course catalogue
 //   dist/course-overview.html                        <- COMP5241 overview + resources
+//   dist/test-engineering-tutorial.html               <- interactive testing tutorial
 //   dist/gold_hook/...                               <- Next.js game (static export)
 //   dist/bar_animation/...                           <- animated SVG story
 //   dist/state your requirements clearly/...         <- unified comparison + source demos
 //   dist/course notes/...                            <- course notes viewer + markdown
-//   dist/e_egg/...                                   <- Tomori ASCII art easter egg
+//   dist/e_egg/...                                   <- easter egg pages and media
 //
 // The game is a Next.js app that is statically exported (output: "export")
 // with basePath "/gold_hook", so its HTML references /gold_hook/_next/... and
@@ -52,6 +53,10 @@ cpSync(
   path.join(root, "course-overview.html"),
   path.join(dist, "course-overview.html"),
 );
+cpSync(
+  path.join(root, "test-engineering-tutorial.html"),
+  path.join(dist, "test-engineering-tutorial.html"),
+);
 
 // Game -> dist/gold_hook (basePath is /gold_hook).
 cpSync(outDir, path.join(dist, "gold_hook"), { recursive: true });
@@ -82,7 +87,7 @@ for (const lang of ["en", "zh-tw", "zh-cn", "ja", "de", "es"]) {
   });
 }
 
-// Tomori ASCII art easter egg (HTML viewer + source txt + reference webp).
+// Easter egg pages and their media.
 cpSync(path.join(root, "e_egg"), path.join(dist, "e_egg"), { recursive: true });
 
 log("Done. dist/ is ready to deploy.");
