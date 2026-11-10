@@ -153,7 +153,10 @@ enabled. Calls from Swagger must satisfy these origin requirements too.
 Responses contain no Supabase tokens and use `Cache-Control: no-store`.
 Errors return `{"error":{"code":"...","message":"...","signed_out":false}}`.
 
-Profiles contain `id`, `email`, `role`, `cs_qualified`, and `assessment_completed`.
+Profiles contain `id`, `email`, `role`, `cs_qualified`, `assessment_completed`, and
+`non_cs_introduction_completed`. Non-CS students must complete The App Factory before
+entering the student dashboard. `POST /api/profiles/non-cs-introduction` records
+completion for an authenticated student after their non-CS assessment.
 Queries use the verified user's JWT so existing row-level security remains effective.
 Each request has its own Supabase client; the shared health client is never signed in.
 Course generation requires the `instructor` profile role and accepts `artifact_type`
