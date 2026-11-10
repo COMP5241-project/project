@@ -3,7 +3,8 @@ import re
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Request, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from supabase_auth.errors import AuthApiError
 
 from app.identity.auth import ClientDependency, OptionalClientDependency
 from app.identity.errors import ApiError, upstream_error
@@ -16,6 +17,23 @@ router = APIRouter(prefix="/api/auth")
 class LoginRequest(BaseModel):
 	email: str = Field(min_length=1, max_length=320)
 	password: str = Field(min_length=1, max_length=4096)
+
+
+class PasswordResetRequest(BaseModel):
+	email: str = Field(min_length=1, max_length=320)
+
+
+class PasswordResetVerifyRequest(BaseModel):
+	email: str = Field(min_length=1, max_length=320)
+	code: str = Field(min_length=8, max_length=8, pattern=r"^\d{8}$")
+	password: str = Field(min_length=1, max_length=4096)
+	password_confirmation: str = Field(min_length=1, max_length=4096)
+
+	@model_validator(mode="after")
+	def passwords_match(self) -> "PasswordResetVerifyRequest":
+		if self.password != self.password_confirmation:
+			raise ValueError("Passwords do not match.")
+		return self
 
 
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -70,6 +88,24 @@ def require_trusted_origin(request: Request) -> None:
 			and 1 <= int(codespace_match.group("port")) <= 65535
 		):
 			allowed.add(normalize_origin(origin))
+	# Trust same-origin requests: the frontend and backend are served from the
+	# same domain (a single Vercel project where the SPA sits at the root and
+	# /api proxies to this backend), so a real page's Origin host equals the
+	# request Host. This lets production, preview, and custom domains all work
+	# without listing every one in FRONTEND_ORIGINS, while a cross-site request
+	# (a different Origin host) is still rejected.
+	origin_header = request.headers.get("origin", "").strip().lower()
+	if origin_header:
+		origin_parts = urlsplit(origin_header)
+		origin_host = origin_parts.hostname or ""
+		host_header = request.headers.get("host", "").strip().lower()
+		host_only = host_header.split(":", 1)[0]
+		if (
+			origin_parts.scheme in ("http", "https")
+			and origin_host
+			and origin_host == host_only
+		):
+			allowed.add(normalize_origin(origin_header))
 	if normalize_origin(request.headers.get("origin", "")) not in allowed:
 		raise ApiError(403, "invalid_origin", "This request origin is not allowed.")
 
@@ -78,6 +114,17 @@ def require_origin(request: Request) -> None:
 	require_trusted_origin(request)
 	if request.headers.get("content-type", "").split(";", 1)[0].strip() != "application/json":
 		raise ApiError(415, "invalid_content_type", "A JSON request is required.")
+
+
+def password_reset_error(error: Exception, *, verifying: bool = False) -> ApiError:
+	if isinstance(error, AuthApiError) and error.status in (400, 401, 403, 404, 422):
+		message = (
+			"The verification code is invalid or expired."
+			if verifying else
+			"We could not find an account for that email address."
+		)
+		return ApiError(400, "invalid_password_reset", message)
+	return ApiError(503, "service_unavailable", "The password reset service is unavailable.")
 
 
 @router.post("/login", response_model=CurrentProfile, dependencies=[Depends(require_origin)])
@@ -100,6 +147,32 @@ def login(payload: LoginRequest, request: Request, response: Response,
 		raise
 	create_session(request, response, store, user.id, auth_session)
 	return profile
+
+
+@router.post("/password-reset/request", status_code=204, dependencies=[Depends(require_origin)])
+def request_password_reset(
+	payload: PasswordResetRequest, client: ClientDependency
+) -> None:
+	try:
+		client.auth.sign_in_with_otp({
+			"email": payload.email.strip(),
+			"options": {"should_create_user": False},
+		})
+	except Exception as error:
+		raise password_reset_error(error) from None
+
+
+@router.post("/password-reset/verify", status_code=204, dependencies=[Depends(require_origin)])
+def verify_password_reset(payload: PasswordResetVerifyRequest, client: ClientDependency) -> None:
+	try:
+		client.auth.verify_otp({
+			"email": payload.email.strip(),
+			"token": payload.code,
+			"type": "email",
+		})
+		client.auth.update_user({"password": payload.password})
+	except Exception as error:
+		raise password_reset_error(error, verifying=True) from None
 
 
 @router.post("/logout", status_code=204, dependencies=[Depends(require_origin)])

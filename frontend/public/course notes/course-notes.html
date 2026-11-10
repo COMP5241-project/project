@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Notes — EduGenAI (PolyU)</title>
+<style>
+  :root {
+    --polyu: #A21942;
+    --polyu-dark: #801333;
+    --ink: #262626;
+    --page: #F8F9FA;
+    --line: #E5E7EB;
+    --ok: #10B981;
+    --ok-dark: #047857;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans JP", "Noto Sans SC", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .wrap { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header {
+    background: var(--polyu);
+    color: #fff;
+    padding: 1rem 0;
+  }
+  .head-inner {
+    max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: .75rem; }
+  .brand-badge {
+    background: #fff; color: var(--polyu);
+    font-weight: 700; font-size: .8rem; letter-spacing: .04em;
+    padding: .35rem .7rem; border-radius: .5rem;
+  }
+  .brand h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+  .brand p { margin: 0; font-size: .8rem; opacity: .85; }
+  .head-tag {
+    font-size: .75rem; font-weight: 600; letter-spacing: .08em;
+    border: 1px solid rgba(255,255,255,.4); border-radius: 999px; padding: .3rem .8rem;
+  }
+
+  /* ── Controls card ──────────────────────────────────────── */
+  .controls {
+    background: #fff; border: 1px solid var(--line); border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    padding: 1rem 1.5rem; margin: 1.5rem 0 1rem;
+    display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-end;
+  }
+  .field { display: flex; flex-direction: column; gap: .3rem; min-width: 14rem; flex: 1; }
+  .field label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; }
+  .field select {
+    appearance: none;
+    font: inherit; color: var(--ink);
+    background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23262626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>') no-repeat right .75rem center;
+    border: 1px solid var(--line); border-radius: .375rem;
+    padding: .55rem 2.25rem .55rem .75rem;
+    cursor: pointer; transition: border-color .2s, box-shadow .2s;
+  }
+  .field select:hover { border-color: #d1d5db; }
+  .field select:focus-visible { outline: none; border-color: var(--polyu); box-shadow: 0 0 0 3px rgba(162,25,66,.2); }
+  .meta { font-size: .8rem; color: #6b7280; margin: 0 0 1.25rem; }
+  .meta code { background: #eef0f2; border-radius: .25rem; padding: .1rem .35rem; font-size: .75rem; }
+
+  /* ── Layout: TOC + content ──────────────────────────────── */
+  .layout { display: grid; grid-template-columns: 15rem 1fr; gap: 1.25rem; align-items: start; padding-bottom: 3rem; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .toc { position: static !important; } }
+
+  .toc {
+    position: sticky; top: 1rem;
+    background: #fff; border: 1px solid var(--line); border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    padding: 1rem 1.25rem; max-height: calc(100vh - 2rem); overflow-y: auto;
+  }
+  .toc h2 { margin: 0 0 .5rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; }
+  .toc ul { list-style: none; margin: 0; padding: 0; }
+  .toc a {
+    display: block; padding: .3rem .5rem; border-radius: .3rem;
+    color: var(--ink); text-decoration: none; font-size: .85rem;
+    border-left: 2px solid transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .15s, color .15s;
+  }
+  .toc a:hover { background: var(--page); color: var(--polyu); }
+  .toc a.active { border-left-color: var(--polyu); background: #fdf2f6; color: var(--polyu-dark); font-weight: 600; }
+
+  .content {
+    background: #fff; border: 1px solid var(--line); border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    padding: 2rem 2.5rem; min-height: 20rem;
+  }
+  @media (max-width: 720px) { .content { padding: 1.25rem 1rem; } }
+
+  /* ── Rendered markdown ──────────────────────────────────── */
+  .md h1 { font-size: 1.75rem; margin: 0 0 .75rem; color: var(--polyu-dark); line-height: 1.25; }
+  .md h2 {
+    font-size: 1.3rem; margin: 2.25rem 0 .75rem; padding-bottom: .4rem;
+    border-bottom: 2px solid var(--line); color: var(--ink);
+  }
+  .md h3 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
+  .md h4, .md h5, .md h6 { font-size: .95rem; margin: 1.25rem 0 .5rem; }
+  .md p { margin: .75rem 0; }
+  .md ul, .md ol { margin: .75rem 0; padding-left: 1.5rem; }
+  .md li { margin: .3rem 0; }
+  .md blockquote {
+    margin: 1rem 0; padding: .6rem 1rem;
+    border-left: 4px solid var(--polyu); background: #fdf2f6;
+    border-radius: 0 .375rem .375rem 0; color: #4b5563;
+  }
+  .md blockquote p { margin: .25rem 0; }
+  .md code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85em; background: #eef0f2; border-radius: .25rem; padding: .15rem .4rem;
+  }
+  .md pre {
+    background: #1f2937; color: #f3f4f6; border-radius: .5rem;
+    padding: 1rem 1.25rem; overflow-x: auto; line-height: 1.5;
+  }
+  .md pre code { background: none; padding: 0; color: inherit; font-size: .85rem; }
+  .md table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  .md th, .md td { border: 1px solid var(--line); padding: .5rem .75rem; text-align: left; vertical-align: top; }
+  .md th { background: var(--page); font-weight: 600; }
+  .md tr:nth-child(even) td { background: #fcfcfd; }
+  .md hr { border: none; border-top: 1px solid var(--line); margin: 2rem 0; }
+  .md a { color: var(--polyu); }
+  .md a:hover { color: var(--polyu-dark); }
+  .md strong { color: var(--ink); }
+
+  /* ── States ─────────────────────────────────────────────── */
+  .state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem; min-height: 16rem; text-align: center; padding: 2rem; }
+  .state .icon { font-size: 2.5rem; }
+  .state h3 { margin: 0; font-size: 1.1rem; }
+  .state p { margin: 0; color: #6b7280; max-width: 34rem; }
+  .state code { background: #eef0f2; border-radius: .25rem; padding: .15rem .4rem; font-size: .85rem; }
+  .btn-primary {
+    display: inline-block; background: var(--polyu); color: #fff;
+    border: none; border-radius: .375rem; padding: .5rem 1rem;
+    font: inherit; font-weight: 500; cursor: pointer; transition: background .2s;
+  }
+  .btn-primary:hover { background: var(--polyu-dark); }
+  .spinner {
+    width: 2.25rem; height: 2.25rem; border-radius: 50%;
+    border: 3px solid var(--line); border-top-color: var(--polyu);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── AI Tutor chat (OpenRouter) ─────────────────────────── */
+  .chat {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 22rem; z-index: 60;
+    background: #fff; border-left: 1px solid var(--line);
+    box-shadow: -8px 0 24px rgba(0,0,0,.08);
+    display: flex; flex-direction: column;
+  }
+  .chat-head {
+    background: var(--polyu); color: #fff;
+    padding: .8rem 1rem;
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  }
+  .chat-head h2 { margin: 0; font-size: 1rem; }
+  .chat-head .ctx { margin: .15rem 0 0; font-size: .72rem; opacity: .85; }
+  .chat-head-actions { display: flex; gap: .25rem; }
+  .icon-btn {
+    background: rgba(255,255,255,.15); color: #fff; border: none; border-radius: .35rem;
+    width: 1.9rem; height: 1.9rem; cursor: pointer; font-size: .85rem; line-height: 1;
+    transition: background .15s;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,.3); }
+  .chat-settings {
+    border-bottom: 1px solid var(--line); background: var(--page);
+    padding: .75rem 1rem; display: flex; flex-direction: column; gap: .6rem;
+  }
+  .chat-settings[hidden] { display: none; }
+  .chat-settings label {
+    font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    color: #6b7280; display: flex; flex-direction: column; gap: .25rem;
+  }
+  .chat-settings input, .chat-settings select {
+    font: inherit; font-size: .85rem; color: var(--ink); text-transform: none; letter-spacing: normal;
+    border: 1px solid var(--line); border-radius: .35rem; padding: .4rem .6rem; background: #fff;
+  }
+  .chat-settings input:focus, .chat-settings select:focus {
+    outline: none; border-color: var(--polyu); box-shadow: 0 0 0 3px rgba(162,25,66,.15);
+  }
+  .chat-settings .row { display: flex; gap: .5rem; align-items: center; }
+  .chat-settings .hint { font-size: .72rem; color: #6b7280; }
+  .chat-msgs {
+    flex: 1; overflow-y: auto; padding: 1rem;
+    display: flex; flex-direction: column; gap: .75rem; background: var(--page);
+  }
+  .msg {
+    max-width: 92%; padding: .6rem .85rem; border-radius: .6rem;
+    font-size: .88rem; line-height: 1.55; overflow-wrap: break-word;
+  }
+  .msg.user { align-self: flex-end; background: var(--polyu); color: #fff; border-bottom-right-radius: .2rem; }
+  .msg.assistant { align-self: flex-start; background: #fff; border: 1px solid var(--line); border-bottom-left-radius: .2rem; }
+  .msg.error { align-self: flex-start; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .msg .md p { margin: .4rem 0; }
+  .msg .md pre { font-size: .8rem; }
+  .msg .md h1, .msg .md h2, .msg .md h3 { font-size: 1rem; margin: .6rem 0 .3rem; }
+  .chat-welcome { margin: auto; text-align: center; color: #6b7280; font-size: .85rem; padding: 1rem; }
+  .chat-welcome .icon { font-size: 2rem; }
+  .chat-input {
+    border-top: 1px solid var(--line); padding: .75rem; background: #fff;
+    display: flex; gap: .5rem; align-items: flex-end;
+  }
+  .chat-input textarea {
+    flex: 1; resize: none; font: inherit; font-size: .88rem;
+    border: 1px solid var(--line); border-radius: .45rem; padding: .55rem .7rem; max-height: 8rem;
+  }
+  .chat-input textarea:focus { outline: none; border-color: var(--polyu); box-shadow: 0 0 0 3px rgba(162,25,66,.15); }
+  .chat-input button {
+    background: var(--polyu); color: #fff; border: none; border-radius: .45rem;
+    padding: .55rem .9rem; font: inherit; font-weight: 600; cursor: pointer; transition: background .2s;
+  }
+  .chat-input button:hover { background: var(--polyu-dark); }
+  .chat-fab {
+    position: fixed; right: 1rem; bottom: 1rem; z-index: 59;
+    width: 3.25rem; height: 3.25rem; border-radius: 50%;
+    background: var(--polyu); color: #fff; border: none; font-size: 1.3rem; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(162,25,66,.4);
+    display: none;
+  }
+  /* Wide screens: reserve space for the docked chat */
+  @media (min-width: 1101px) {
+    body:not(.chat-hidden) .wrap,
+    body:not(.chat-hidden) .head-inner,
+    body:not(.chat-hidden) .foot-inner { padding-right: 23.5rem; }
+    body.chat-hidden .chat { display: none; }
+    body.chat-hidden .chat-fab { display: block; }
+  }
+  /* Narrow screens: floating card + FAB */
+  @media (max-width: 1100px) {
+    .chat {
+      top: auto; bottom: 1rem; right: 1rem;
+      width: min(22rem, calc(100vw - 2rem)); height: min(75vh, 34rem);
+      border: 1px solid var(--line); border-radius: .75rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+      display: none;
+    }
+    .chat.open { display: flex; }
+    .chat.open + .chat-fab { display: none; }
+    .chat-fab { display: block; }
+  }
+
+  footer { border-top: 1px solid var(--line); background: #fff; padding: 1rem 0; margin-top: 2rem; }
+  .foot-inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .8rem; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <span class="brand-badge">EduGenAI</span>
+      <div>
+        <h1>Course Notes</h1>
+        <p>PolyU · GenAI-Powered SE Platform · COMP5241</p>
+      </div>
+    </div>
+    <span class="head-tag">COURSE NOTES</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="field">
+      <label for="chapterSel">Chapter</label>
+      <select id="chapterSel" aria-label="Select chapter"></select>
+    </div>
+    <div class="field">
+      <label for="langSel">Language</label>
+      <select id="langSel" aria-label="Select language">
+        <option value="en" selected>English</option>
+        <option value="zh-tw">繁體中文 (Traditional Chinese)</option>
+        <option value="zh-cn">简体中文 (Simplified Chinese)</option>
+        <option value="ja">日本語 (Japanese)</option>
+        <option value="de">Deutsch (German)</option>
+        <option value="es">Español (Spanish)</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="meta" id="metaLine"></p>
+
+  <div class="layout">
+    <nav class="toc" id="toc" aria-label="Table of contents">
+      <h2>On this page</h2>
+      <ul id="tocList"></ul>
+    </nav>
+    <main class="content" id="content" aria-live="polite"></main>
+  </div>
+</div>
+
+<!-- ── AI Tutor chat (OpenRouter) ─────────────────────────── -->
+<aside class="chat" id="chat" aria-label="AI tutor chat">
+  <div class="chat-head">
+    <div>
+      <h2>🎓 AI Tutor</h2>
+      <p class="ctx" id="chatCtx">Context: —</p>
+    </div>
+    <div class="chat-head-actions">
+      <button class="icon-btn" id="chatSettingsBtn" title="Settings" aria-label="Chat settings">⚙️</button>
+      <button class="icon-btn" id="chatCloseBtn" title="Hide chat" aria-label="Hide chat">✕</button>
+    </div>
+  </div>
+
+  <div class="chat-settings" id="chatSettings" hidden>
+    <div class="row">
+      <label style="flex-direction:row;align-items:center;gap:.4rem;text-transform:none;letter-spacing:0;">
+        <input type="checkbox" id="chatCtxToggle" checked style="width:auto;"> Include current chapter as context
+      </label>
+    </div>
+    <p class="hint">The AI Tutor uses the course site's managed connection. You do not need an API key.</p>
+  </div>
+
+  <div class="chat-msgs" id="chatMsgs" aria-live="polite">
+    <div class="chat-welcome" id="chatWelcome">
+      <div class="icon">💬</div>
+      <p>Ask me anything about the chapter you're reading — I'll ground my answers in the course notes.</p>
+    </div>
+  </div>
+
+  <div class="chat-input">
+    <textarea id="chatText" rows="2" placeholder="Ask a question about this chapter… (Enter to send, Shift+Enter for a new line)"></textarea>
+    <button id="chatSendBtn">Send</button>
+  </div>
+</aside>
+<button class="chat-fab" id="chatFab" title="Open AI tutor" aria-label="Open AI tutor chat">💬</button>
+
+<footer>
+  <div class="foot-inner">
+    <span>EduGenAI (PolyU) · COMP5241 course notes</span>
+    <span>Content: <code>&lt;lang&gt;/&lt;chapter&gt;.md</code> (next to this file)</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+// ── Chapters (filenames are identical across all languages) ──
+const CHAPTERS = [
+  { file: "01-software-development-in-the-age-of-ai.md", label: "1 · Software Development in the Age of AI" },
+  { file: "02-software-development-lifecycle.md",        label: "2 · Software Development Lifecycle" },
+  { file: "03-collaboration-and-version-control.md",     label: "3 · Collaboration and Version Control" },
+  { file: "04-ai-assisted-software-development-practices.md", label: "4 · AI-Assisted Software Development Practices" },
+  { file: "05-software-testing-overview.md",             label: "5 · Software Testing Overview" },
+];
+// The HTML lives inside the "course notes/" folder, and each language's
+// markdown files sit in a subfolder next to it, so the base is relative to
+// this file's own location (no prefix needed).
+const BASE = "";
+const STORE_KEY = "course-notes-viewer:v1";
+
+const chapterSel = document.getElementById("chapterSel");
+const langSel = document.getElementById("langSel");
+const content = document.getElementById("content");
+const tocList = document.getElementById("tocList");
+const metaLine = document.getElementById("metaLine");
+
+// Populate chapter dropdown.
+CHAPTERS.forEach((c, i) => {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = c.label;
+  chapterSel.appendChild(opt);
+});
+
+// Restore last selection.
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+  if (saved.chapter != null && CHAPTERS[saved.chapter]) chapterSel.value = saved.chapter;
+  if (saved.lang) langSel.value = saved.lang;
+} catch (_) { /* ignore */ }
+
+const requestedChapter = new URLSearchParams(window.location.search).get("chapter");
+if (requestedChapter !== null) {
+  const chapterNumber = Number(requestedChapter);
+  if (Number.isInteger(chapterNumber) && chapterNumber >= 1 && chapterNumber <= CHAPTERS.length) {
+    chapterSel.value = String(chapterNumber - 1);
+  }
+}
+
+function persist() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ chapter: +chapterSel.value, lang: langSel.value }));
+  } catch (_) { /* ignore */ }
+}
+
+// ── Minimal markdown → HTML (headings, lists, tables, code, quotes, inline) ──
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function inline(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function mdToHtml(md) {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  let i = 0;
+  const isTableSep = (l) => /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(l) && l.includes("-");
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (/^\s*$/.test(line)) { i++; continue; }
+
+    // Fenced code block
+    if (/^```/.test(line)) {
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++; // skip closing fence
+      out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+      continue;
+    }
+
+    // Heading
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      const lvl = h[1].length;
+      const text = h[2].trim();
+      const id = "sec-" + out.length + "-" + text.toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+      out.push(`<h${lvl} id="${id}">${inline(text)}</h${lvl}>`);
+      i++;
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) { out.push("<hr>"); i++; continue; }
+
+    // Blockquote
+    if (/^\s*>/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) { buf.push(lines[i].replace(/^\s*>\s?/, "")); i++; }
+      out.push("<blockquote>" + buf.map((b) => "<p>" + inline(b) + "</p>").join("") + "</blockquote>");
+      continue;
+    }
+
+    // Table
+    if (line.includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      const cells = (l) => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
+      const head = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes("|") && !/^\s*$/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+      let t = "<table><thead><tr>" + head.map((c) => "<th>" + inline(c) + "</th>").join("") + "</tr></thead><tbody>";
+      rows.forEach((r) => { t += "<tr>" + r.map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>"; });
+      t += "</tbody></table>";
+      out.push(t);
+      continue;
+    }
+
+    // Lists (nested, one level of indentation)
+    if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*([-*+]|\d+\.)\s+/.test(lines[i])) {
+        const m = lines[i].match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
+        items.push({ indent: m[1].length, ordered: /\d/.test(m[2]), text: m[3] });
+        i++;
+      }
+      const tag = items[0].ordered ? "ol" : "ul";
+      let html = "<" + tag + ">";
+      items.forEach((it) => {
+        if (it.indent > 0) html += "</" + tag + "><" + (it.ordered ? "ol" : "ul") + " style=\"margin-top:.25rem\">";
+        else if (html.endsWith("</ul>") || html.endsWith("</ol>")) html += "<" + tag + ">";
+        html += "<li>" + inline(it.text) + "</li>";
+      });
+      html += "</" + tag + ">";
+      out.push(html);
+      continue;
+    }
+
+    // Paragraph (gather consecutive plain lines)
+    const buf = [line];
+    i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) &&
+           !/^(#{1,6}\s|```|\s*>|\s*([-*+]|\d+\.)\s|---+\s*$)/.test(lines[i]) &&
+           !(lines[i].includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1]))) {
+      buf.push(lines[i]); i++;
+    }
+    out.push("<p>" + inline(buf.join(" ")) + "</p>");
+  }
+  return out.join("\n");
+}
+
+// ── TOC ──
+function buildToc() {
+  tocList.innerHTML = "";
+  const heads = content.querySelectorAll("h2, h3");
+  if (!heads.length) { document.getElementById("toc").style.display = "none"; return; }
+  document.getElementById("toc").style.display = "";
+  heads.forEach((h) => {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = "#" + h.id;
+    a.textContent = h.textContent;
+    a.style.paddingLeft = (h.tagName === "H3" ? "1.25rem" : "0.5rem");
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      h.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", "#" + h.id);
+    });
+    li.appendChild(a);
+    tocList.appendChild(li);
+  });
+}
+
+// Highlight TOC entry while scrolling.
+function setupScrollSpy() {
+  const links = [...tocList.querySelectorAll("a")];
+  if (!links.length) return;
+  const map = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (en.isIntersecting) {
+        links.forEach((a) => a.classList.remove("active"));
+        const a = map.get(en.target.id);
+        if (a) a.classList.add("active");
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  map.forEach((_, id) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+}
+
+// ── Loading / error states ──
+function showLoading() {
+  content.innerHTML = '<div class="state"><div class="spinner"></div><p>Loading chapter…</p></div>';
+  tocList.innerHTML = "";
+}
+function showError(title, detail) {
+  content.innerHTML =
+    '<div class="state"><div class="icon">⚠️</div><h3>' + esc(title) + "</h3><p>" + esc(detail) + "</p></div>";
+  tocList.innerHTML = "";
+}
+
+// ── Load a chapter ──
+// A monotonically increasing token so a slow response from an earlier
+// selection can never overwrite the content of a newer one (rapid switching).
+let loadSeq = 0;
+async function load() {
+  persist();
+  const seq = ++loadSeq;
+  const ch = CHAPTERS[+chapterSel.value];
+  const lang = langSel.value;
+  const url = BASE + lang + "/" + ch.file;
+  showLoading();
+
+  let text;
+  try {
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    text = await res.text();
+  } catch (err) {
+    if (seq !== loadSeq) return; // a newer load has taken over
+    if (location.protocol === "file:") {
+      showError(
+        "Cannot load chapter files from disk",
+        "Browsers block fetch() on file:// pages. Serve the folder over HTTP instead — e.g. run " +
+        "npx serve <repo-root> -l 4173 and open http://localhost:4173/course%20notes/course-notes.html"
+      );
+    } else {
+      showError("Failed to load chapter", url + " — " + err.message);
+    }
+    return;
+  }
+
+  if (seq !== loadSeq) return; // a newer load has taken over
+
+  // Keep the raw markdown around so the AI tutor can use it as context.
+  lastRaw = { url, lang, label: ch.label, text };
+  updateChatCtx();
+
+  content.innerHTML = '<div class="md">' + mdToHtml(text) + "</div>";
+  metaLine.innerHTML = "Source: <code>" + esc(url) + "</code> · " + lang.toUpperCase();
+  buildToc();
+  setupScrollSpy();
+  window.scrollTo({ top: 0 });
+}
+
+// ── AI Tutor chat (OpenRouter) ─────────────────────────────
+// Requests go through the Vercel function; the OpenRouter key stays server-side.
+const CHAT_KEY = "course-notes-chat:v1";
+const chat = document.getElementById("chat");
+const chatMsgs = document.getElementById("chatMsgs");
+const chatWelcome = document.getElementById("chatWelcome");
+const chatText = document.getElementById("chatText");
+const chatSendBtn = document.getElementById("chatSendBtn");
+const chatCtxToggle = document.getElementById("chatCtxToggle");
+const chatCtx = document.getElementById("chatCtx");
+const chatSettings = document.getElementById("chatSettings");
+const chatSettingsBtn = document.getElementById("chatSettingsBtn");
+const chatCloseBtn = document.getElementById("chatCloseBtn");
+const chatFab = document.getElementById("chatFab");
+
+// Raw markdown of the currently loaded chapter (set by load()).
+let lastRaw = null;
+// User/assistant conversation turns; the server owns the system instructions.
+let chatHistory = [];
+let chatBusy = false;
+
+function chatStore() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHAT_KEY) || "{}");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+    delete saved.apiKey;
+    delete saved.model;
+    return saved;
+  } catch (_) { return {}; }
+}
+function saveChatStore(patch) {
+  try { localStorage.setItem(CHAT_KEY, JSON.stringify(Object.assign(chatStore(), patch))); } catch (_) {}
+}
+
+// Restore saved settings.
+(function initChatSettings() {
+  const s = chatStore();
+  // Remove credentials and model preferences saved by earlier versions.
+  saveChatStore({});
+  if (s.includeCtx === false) chatCtxToggle.checked = false;
+  if (s.open) chat.classList.add("open");
+  if (s.hidden) document.body.classList.add("chat-hidden");
+})();
+
+function updateChatCtx() {
+  if (lastRaw) {
+    chatCtx.textContent = "Context: " + lastRaw.label + " · " + lastRaw.lang.toUpperCase();
+  } else {
+    chatCtx.textContent = "Context: —";
+  }
+}
+
+function addMsg(role, html) {
+  if (chatWelcome) chatWelcome.style.display = "none";
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.innerHTML = html;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return div;
+}
+
+function buildChatHistory(contextLength) {
+  let usedChars = contextLength;
+  const history = [];
+
+  for (let i = chatHistory.length - 2; i >= 0 && history.length < 18; i -= 2) {
+    const turn = chatHistory.slice(i, i + 2);
+    const turnChars = turn[0].content.length + turn[1].content.length;
+    if (usedChars + turnChars > 40000) break;
+    history.unshift(...turn);
+    usedChars += turnChars;
+  }
+
+  return history;
+}
+
+async function sendChat() {
+  const text = chatText.value.trim();
+  if (!text || chatBusy) return;
+
+  chatText.value = "";
+  chatText.style.height = "auto";
+  addMsg("user", esc(text));
+
+  const context = chatCtxToggle.checked && lastRaw
+    ? { label: lastRaw.label + " · " + lastRaw.lang.toUpperCase(), text: lastRaw.text }
+    : null;
+  const history = buildChatHistory(text.length + (context ? context.text.length : 0));
+
+  const bubble = addMsg("assistant", '<span class="typing">…</span>');
+  chatBusy = true;
+  chatSendBtn.disabled = true;
+
+  let acc = "";
+  try {
+    const res = await fetch("/api/course-notes-chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: text, history, context }),
+    });
+    if (!res.ok) {
+      let detail = "HTTP " + res.status;
+      try {
+        const j = await res.json();
+        if (j && j.error && j.error.code === "PROMPT_INJECTION") {
+          bubble.className = "msg assistant";
+          bubble.textContent = "Bro, really? This is an learning platform avaliable for CS students, how come you will think my developers wont add safeguard against prompt injections?";
+          return;
+        }
+        if (j && j.error && j.error.message) detail = j.error.message;
+      } catch (_) {}
+      throw new Error(detail);
+    }
+
+    // Stream the SSE response and render incrementally.
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop(); // keep the trailing partial line
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        const data = t.slice(5).trim();
+        if (data === "[DONE]") continue;
+        let json;
+        try { json = JSON.parse(data); } catch (_) { continue; }
+        const delta = json.choices && json.choices[0] && json.choices[0].delta;
+        if (delta && typeof delta.content === "string") {
+          acc += delta.content;
+          bubble.innerHTML = '<div class="md">' + mdToHtml(acc) + "</div>";
+          chatMsgs.scrollTop = chatMsgs.scrollHeight;
+        }
+      }
+    }
+    if (!acc) acc = "(empty response)";
+    bubble.innerHTML = '<div class="md">' + mdToHtml(acc) + "</div>";
+    chatHistory.push({ role: "user", content: text }, { role: "assistant", content: acc });
+  } catch (err) {
+    bubble.className = "msg error";
+    bubble.innerHTML = esc("⚠️ " + err.message);
+  } finally {
+    chatBusy = false;
+    chatSendBtn.disabled = false;
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    chatText.focus();
+  }
+}
+
+// Wire up chat controls.
+chatSendBtn.addEventListener("click", sendChat);
+chatText.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+chatText.addEventListener("input", () => {
+  chatText.style.height = "auto";
+  chatText.style.height = Math.min(chatText.scrollHeight, 128) + "px";
+});
+chatCtxToggle.addEventListener("change", () => saveChatStore({ includeCtx: chatCtxToggle.checked }));
+chatSettingsBtn.addEventListener("click", () => { chatSettings.hidden = !chatSettings.hidden; });
+chatCloseBtn.addEventListener("click", () => {
+  if (window.matchMedia("(max-width: 1100px)").matches) {
+    chat.classList.remove("open");
+    saveChatStore({ open: false });
+  } else {
+    document.body.classList.add("chat-hidden");
+    saveChatStore({ hidden: true });
+  }
+});
+chatFab.addEventListener("click", () => {
+  if (window.matchMedia("(max-width: 1100px)").matches) {
+    chat.classList.add("open");
+    saveChatStore({ open: true });
+  } else {
+    document.body.classList.remove("chat-hidden");
+    saveChatStore({ hidden: false });
+  }
+});
+
+chapterSel.addEventListener("change", load);
+langSel.addEventListener("change", load);
+load();
+</script>
+</body>
+</html>

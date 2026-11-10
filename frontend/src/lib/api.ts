@@ -70,10 +70,36 @@ export async function getCurrentProfile(): Promise<CurrentProfile> {
   return data
 }
 
+export async function completeAssessment(csQualified: boolean): Promise<CurrentProfile> {
+  const data = await request<CurrentProfile>('/profiles/assessment', {
+    cs_qualified: csQualified,
+  })
+  if (!data) throw new ApiError('Unable to save your assessment result.', 503)
+  return data
+}
+
 export async function login(email: string, password: string): Promise<CurrentProfile> {
   const data = await request<CurrentProfile>('/auth/login', { email, password })
   if (!data) throw new ApiError('Sign-in failed. Try again.', 503)
   return data
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await request('/auth/password-reset/request', { email })
+}
+
+export async function verifyPasswordReset(
+  email: string,
+  code: string,
+  password: string,
+  passwordConfirmation: string,
+): Promise<void> {
+  await request('/auth/password-reset/verify', {
+    email,
+    code,
+    password,
+    password_confirmation: passwordConfirmation,
+  })
 }
 
 export async function logout(): Promise<void> {
@@ -148,6 +174,8 @@ export interface Material {
   sources: SourceItem[]
   data: GeneratedArtifactContent
   chatHistory: ChatMessage[]
+  published: boolean
+  publishedAt: string | null
   updatedAt: string
   createdAt: string
 }
@@ -189,6 +217,207 @@ export async function deleteMaterial(materialId: string): Promise<void> {
   await request(`/materials/${encodeURIComponent(materialId)}`, {}, 'DELETE')
 }
 
+/** Publishes (or unpublishes) a material so students can open it. */
+export async function setMaterialPublished(materialId: string, published: boolean): Promise<Material> {
+  const data = await request<Material>(
+    `/materials/${encodeURIComponent(materialId)}/publish`,
+    { published },
+  )
+  if (!data) throw new ApiError('Unable to update this material.', 503)
+  return data
+}
+
+export interface MaterialVersion {
+  id: string
+  materialId: string
+  userId: string
+  title: string
+  data: GeneratedArtifactContent
+  label: string
+  createdAt: string
+}
+
+/** Saves a server-side snapshot of a material's current content. */
+export async function createMaterialVersion(materialId: string, label: string): Promise<MaterialVersion> {
+  const data = await request<MaterialVersion>(
+    `/materials/${encodeURIComponent(materialId)}/versions`,
+    { label },
+  )
+  if (!data) throw new ApiError('Unable to save this version.', 503)
+  return data
+}
+
+/** Lists the material's most recent saved versions (newest first). */
+export async function fetchMaterialVersions(materialId: string): Promise<MaterialVersion[]> {
+  const data = await request<MaterialVersion[]>(`/materials/${encodeURIComponent(materialId)}/versions`)
+  if (!data) throw new ApiError('Unable to load saved versions.', 503)
+  return data
+}
+
+/** Restores a saved version's content into the material. */
+export async function restoreMaterialVersion(materialId: string, versionId: string): Promise<Material> {
+  const data = await request<Material>(
+    `/materials/${encodeURIComponent(materialId)}/versions/${encodeURIComponent(versionId)}/restore`,
+    {},
+    'POST',
+  )
+  if (!data) throw new ApiError('Unable to restore this version.', 503)
+  return data
+}
+
+/* --- Published courses (student delivery pipeline) --- */
+
+export interface PublishedCourseSummary {
+  id: string
+  title: string
+  type: 'slides' | 'quiz'
+  publishedAt: string | null
+  /** This student's delivery status: 'none', 'in_progress', or 'completed'. */
+  status?: 'none' | 'in_progress' | 'completed'
+  completedAt?: string | null
+}
+
+export interface StudentSlide {
+  title: string
+  bullets: string[]
+  visual: {
+    kind: 'diagram' | 'photo'
+    description: string
+    steps: string[]
+  }
+  theme?: SlideTheme
+  imageData?: string | null
+}
+
+export interface StudentQuizQuestion {
+  id: string
+  question: string
+  options: string[]
+}
+
+export type StudentCourseContent =
+  | { type: 'slides'; content: StudentSlide[] }
+  | { type: 'quiz'; questions: StudentQuizQuestion[] }
+
+export interface StudentCourse {
+  id: string
+  title: string
+  publishedAt: string | null
+  content: StudentCourseContent
+}
+
+/** Lists the instructor-published courses available to the signed-in student. */
+export async function fetchPublishedCourses(): Promise<PublishedCourseSummary[]> {
+  const data = await request<PublishedCourseSummary[]>('/courses')
+  if (!data) throw new ApiError('Unable to load your courses.', 503)
+  return data
+}
+
+/** Loads a published course. Quiz answer keys are withheld server-side. */
+export async function fetchStudentCourse(courseId: string): Promise<StudentCourse> {
+  const data = await request<StudentCourse>(`/courses/${encodeURIComponent(courseId)}`)
+  if (!data) throw new ApiError('Unable to load this course.', 503)
+  return data
+}
+
+export interface StudentAnswerResult {
+  correct: boolean
+  correct_index: number
+  explanation: string | null
+}
+
+/** Submits one quiz answer; the server checks it and records the attempt. */
+export async function submitCourseAnswer(
+  courseId: string,
+  questionId: string,
+  selectedIndex: number,
+): Promise<StudentAnswerResult> {
+  const data = await request<StudentAnswerResult>(`/courses/${encodeURIComponent(courseId)}/answers`, {
+    question_id: questionId,
+    selected_index: selectedIndex,
+  })
+  if (!data) throw new ApiError('Unable to save your answer. Try again.', 503)
+  return data
+}
+
+/** Records course start/completion for participation tracking. */
+export async function reportCourseProgress(courseId: string, event: 'start' | 'complete'): Promise<void> {
+  await request(`/courses/${encodeURIComponent(courseId)}/progress`, { event })
+}
+
+/* --- Roster import & participation analytics (instructor) --- */
+
+export interface RosterSummary {
+  id: string
+  name: string
+  createdAt: string
+  studentCount: number
+}
+
+export interface RosterStudent {
+  id: string
+  name: string
+  email: string
+  matched: boolean
+  importedAt: string
+  lastActiveAt: string | null
+  coursesCompleted: number
+  quizAverage: number | null
+}
+
+export interface RosterCourseAnalytics {
+  courseId: string
+  title: string
+  started: number
+  completed: number
+  quizAverage: number | null
+}
+
+export interface RosterDetail {
+  roster: { id: string; name: string; createdAt: string }
+  students: RosterStudent[]
+  analytics: {
+    enrolled: number
+    matched: number
+    active: number
+    participationRate: number
+    quizAverage: number | null
+    courses: RosterCourseAnalytics[]
+  }
+}
+
+export interface RosterImportResult {
+  roster: { id: string; name: string; createdAt: string | null }
+  imported: number
+  matched: number
+}
+
+export async function fetchRosters(): Promise<RosterSummary[]> {
+  const data = await request<RosterSummary[]>('/rosters')
+  if (!data) throw new ApiError('Unable to load rosters.', 503)
+  return data
+}
+
+/** Imports a CSV roster (columns: name,email) and links matching accounts. */
+export async function importRoster(file: File, name?: string): Promise<RosterImportResult> {
+  const form = new FormData()
+  form.set('file', file)
+  if (name) form.set('name', name)
+  const data = await request<RosterImportResult>('/rosters/import', form)
+  if (!data) throw new ApiError('Unable to import this roster.', 503)
+  return data
+}
+
+export async function fetchRosterDetail(rosterId: string): Promise<RosterDetail> {
+  const data = await request<RosterDetail>(`/rosters/${encodeURIComponent(rosterId)}`)
+  if (!data) throw new ApiError('Unable to load this roster.', 503)
+  return data
+}
+
+export async function deleteRoster(rosterId: string): Promise<void> {
+  await request(`/rosters/${encodeURIComponent(rosterId)}`, {}, 'DELETE')
+}
+
 export async function createMaterialSource(
   materialId: string,
   input: { type: 'text'; name: string; rawContent: string } |
@@ -216,6 +445,36 @@ export async function deleteMaterialSource(materialId: string, sourceId: string)
     {},
     'DELETE',
   )
+}
+
+/** Downloads the material's PPTX file (generated server-side from the saved content). */
+export async function downloadMaterialPptx(materialId: string, title: string): Promise<void> {
+  let response: Response
+  try {
+    response = await fetch(`/api/materials/${encodeURIComponent(materialId)}/export/pptx`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    })
+  } catch {
+    throw new ApiError('Unable to connect to the export service. Check your connection and try again.', 0)
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null) as ErrorResponse | null
+    throw new ApiError(
+      data?.error?.message ?? 'Unable to export this material as PPTX.',
+      response.status,
+      data?.error?.signed_out === true,
+    )
+  }
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `${title.replace(/[\\/:*?"<>|]+/g, '').trim() || 'material'}.pptx`
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 export async function generateCourseContent(
@@ -254,10 +513,9 @@ export interface HallucinationChallenge {
   id: string
   title: string
   emoji: string
-  language: string
   category: string
   scenario: string
-  code: string[]
+  segments: string[]
   hint_mild: string
   hint_strong: string
 }
@@ -270,7 +528,7 @@ export interface JudgeVerdict {
   identified: string[]
   missed: string[]
   feedback: string
-  flaw_line: number
+  flaw_segment: number
   flaw_summary: string
 }
 

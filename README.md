@@ -70,7 +70,7 @@ npm run build
 #### B3. Interactive Coding & Review Sandbox (SE & AI Agents)
 * **Prompt Golf Challenge (Non-CS & CS):** Students are given a functional requirement and must prompt an AI coding agent to generate bug-free code using the fewest words possible.
 * **Code Review Boss Battle (CS Track):** The AI generates a Pull Request containing subtle memory leaks or security flaws. The CS student must identify the flaw, reject the PR, and provide constructive code review comments.
-* **Spot the Hallucination (non-CS Track):** 4 non-CS-friendly challenges with playful "AI intern" framing (Time-Travel Booking App, Weather Bot With Amnesia, The Playlist That Skips, The Chatbot That Overshares). The learner is asked to select the line of the code which may contain hallucination from "AI intern" and explain the rationale behind. An AI-powered Tutor will judge the learner's selection and explanation to produce a score out of 100. The Tutor will also provide feedback about what the learner has done well and what could be improved.
+* **Spot the Hallucination (all learners — no programming needed):** 4 everyday challenges with playful "AI intern" framing (The Breakfast Recipe, The Morning Weather Forecast, The City Travel Guide, The AI Health Coach). Each is a short everyday note — a recipe, a forecast, a travel guide, a tip sheet — in which the overconfident AI has slipped in exactly ONE absurd or plainly impossible statement. The learner taps the suspicious line and explains in plain words why it cannot be true; only common-sense, everyday knowledge is needed — no coding or specialist background. An AI-powered Tutor grades the selection and explanation into a score out of 100, with feedback on what was caught and what to add.
 * **Embedded Monaco Editor Component:** Dark-themed code editor with syntax highlighting, a live execution output pane, and a "Submit to AI Tutor" button for immediate diagnostic feedback.
 
 ---
@@ -86,13 +86,17 @@ npm run build
 
 #### C3. Content CMS & Manual Editing
 * **Slide editor:** 16:9 WYSIWYG canvas, inline text editing, slide thumbnails, reordering, duplication, deletion, and text formatting controls.
+* **Theme editor:** Apply preset palettes or custom theme colors (background, text, accent, cards) to the whole deck or a single slide; themes persist with the resource.
+* **Undo & versioning:** Edits can be undone/redone (buttons or Ctrl+Z / Ctrl+Shift+Z); a server-side version is captured automatically before each AI revision and can be restored from the History panel.
 * **Quiz builder:** Edit questions, answers, option order, and correct answers; student preview offers instant answer feedback and explanations.
 * **File-scoped AI conversations:** Each resource maintains its own messages and sends its current JSON structure when requesting a revision.
-* **Local persistence:** Resources are saved in browser storage; server-backed sharing and publishing are not implemented yet.
+* **Server persistence & export:** Resources are saved in Supabase through the backend. Slide decks and quizzes export as PPTX (built server-side; quiz answer keys stay in speaker notes) or as PDF through a print view.
 
 #### C4. Course Publishing & Roster Analytics
-* **Publishing Pipeline:** Clicking "Publish Course" updates the course status from `draft` to `published`, making it instantly visible on the student dashboard.
-* **Roster Analytics Dashboard:** Instructors can import a student roster (`.csv`), track student participation rates, monitor quiz performance, and view time spent in interactive sandboxes[cite: 1].
+* **Publishing Pipeline:** Instructors toggle "Publish for students" on a slide deck or quiz (a confirmation dialog asks before publishing/unpublishing, showing the current slide/question count); published courses appear instantly in the student dashboard's "Your courses" section, and the student link (`/courses/:id`) can be copied for sharing.
+* **Categorized student dashboard:** The hub groups content by purpose: **Your courses** (published instructor courses, split into "Continue where you left off", "Get started", and "Completed" from the student's own `course_progress` records, with In progress / Completed badges), **Games & training** (Spot the Hallucination, the sample mini-course, Gold Rush Hook, and Testers & the Bar), **Course resources · COMP5241** (the static chapter-notes catalogue), and **Coming soon** (locked CS-track content).
+* **Student course player:** Students view published slide decks (themed 16:9 slides) and sit quizzes; answers are checked server-side (answer keys never reach the client) and every attempt plus course start/completion is recorded for analytics.
+* **Roster Analytics Dashboard:** Instructors import a student roster (CSV with `name,email` columns) in the "Student Analytics" view, and re-imports refresh it. Roster emails are matched to signed-up accounts automatically, and the dashboard reports enrollment, matched accounts, recent activity, participation rate, quiz averages, and per-course start/completion counts.
 
 ---
 
@@ -133,7 +137,7 @@ The backend application code is in `backend/app/`; its dependencies and Python p
 * **FastAPI** — web framework for building the API
 * **uv** — Python project and dependency management
 
-The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, the public sample mini-course (with a quota-limited AI tutor), and instructor-only AI course generation. Assessment-submission endpoints are not yet implemented.
+The backend provides greeting/health endpoints, Supabase password authentication, session refresh/logout, user-scoped profile queries, AI tutoring, the public sample mini-course (with a quota-limited AI tutor), instructor-only AI course generation, instructor material management (sources, version snapshots, PPTX export, publishing), student course delivery (server-checked quiz answers and progress tracking), and roster import with participation analytics. Assessment-submission endpoints are not yet implemented.
 
 ---
 

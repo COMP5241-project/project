@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as StudentRouteImport } from './routes/student'
+import { Route as CoursesIdRouteImport } from './routes/courses_.$id'
 import { Route as CoursesSampleRouteImport } from './routes/courses_.sample'
 import { Route as StudentHallucinationGameRouteImport } from './routes/student_.hallucination-game'
 
@@ -42,6 +43,11 @@ const StudentRoute = StudentRouteImport.update({
   path: '/student',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CoursesIdRoute = CoursesIdRouteImport.update({
+  id: '/courses_/$id',
+  path: '/courses/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesSampleRoute = CoursesSampleRouteImport.update({
   id: '/courses_/sample',
   path: '/courses/sample',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/student': typeof StudentRoute
+  '/courses/$id': typeof CoursesIdRoute
   '/courses/sample': typeof CoursesSampleRoute
   '/student/hallucination-game': typeof StudentHallucinationGameRoute
 }
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/student': typeof StudentRoute
+  '/courses/$id': typeof CoursesIdRoute
   '/courses/sample': typeof CoursesSampleRoute
   '/student/hallucination-game': typeof StudentHallucinationGameRoute
 }
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/student': typeof StudentRoute
+  '/courses_/$id': typeof CoursesIdRoute
   '/courses_/sample': typeof CoursesSampleRoute
   '/student_/hallucination-game': typeof StudentHallucinationGameRoute
 }
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/instructor'
     | '/login'
     | '/student'
+    | '/courses/$id'
     | '/courses/sample'
     | '/student/hallucination-game'
   fileRoutesByTo: FileRoutesByTo
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/instructor'
     | '/login'
     | '/student'
+    | '/courses/$id'
     | '/courses/sample'
     | '/student/hallucination-game'
   id:
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/instructor'
     | '/login'
     | '/student'
+    | '/courses_/$id'
     | '/courses_/sample'
     | '/student_/hallucination-game'
   fileRoutesById: FileRoutesById
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
   StudentRoute: typeof StudentRoute
+  CoursesIdRoute: typeof CoursesIdRoute
   CoursesSampleRoute: typeof CoursesSampleRoute
   StudentHallucinationGameRoute: typeof StudentHallucinationGameRoute
 }
@@ -159,6 +172,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/courses_/$id': {
+      id: '/courses_/$id'
+      path: '/courses/$id'
+      fullPath: '/courses/$id'
+      preLoaderRoute: typeof CoursesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses_/sample': {
       id: '/courses_/sample'
       path: '/courses/sample'
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
   StudentRoute: StudentRoute,
+  CoursesIdRoute: CoursesIdRoute,
   CoursesSampleRoute: CoursesSampleRoute,
   StudentHallucinationGameRoute: StudentHallucinationGameRoute,
 }

@@ -45,6 +45,9 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 SESSION_COOKIE_SECURE=false
 ```
 
+Configure the Supabase Auth email template used for passwordless sign-in to render
+`{{ .Token }}`. The login page uses that six-digit token for password recovery.
+
 Use a public anon/publishable key; no service-role key is required. Never commit real
 credentials. Apply the SQL migrations in `../supabase/migrations/` and provision
 accounts through Supabase Auth. Sign-in does not create accounts. Roles come from
@@ -124,8 +127,10 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | GET | `/` | Greeting |
 | GET | `/health` | Supabase database connectivity |
 | POST | `/api/auth/login` | Supabase password sign-in; returns email/profile and sets a cookie |
+| POST | `/api/auth/password-reset/request` | Sends a six-digit Supabase Auth email code when the account exists |
+| POST | `/api/auth/password-reset/verify` | Verifies the code and updates the account password |
 | GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
-| POST | `/api/auth/logout` | Clears local sessions and revokes Supabase refresh sessions globally |
+| POST | `/api/auth/logout` | Clears local sessions; best-effort global revocation of Supabase sessions |
 | POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |
 | GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
 | POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
@@ -140,7 +145,9 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 Login accepts `{"email":"user@example.com","password":"..."}`. Logout accepts `{}`.
 Mutating JSON endpoints require `Content-Type: application/json`; the material file-upload
 endpoint uses `multipart/form-data`. Mutating requests require an `Origin` header matching
-`FRONTEND_ORIGINS`. Origins are normalized before comparison, so the local
+`FRONTEND_ORIGINS` — or a same-origin request, where the `Origin` host equals the request
+`Host` (which is how the single-domain Vercel deployment works, so no domain needs to be
+listed). Origins are normalized before comparison, so the local
 loopback spellings `localhost`, `127.0.0.1`, and `[::1]` are treated as the same
 origin (the browser picks whichever `localhost` resolves to); scheme and port are
 still matched strictly. Use the frontend's same-origin `/api` proxy; CORS is not
@@ -199,9 +206,10 @@ owner-scoped storage policy.
 	forwarded to Supabase Auth and never stored.
 - Sessions expire after 24 hours. Expiring access tokens refresh on `/api/profiles/me` with
 	per-session locking. Invalid sessions return 401; temporary upstream failures return 503.
-- Logout invalidates this user's local sessions even if Supabase revocation fails.
-	A 503 with `signed_out: true` means local sign-out succeeded but global revocation
-	could not be confirmed. Supabase access JWTs remain valid until their own expiry.
+- Logout invalidates this user's local sessions and always returns 204. Global
+	revocation of Supabase sessions is best-effort; when it fails (it cannot be
+	confirmed with the public anon key) it is logged, not reported. Supabase
+	access JWTs remain valid until their own expiry.
 - Use one backend worker only. Restarting or auto-reloading the backend clears every
 	session. Previous frontend-SDK sessions require a fresh sign-in.
 - Before production, replace the in-memory store with shared persistent storage,

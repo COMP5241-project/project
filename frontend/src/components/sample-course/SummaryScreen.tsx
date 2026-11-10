@@ -106,7 +106,7 @@ export function SummaryScreen({ scores, isGuest, isStudent, saveState, onStartOv
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-                href="/login"
+                href="#/login"
               >
                 Sign in to keep going <ArrowRight aria-hidden="true" size={16} />
               </a>
@@ -130,7 +130,7 @@ export function SummaryScreen({ scores, isGuest, isStudent, saveState, onStartOv
               {isStudent ? (
                 <a
                   className="inline-flex items-center gap-2 rounded-lg bg-[#A21942] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-                  href="/student"
+                  href="#/student"
                 >
                   Continue to your Learning Hub <ArrowRight aria-hidden="true" size={16} />
                 </a>

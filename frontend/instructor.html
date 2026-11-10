@@ -22,6 +22,12 @@
       <p id="logout-feedback" class="mx-auto mt-3 hidden max-w-7xl px-4 text-sm text-red-700" role="alert"></p>
       <div id="instructor-app"></div>
     </main>
+    <div id="signing-out-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-white/70 backdrop-blur-sm" role="status" aria-live="polite">
+      <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-6 py-4 shadow-lg">
+        <span aria-hidden="true" class="size-5 animate-spin rounded-full border-2 border-gray-200 border-t-[#A21942]"></span>
+        <p class="text-sm font-semibold text-gray-700">Signing you out…</p>
+      </div>
+    </div>
     <script type="module" src="/src/instructor-auth.ts"></script>
     <script type="module" src="/src/instructor-app.tsx"></script>
   </body>

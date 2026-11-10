@@ -23,6 +23,7 @@ from app.course_generation import (
     generate_course_content,
 )
 from app.routers.materials import _extract_file_text, _fetch_url_text
+from app.pptx_export import build_pptx
 from app.hallucination.judge import JudgeUnavailableError, JudgeVerdict, parse_verdict
 from app.identity.auth import get_auth_client, get_optional_auth_client
 from app.identity.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
@@ -127,6 +128,90 @@ def test_auth_login_and_profile_use_private_cookie(client: HttpxClient, auth_cli
     auth_client.table.return_value.select.return_value.eq.assert_called_with("id", "student-id")
 
 
+def test_password_reset_request_sends_email_otp(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/request",
+        json={"email": "student@example.com"},
+    )
+
+    assert response.status_code == 204
+    auth_client.auth.sign_in_with_otp.assert_called_once_with({
+        "email": "student@example.com",
+        "options": {"should_create_user": False},
+    })
+
+
+def test_password_reset_verify_updates_password(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "12345678",
+            "password": "new-password",
+            "password_confirmation": "new-password",
+        },
+    )
+
+    assert response.status_code == 204
+    auth_client.auth.verify_otp.assert_called_once_with({
+        "email": "student@example.com",
+        "token": "12345678",
+        "type": "email",
+    })
+    auth_client.auth.update_user.assert_called_once_with({"password": "new-password"})
+
+
+def test_password_reset_rejects_mismatched_passwords(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "12345678",
+            "password": "new-password",
+            "password_confirmation": "different-password",
+        },
+    )
+
+    assert response.status_code == 422
+    auth_client.auth.verify_otp.assert_not_called()
+    auth_client.auth.update_user.assert_not_called()
+
+
+def test_password_reset_rejects_six_digit_codes(client: HttpxClient, auth_client: Mock):
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "123456",
+            "password": "new-password",
+            "password_confirmation": "new-password",
+        },
+    )
+
+    assert response.status_code == 422
+    auth_client.auth.verify_otp.assert_not_called()
+    auth_client.auth.update_user.assert_not_called()
+
+
+def test_password_reset_does_not_update_when_code_verification_fails(
+    client: HttpxClient, auth_client: Mock
+):
+    auth_client.auth.verify_otp.side_effect = RuntimeError("invalid code")
+
+    response = client.post(
+        "/api/auth/password-reset/verify",
+        json={
+            "email": "student@example.com",
+            "code": "12345678",
+            "password": "new-password",
+            "password_confirmation": "new-password",
+        },
+    )
+
+    assert response.status_code == 503
+    auth_client.auth.update_user.assert_not_called()
+
+
 
 def test_auth_missing_session(client: HttpxClient):
     response = client.get("/api/profiles/me")
@@ -153,6 +238,21 @@ def test_auth_accepts_all_loopback_origin_spellings(
         "/api/auth/login",
         json={"email": "student@example.com", "password": "secret-password"},
         headers={"Origin": origin},
+    )
+    assert response.status_code == 200
+
+
+def test_auth_accepts_same_origin_request(
+    client: HttpxClient, auth_client: Mock, monkeypatch: pytest.MonkeyPatch
+):
+    # Simulates the single-domain Vercel deployment: the page's Origin host
+    # matches the request Host, so it is trusted even though it is not in
+    # FRONTEND_ORIGINS.
+    monkeypatch.setenv("FRONTEND_ORIGINS", "http://localhost:5173")
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.com", "password": "secret-password"},
+        headers={"Origin": "http://testserver"},
     )
     assert response.status_code == 200
 
@@ -345,10 +445,10 @@ def test_auth_logout_invalidates_sessions_even_when_revocation_fails(client: Htt
     if unavailable:
         auth_client.auth.admin.sign_out.side_effect = RuntimeError("provider-secret")
     response = client.post("/api/auth/logout", json={})
-    assert response.status_code == (503 if unavailable else 204)
-    if unavailable:
-        assert response.json()["error"]["signed_out"] is True
-        assert "provider-secret" not in response.text
+    # A failed global revocation must not fail the sign-out itself: the
+    # local session is invalidated and the cookie cleared either way.
+    assert response.status_code == 204
+    assert "provider-secret" not in response.text
     assert not store.sessions
     assert COOKIE_NAME not in client.cookies
     assert client.get("/api/profiles/me").status_code == 401
@@ -400,8 +500,7 @@ def test_auth_missing_configuration_does_not_block_local_logout(client: HttpxCli
     auth_login(client)
     app.dependency_overrides[get_optional_auth_client] = lambda: None
     response = client.post("/api/auth/logout", json={})
-    assert response.status_code == 503
-    assert response.json()["error"]["signed_out"] is True
+    assert response.status_code == 204
     assert not store.sessions
     assert client.get("/api/profiles/me").status_code == 401
 
@@ -483,9 +582,9 @@ def test_hallucination_challenges_hide_answers(client: HttpxClient):
     challenges = response.json()
     assert [item["id"] for item in challenges] == ["ncs-01", "ncs-02", "ncs-03", "ncs-04"]
     for item in challenges:
-        assert "flaw_line" not in item
+        assert "flaw_segment" not in item
         assert "flaw_summary" not in item
-        assert item["code"] and item["hint_mild"] and item["hint_strong"]
+        assert item["segments"] and item["hint_mild"] and item["hint_strong"]
 
 
 def test_hallucination_judge_requires_session(client: HttpxClient, auth_client: Mock):
@@ -522,8 +621,8 @@ def test_hallucination_judge_returns_verdict_with_reveal(client: HttpxClient, mo
     assert response.status_code == 200
     body = response.json()
     assert body["score"] == 90 and body["rating"] == "sharp"
-    assert body["flaw_line"] == 4
-    assert body["flaw_summary"].startswith("calendar.set_month_name()")
+    assert body["flaw_segment"] == 3
+    assert body["flaw_summary"].startswith("Line 4 is absurd")
 
 
 def test_hallucination_judge_upstream_failure_is_service_unavailable(client: HttpxClient, monkeypatch):
@@ -1106,6 +1205,619 @@ def test_material_create_and_patch_store_data_for_authenticated_owner(
     assert material_table.insert.call_args.args[0]["user_id"] == "student-id"
     assert updated.status_code == 200
     assert material_table.update.call_args.args[0]["title"] == "Updated quiz"
+
+
+def _materials_test_tables(auth_client: Mock, role: str = "instructor"):
+    profile_table = auth_client.table.return_value
+    profile_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data[
+        "role"
+    ] = role
+    material_table = Mock()
+    source_table = Mock()
+    version_table = Mock()
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "materials": material_table,
+        "material_sources": source_table,
+        "material_versions": version_table,
+    }[name]
+    return material_table, source_table, version_table
+
+
+def test_material_versions_require_instructor_role(client: HttpxClient) -> None:
+    auth_login(client)  # default profile role is "student"
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+
+    response = client.post(f"/api/materials/{material_id}/versions", json={"label": "Snapshot"})
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "instructor_required"
+
+
+def test_material_versions_unknown_material_returns_404(client: HttpxClient, auth_client: Mock) -> None:
+    material_table, _, _ = _materials_test_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    material_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = None
+
+    response = client.get(f"/api/materials/{material_id}/versions")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "material_not_found"
+
+
+def test_material_version_create_list_and_restore(client: HttpxClient, auth_client: Mock) -> None:
+    material_table, source_table, version_table = _materials_test_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    version_id = "1f0f1f2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f"
+    current_data = {
+        "type": "slides",
+        "content": [
+            {"title": "Now", "bullets": ["b"], "visual": {"kind": "diagram", "description": "d", "steps": ["s"]}},
+        ],
+    }
+    old_data = {
+        "type": "slides",
+        "content": [
+            {"title": "Before", "bullets": ["b"], "visual": {"kind": "diagram", "description": "d", "steps": ["s"]}},
+        ],
+    }
+    material_row = {
+        "id": material_id,
+        "user_id": "student-id",
+        "title": "Test material",
+        "type": "slides",
+        "data": current_data,
+        "chat_history": [],
+        "created_at": "2026-10-15T12:00:00+00:00",
+        "updated_at": "2026-10-15T12:00:00+00:00",
+    }
+    version_row = {
+        "id": version_id,
+        "material_id": material_id,
+        "user_id": "student-id",
+        "title": "Test material",
+        "data": old_data,
+        "label": "Before AI revision",
+        "created_at": "2026-10-27T12:00:00+00:00",
+    }
+    material_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = material_row
+    version_table.insert.return_value.execute.return_value.data = [version_row]
+    source_table.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+
+    created = client.post(f"/api/materials/{material_id}/versions", json={"label": "Before AI revision"})
+
+    assert created.status_code == 200
+    assert created.json()["id"] == version_id
+    assert created.json()["label"] == "Before AI revision"
+    # The snapshot stores the material's content at the moment of capture.
+    assert version_table.insert.call_args.args[0]["data"] == current_data
+
+    version_table.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [version_row]
+    listed = client.get(f"/api/materials/{material_id}/versions")
+    assert listed.status_code == 200
+    assert [version["id"] for version in listed.json()] == [version_id]
+    assert listed.json()[0]["data"] == old_data
+
+    version_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = version_row
+    material_table.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = [material_row]
+    restored = client.post(f"/api/materials/{material_id}/versions/{version_id}/restore")
+
+    assert restored.status_code == 200
+    # Restore copies the version's data back into the material...
+    assert material_table.update.call_args.args[0]["data"] == old_data
+    # ...after first snapshotting the current state so the restore is reversible.
+    assert version_table.insert.call_count == 2
+    before_restore = version_table.insert.call_args_list[1].args[0]
+    assert before_restore["label"] == "Before restore"
+    assert before_restore["data"] == current_data
+
+
+def test_material_version_restore_unknown_version_returns_404(client: HttpxClient, auth_client: Mock) -> None:
+    material_table, _, version_table = _materials_test_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    version_id = "1f0f1f2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f"
+    material_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": material_id,
+        "user_id": "student-id",
+        "title": "Test material",
+        "type": "slides",
+        "data": {"type": "slides", "content": []},
+        "chat_history": [],
+        "created_at": "2026-10-15T12:00:00+00:00",
+        "updated_at": "2026-10-15T12:00:00+00:00",
+    }
+    version_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = None
+
+    response = client.post(f"/api/materials/{material_id}/versions/{version_id}/restore")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "version_not_found"
+
+
+def test_material_export_pptx_requires_instructor_role(client: HttpxClient) -> None:
+    auth_login(client)  # default profile role is "student"
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+
+    response = client.get(f"/api/materials/{material_id}/export/pptx")
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "instructor_required"
+
+
+def test_material_export_pptx_roundtrip(client: HttpxClient, auth_client: Mock) -> None:
+    material_table, _, _ = _materials_test_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    material_row = {
+        "id": material_id,
+        "user_id": "student-id",
+        "title": "Export Deck",
+        "type": "slides",
+        "data": {
+            "type": "slides",
+            "content": [
+                {
+                    "title": "First slide",
+                    "bullets": ["Point one", "Point two"],
+                    "visual": {"kind": "diagram", "description": "flow", "steps": ["Start", "End"]},
+                    "theme": {"background": "#0B192C", "textColor": "#F8FAFC", "accentColor": "#38BDF8", "cardBackground": "#1E293B"},
+                },
+                {"title": "Second slide", "bullets": ["Only bullet"], "visual": {"kind": "diagram", "description": "d", "steps": ["A"]}},
+            ],
+        },
+        "chat_history": [],
+        "created_at": "2026-10-15T12:00:00+00:00",
+        "updated_at": "2026-10-15T12:00:00+00:00",
+    }
+    material_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = material_row
+
+    response = client.get(f"/api/materials/{material_id}/export/pptx")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+    assert 'filename="Export Deck.pptx"' in response.headers["content-disposition"]
+    presentation = Presentation(BytesIO(response.content))
+    assert len(presentation.slides) == 2
+    first_slide_text = "\n".join(
+        shape.text_frame.text for shape in presentation.slides[0].shapes if shape.has_text_frame
+    )
+    assert "First slide" in first_slide_text
+    assert "Point one" in first_slide_text
+
+
+def test_build_pptx_quiz_keeps_answer_key_in_notes() -> None:
+    material = {
+        "title": "Sample quiz",
+        "data": {
+            "type": "quiz",
+            "questions": [
+                {
+                    "id": "q1",
+                    "question": "What is 2 + 2?",
+                    "options": ["3", "4", "5"],
+                    "correctAnswerIndex": 1,
+                    "explanation": "Basic arithmetic.",
+                },
+            ],
+        },
+    }
+    presentation = Presentation(BytesIO(build_pptx(material)))
+    # One heading slide + one slide per question.
+    assert len(presentation.slides) == 2
+    notes = presentation.slides[1].notes_slide.notes_text_frame.text
+    assert "Correct answer: B" in notes
+    assert "Basic arithmetic." in notes
+    slide_text = "\n".join(shape.text_frame.text for shape in presentation.slides[1].shapes if shape.has_text_frame)
+    # The answer key must never appear on the slide itself.
+    assert "Correct answer" not in slide_text
+    assert "B. 4" in slide_text
+
+
+def _course_tables(auth_client: Mock, role: str = "student"):
+    profile_table = auth_client.table.return_value
+    profile_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data["role"] = role
+    materials_table = Mock()
+    source_table = Mock()
+    answers_table = Mock()
+    progress_table = Mock()
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "materials": materials_table,
+        "material_sources": source_table,
+        "course_quiz_answers": answers_table,
+        "course_progress": progress_table,
+    }[name]
+    source_table.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    progress_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = []
+    return materials_table, answers_table, progress_table
+
+
+def _published_row(material_id: str, *, published: bool = True, data=None, title="Published course") -> dict:
+    return {
+        "id": material_id,
+        "user_id": "instructor-id",
+        "title": title,
+        "type": "quiz" if (data or {}).get("type") == "quiz" else "slides",
+        "data": data or {"type": "slides", "content": [{"title": "S1", "bullets": ["b"]}]},
+        "chat_history": [],
+        "published": published,
+        "published_at": "2026-10-28T00:00:00+00:00" if published else None,
+        "created_at": "2026-10-28T00:00:00+00:00",
+        "updated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def test_courses_require_student_role(client: HttpxClient, auth_client: Mock) -> None:
+    _course_tables(auth_client, role="instructor")
+    auth_login(client)
+
+    response = client.get("/api/courses")
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "student_required"
+
+
+def test_course_list_returns_published_courses(client: HttpxClient, auth_client: Mock) -> None:
+    materials_table, _, progress_table = _course_tables(auth_client)
+    auth_login(client)
+    started_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    completed_id = "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d"
+    untouched_id = "8e1f3d4b-9a2f-4c6b-8d3e-4f5a6b7c8d9e"
+    materials_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _published_row(started_id, title="Quiz in progress"),
+        _published_row(completed_id, title="Finished deck"),
+        _published_row(untouched_id, title="Fresh quiz"),
+    ]
+    progress_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
+        {"material_id": started_id, "started_at": "2026-10-29T00:00:00+00:00", "completed_at": None},
+        {"material_id": completed_id, "started_at": "2026-10-29T01:00:00+00:00", "completed_at": "2026-10-29T02:00:00+00:00"},
+    ]
+
+    response = client.get("/api/courses")
+
+    assert response.status_code == 200
+    body = response.json()
+    by_title = {item["title"]: item for item in body}
+    assert [item["title"] for item in body] == ["Quiz in progress", "Finished deck", "Fresh quiz"]
+    assert body[0]["publishedAt"] == "2026-10-28T00:00:00+00:00"
+    # Per-student delivery status is joined from the caller's course_progress.
+    assert by_title["Quiz in progress"]["status"] == "in_progress"
+    assert by_title["Quiz in progress"]["completedAt"] is None
+    assert by_title["Finished deck"]["status"] == "completed"
+    assert by_title["Finished deck"]["completedAt"] == "2026-10-29T02:00:00+00:00"
+    assert by_title["Fresh quiz"]["status"] == "none"
+    # The progress lookup must be scoped to this student and the listed courses.
+    progress_eq = progress_table.select.return_value.eq
+    assert progress_eq.call_args.args[0] == "user_id"
+    assert progress_table.select.return_value.eq.return_value.in_.call_args.args == ("material_id", [started_id, completed_id, untouched_id])
+    # The stored material (with its answer keys) must not leak into the list.
+    assert "data" not in body[0]
+
+
+def test_course_get_strips_quiz_answer_keys(client: HttpxClient, auth_client: Mock) -> None:
+    materials_table, _, _ = _course_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    quiz_data = {
+        "type": "quiz",
+        "questions": [
+            {
+                "id": "q1",
+                "question": "What is 2 + 2?",
+                "options": ["3", "4", "5"],
+                "correctAnswerIndex": 1,
+                "explanation": "Basic arithmetic.",
+            },
+        ],
+    }
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id, data=quiz_data)
+
+    response = client.get(f"/api/courses/{material_id}")
+
+    assert response.status_code == 200
+    question = response.json()["content"]["questions"][0]
+    assert question["question"] == "What is 2 + 2?"
+    assert question["options"] == ["3", "4", "5"]
+    assert "correctAnswerIndex" not in question
+    assert "explanation" not in question
+
+
+def test_course_get_unpublished_returns_404(client: HttpxClient, auth_client: Mock) -> None:
+    materials_table, _, _ = _course_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = None
+
+    response = client.get(f"/api/courses/{material_id}")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "course_not_found"
+
+
+def test_course_answer_checks_and_records(client: HttpxClient, auth_client: Mock) -> None:
+    materials_table, answers_table, _ = _course_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    quiz_data = {
+        "type": "quiz",
+        "questions": [
+            {
+                "id": "q1",
+                "question": "What is 2 + 2?",
+                "options": ["3", "4", "5"],
+                "correctAnswerIndex": 1,
+                "explanation": "Basic arithmetic.",
+            },
+        ],
+    }
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id, data=quiz_data)
+    answers_table.insert.return_value.execute.return_value.data = [{"id": "a1"}]
+
+    wrong = client.post(f"/api/courses/{material_id}/answers", json={"question_id": "q1", "selected_index": 0})
+    assert wrong.status_code == 200
+    assert wrong.json() == {"correct": False, "correct_index": 1, "explanation": "Basic arithmetic."}
+    assert answers_table.insert.call_args.args[0]["correct"] is False
+
+    right = client.post(f"/api/courses/{material_id}/answers", json={"question_id": "q1", "selected_index": 1})
+    assert right.status_code == 200
+    assert right.json()["correct"] is True
+    assert answers_table.insert.call_args.args[0]["user_id"] == "student-id"
+
+    unknown = client.post(f"/api/courses/{material_id}/answers", json={"question_id": "nope", "selected_index": 0})
+    assert unknown.status_code == 404
+    assert unknown.json()["error"]["code"] == "question_not_found"
+
+
+def test_course_progress_start_and_complete(client: HttpxClient, auth_client: Mock) -> None:
+    materials_table, _, progress_table = _course_tables(auth_client)
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id)
+
+    started = client.post(f"/api/courses/{material_id}/progress", json={"event": "start"})
+    assert started.status_code == 204
+    start_call = progress_table.upsert.call_args
+    assert start_call.args[0]["user_id"] == "student-id"
+    assert start_call.kwargs["ignore_duplicates"] is True
+
+    completed = client.post(f"/api/courses/{material_id}/progress", json={"event": "complete"})
+    assert completed.status_code == 204
+    complete_call = progress_table.upsert.call_args
+    assert "completed_at" in complete_call.args[0]
+
+
+def test_publish_material_toggles_flag(client: HttpxClient, auth_client: Mock) -> None:
+    materials_table, _, _ = _course_tables(auth_client, role="instructor")
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id, published=False)
+    materials_table.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = [_published_row(material_id, published=True)]
+
+    published = client.post(f"/api/materials/{material_id}/publish", json={"published": True})
+    assert published.status_code == 200
+    assert published.json()["published"] is True
+    update_args = materials_table.update.call_args.args[0]
+    assert update_args["published"] is True
+    assert update_args["published_at"] is not None
+
+    captured = {}
+    materials_table.update.side_effect = lambda changes: (captured.update(changes) or materials_table.update.return_value)
+    unpublished = client.post(f"/api/materials/{material_id}/publish", json={"published": False})
+    assert unpublished.status_code == 200
+    assert captured["published"] is False
+    assert captured["published_at"] is None
+
+
+def test_publish_material_requires_instructor(client: HttpxClient, auth_client: Mock) -> None:
+    _course_tables(auth_client, role="student")
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+
+    response = client.post(f"/api/materials/{material_id}/publish", json={"published": True})
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "instructor_required"
+
+
+def test_publish_material_missing_column_reports_course_delivery_migration(
+    client: HttpxClient, auth_client: Mock
+) -> None:
+    materials_table, _, _ = _course_tables(auth_client, role="instructor")
+    auth_login(client)
+    material_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    materials_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = _published_row(material_id, published=False)
+    materials_table.update.return_value.eq.return_value.eq.return_value.execute.side_effect = (
+        PostgrestAPIError({
+            "message": "Could not find the column 'public.materials.published' in the payload",
+            "code": "PGRST204",
+        })
+    )
+
+    response = client.post(f"/api/materials/{material_id}/publish", json={"published": True})
+
+    # PGRST204 means the live schema lacks a column the code needs — point at
+    # the exact migration instead of a generic "try again" 503.
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "materials_not_configured"
+    assert "20261028000000_course_delivery.sql" in response.json()["error"]["message"]
+
+
+def test_roster_csv_parsing() -> None:
+    from app.identity.errors import ApiError
+    from app.routers.rosters import _parse_roster_csv
+
+    rows = _parse_roster_csv("Email,Name\na@x.edu,Alice\nb@x.edu,Bob\n")
+    assert rows == [
+        {"email": "a@x.edu", "name": "Alice"},
+        {"email": "b@x.edu", "name": "Bob"},
+    ]
+    # Duplicate emails collapse; missing names fall back to the local part.
+    rows = _parse_roster_csv("name,email\nAlice,a@x.edu\n,a@x.edu\n")
+    assert rows == [{"email": "a@x.edu", "name": "Alice"}]
+
+    with pytest.raises(ApiError) as excinfo:
+        _parse_roster_csv("name\nAlice\n")
+    assert excinfo.value.code == "roster_csv_invalid"
+
+    with pytest.raises(ApiError) as excinfo:
+        _parse_roster_csv("name,email\nAlice,nah\n")
+    assert excinfo.value.code == "roster_csv_invalid"
+
+    with pytest.raises(ApiError) as excinfo:
+        _parse_roster_csv("name,email\n")
+    assert excinfo.value.code == "roster_csv_empty"
+
+
+def _roster_tables(auth_client: Mock, role: str = "instructor"):
+    profile_table = auth_client.table.return_value
+    profile_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data[
+        "role"
+    ] = role
+    rosters_table = Mock()
+    students_table = Mock()
+    progress_table = Mock()
+    answers_table = Mock()
+    materials_table = Mock()
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "rosters": rosters_table,
+        "roster_students": students_table,
+        "course_progress": progress_table,
+        "course_quiz_answers": answers_table,
+        "materials": materials_table,
+    }[name]
+    return rosters_table, students_table, progress_table, answers_table, materials_table
+
+
+def test_roster_import_requires_instructor(client: HttpxClient, auth_client: Mock) -> None:
+    _roster_tables(auth_client, role="student")
+    auth_login(client)
+
+    response = client.post(
+        "/api/rosters/import",
+        files={"file": ("roster.csv", b"name,email\na@x.edu,Alice\n", "text/csv")},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "instructor_required"
+
+
+def test_roster_import_invalid_csv(client: HttpxClient, auth_client: Mock) -> None:
+    rosters_table, *_ = _roster_tables(auth_client)
+    auth_login(client)
+
+    response = client.post(
+        "/api/rosters/import",
+        files={"file": ("roster.csv", b"name\nAlice\n", "text/csv")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "roster_csv_invalid"
+    rosters_table.insert.assert_not_called()
+
+
+def test_roster_import_creates_students_and_matches(client: HttpxClient, auth_client: Mock) -> None:
+    rosters_table, students_table, *_ = _roster_tables(auth_client)
+    auth_login(client)
+    rosters_table.insert.return_value.execute.return_value.data = [
+        {"id": "r-1", "instructor_id": "student-id", "created_at": "2026-10-29T00:00:00+00:00"},
+    ]
+    students_table.upsert.return_value.execute.return_value.data = []
+    profile_table = auth_client.table.return_value
+    profile_table.select.return_value.in_.return_value.limit.return_value.execute.return_value.data = [
+        {"id": "student-id", "email": "a@x.edu"},
+    ]
+
+    response = client.post(
+        "/api/rosters/import",
+        files={"file": ("fall.csv", b"name,email\nAlice,a@x.edu\nBob,b@x.edu\n", "text/csv")},
+        data={"name": "Fall 2026"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["imported"] == 2
+    assert body["matched"] == 1
+    assert body["roster"]["name"] == "Fall 2026"
+    # Re-import is a full refresh: existing rows are cleared first, then every
+    # student is inserted unlinked, and finally the matched accounts are linked
+    # back via update. Students must be inserted before the profile lookup
+    # because the "Instructors resolve their roster emails" RLS policy only
+    # matches emails that are already in one of the instructor's rosters.
+    students_table.delete.return_value.eq.return_value.execute.assert_called_once()
+    assert students_table.delete.return_value.eq.call_args.args == ("roster_id", "r-1")
+    inserted = students_table.insert.call_args.args[0]
+    assert [row["email"] for row in inserted] == ["a@x.edu", "b@x.edu"]
+    assert all(row["user_id"] is None for row in inserted)
+    updates = [c.args[0] for c in students_table.update.call_args_list]
+    assert updates == [{"user_id": "student-id"}]
+    # The link is scoped to the roster (first .eq) and the matched email
+    # (second .eq).
+    first_eq = students_table.update.return_value.eq
+    second_eq = first_eq.return_value.eq
+    assert ("roster_id", "r-1") in [c.args for c in first_eq.call_args_list]
+    assert ("email", "a@x.edu") in [c.args for c in second_eq.call_args_list]
+
+
+def test_roster_analytics_aggregates(client: HttpxClient, auth_client: Mock) -> None:
+    rosters_table, students_table, progress_table, answers_table, materials_table = _roster_tables(auth_client)
+    auth_login(client)
+    roster_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    rosters_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": roster_id,
+        "instructor_id": "student-id",
+        "name": "Fall 2026",
+        "created_at": "2026-10-29T00:00:00+00:00",
+    }
+    students_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
+        {"id": "s1", "roster_id": roster_id, "user_id": "student-id", "email": "a@x.edu", "name": "Alice", "imported_at": "2026-10-29T00:00:00+00:00"},
+        {"id": "s2", "roster_id": roster_id, "user_id": None, "email": "b@x.edu", "name": "Bob", "imported_at": "2026-10-29T00:00:00+00:00"},
+    ]
+    progress_table.select.return_value.in_.return_value.execute.return_value.data = [
+        {"user_id": "student-id", "material_id": "c1", "started_at": "2026-10-29T00:00:00+00:00", "last_active_at": "2026-10-29T01:00:00+00:00", "completed_at": "2026-10-29T02:00:00+00:00"},
+    ]
+    answers_table.select.return_value.in_.return_value.execute.return_value.data = [
+        {"user_id": "student-id", "material_id": "c1", "correct": True},
+        {"user_id": "student-id", "material_id": "c1", "correct": False},
+    ]
+    materials_table.select.return_value.in_.return_value.limit.return_value.execute.return_value.data = [
+        {"id": "c1", "title": "Thermo"},
+    ]
+
+    response = client.get(f"/api/rosters/{roster_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    analytics = body["analytics"]
+    assert analytics["enrolled"] == 2
+    assert analytics["matched"] == 1
+    assert analytics["active"] == 1
+    assert analytics["participationRate"] == 1.0
+    assert analytics["quizAverage"] == 50.0
+    assert analytics["courses"][0]["title"] == "Thermo"
+    assert analytics["courses"][0]["started"] == 1
+    assert analytics["courses"][0]["completed"] == 1
+    alice = body["students"][0]
+    assert alice["matched"] is True
+    assert alice["coursesCompleted"] == 1
+    assert alice["quizAverage"] == 50.0
+    assert body["students"][1]["matched"] is False
+
+
+def test_roster_detail_unknown_returns_404(client: HttpxClient, auth_client: Mock) -> None:
+    rosters_table, *_ = _roster_tables(auth_client)
+    auth_login(client)
+    rosters_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = None
+
+    response = client.get("/api/rosters/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "roster_not_found"
 
 
 def test_instructor_course_generation_rejects_mismatched_existing_content(client: HttpxClient):
