@@ -1,7 +1,5 @@
 # Visión General de Pruebas de Software
 
-> Destilado de la presentación del curso (60 diapositivas). Fundamentos de testing (happy path / edge / negative), testing estático vs dinámico, DRE, pirámide de pruebas, pruebas unit/integration/UI con Playwright, TDD y pruebas de usabilidad.
-
 ---
 
 ## 1. ¿Qué es probar software?
@@ -24,6 +22,12 @@ Una **investigación** realizada para proporcionar a los stakeholders informaci�
   - Subir un archivo que exceda el límite de tamaño.
   - Excepciones al llamar APIs de LLM.
   - El usuario envía repetidamente requests de resumen al endpoint de la API en un período corto.
+
+![Defect origins: specification and design dominate, then code and other](../notes_img/L5/p06_00_p06_0.jpg)
+
+![The final product includes code, manuals, help files, labels, error messages and more](../notes_img/L5/p07_00_p07_0.jpg)
+
+![Cost to fix a bug rises the later it is found: specification, design, code, test, release](../notes_img/L5/p08_00_p08_0.jpg)
 
 ## 2. Origen de defectos, tipos de prueba, costo
 
@@ -54,6 +58,10 @@ Normalmente se usa el **primer año después del release** para cuantificar el t
 - Sistema A: 30 defectos en testing / 70 encontrados por usuarios → DRE = 30/100 = 30%
 - Sistema B: 20 en testing / 30 por usuarios → DRE = 20/50 = **40%** → **B es más efectivo**.
 
+![Market Lane shop: storefront, shopping cart and checkout pages](../notes_img/L5/p15_00_p15_0.jpg)
+
+![Shopping cart with 3 items totalling $49.97](../notes_img/L5/p16_00_p16_0.jpg)
+
 ## 3. Testing manual vs automatizado
 
 ### Testing manual
@@ -75,6 +83,18 @@ Maneras de escribir pruebas automatizadas:
 - **Hand-scripted tests**: codificación manual de programas de prueba ("scripts") que ejercitan el sistema.
 - **Recorded test**: herramientas que monitorean tus interacciones (mayormente a nivel UI) con el SUT mientras lo pruebas a mano; los casos se guardan y se convierten en el script para reejecutar la prueba contra otra versión (o la misma).
 - **Uso de GenAI** (p. ej., GitHub Copilot).
+
+![Test layers: UI, service and logic, as a pyramid of UI, integration and unit tests](../notes_img/L5/p18_00_p18_0.jpg)
+
+![Unit tests target the logic layer (circled)](../notes_img/L5/p20_00_p20_0.jpg)
+
+![Add to cart button](../notes_img/L5/p21_02_p21_2.jpg)
+
+![Cart holding two juices and a baguette](../notes_img/L5/p21_03_p21_3.jpg)
+
+![The same cart test written in JUnit and pytest](../notes_img/L5/p21_04_p21_4.jpg)
+
+![Flaky test: the same test passes, fails, then passes across runs](../notes_img/L5/p23_00_p23_0.jpg)
 
 ## 4. Pruebas unitarias
 
@@ -136,6 +156,10 @@ Esperar IO y servicios externos mata la velocidad del testing. Las pruebas que d
 
 Un **mock** es un objeto simulado que imita el comportamiento de dependencias reales en tu código; te permite **controlar valores de retorno y simular errores** sin tocar los sistemas externos reales.
 
+![CheckoutService with its database and external payment and mail services](../notes_img/L5/p23_01_p23_1.jpg)
+
+![A mock API client returns a controlled response to the business logic](../notes_img/L5/p24_00_p24_0.jpg)
+
 ## 5. Pruebas de integración (service layer)
 
 Las pruebas de integración verifican que **múltiples componentes funcionen juntos correctamente**. P. ej., probar si los endpoints de la REST API, la lógica de negocio y la base de datos interactúan adecuadamente.
@@ -143,6 +167,22 @@ Las pruebas de integración verifican que **múltiples componentes funcionen jun
 - **HTTP**: el protocolo con el que la web habla para enviar y recibir información de un lugar a otro.
 - Una **REST API** deja que diferentes software hablen entre sí a través de internet usando métodos HTTP simples (GET, POST, PUT, DELETE).
 - **Mocking en testing de integración**: la API ejecuta la lógica de negocio y escribe en la base de datos propia de la app; **el servicio de pago externo se mockea** porque la app no lo controla.
+
+![Happy path checkout flow: browser, API, logic, Stripe, database and mail service](../notes_img/L5/p15_01_p15_1.jpg)
+
+![Checkout page showing payment successful and order abc12345](../notes_img/L5/p29_01_p29_1.jpg)
+
+![Playwright test: click Pay with an empty form and assert required-field errors](../notes_img/L5/p30_00_p30_0.jpg)
+
+![Playwright test: fill a declined card number and assert the declined message](../notes_img/L5/p30_01_p30_1.jpg)
+
+![Checkout form with all required fields flagged](../notes_img/L5/p30_02_p30_2.jpg)
+
+![Checkout page showing the transaction declined error](../notes_img/L5/p30_03_p30_3.jpg)
+
+![Playwright MCP: the IDE and MCP protocol drive a server that controls a browser](../notes_img/L5/p33_00_p33_0.jpg)
+
+![A Copilot agent drives the Market Lane checkout through the Playwright MCP server](../notes_img/L5/p33_01_p33_1.jpg)
 
 ## 6. Pruebas de UI / end-to-end (Playwright)
 
@@ -164,11 +204,21 @@ Las pruebas de UI **generan eventos de interfaz** (teclados, clics de mouse) y o
 - **Ejercicio**: clonar `git clone https://github.com/HKPolyUSE/playwright_testing`, abrir en VSCode, configurar el MCP server `microsoft/playwright-mcp` (`npx @playwright/mcp@latest`), iniciar el servidor MCP.
 - Ejemplo de test automatizado: función helper `doLogin(page, username, password)`: navegar a home (redirige a login) → verificar redirect → llenar username y password → click login → verificar redirect a la página de todos (`getByRole('textbox', { name: 'Username' })` etc.).
 
+![UI and integration tests are good for integration testing](../notes_img/L5/p38_00_p38_0.jpg)
+
+![Smoke tests: quick checks like login and search](../notes_img/L5/p38_01_p38_1.jpg)
+
 ### Ventajas de las pruebas de UI
 
 - La automatización siempre es viable.
 - **End-to-end**: ejercitar todas las partes distintas de la aplicación — la interfaz, los servicios subyacentes, hasta la base de datos.
 - A menudo se usan para **smoke tests** de alto nivel: pruebas super de alto nivel que verifican que, al menos a nivel básico, el sistema está arriba y funcionando; checar que las aplicaciones estén correctamente desplegadas, correctamente configuradas y que todas las piezas de la arquitectura estén conectadas y cableadas bien.
+
+![Test speed: UI ~1000ms, integration ~100ms, unit ~1ms; UI tests tend to be slow](../notes_img/L5/p39_00_p39_0.jpg)
+
+![A Submit button broken by an ID change, new animation or layout shift](../notes_img/L5/p39_01_p39_1.jpg)
+
+![Debugging a UI failure: is it the database, the API or the rendering?](../notes_img/L5/p39_02_p39_2.jpg)
 
 ### Limitaciones de las pruebas de UI
 
@@ -176,11 +226,19 @@ Las pruebas de UI **generan eventos de interfaz** (teclados, clics de mouse) y o
 - **Fragilidad**: el test de UI puede ser frágil; se rompe con cambios menores en la UI (p. ej., cambiar el label de un botón de "Submit" a "Confirm" — o fixear un typo — romperá cualquier test hard-coded a buscar la cadena "Submit").
 - Un fallo de E2E indica que algo anda mal, pero rara vez **dónde** anda mal.
 
+![Test automation infrastructure: case manager, controllers, machines, results and reports](../notes_img/L5/p40_00_p40_0.jpg)
+
 ### Ventajas generales del testing automatizado
 
 - **Rápido**: las herramientas automatizadas ejecutan pruebas significativamente más rápido que usuarios humanos; bueno para load testing, testing masivo aleatorio, etc.
 - **Confiabilidad**: las pruebas realizan exactamente las mismas operaciones cada vez, eliminando el error humano.
 - **Repetibilidad**: puedes probar cómo reacciona el software bajo ejecución repetida de las mismas operaciones (testing de regresión).
+
+![Ice cream cone: mostly manual testing with automation at the UI level](../notes_img/L5/p41_00_p41_0.jpg)
+
+![Unit vs integration vs E2E by focus, dependencies, speed and cost](../notes_img/L5/p41_01_p41_1.jpg)
+
+![Test pyramid: 70% unit, 20% integration, 10% E2E](../notes_img/L5/p42_00_p42_0.jpg)
 
 ## 7. La forma del testing: cono vs pirámide
 
@@ -189,6 +247,8 @@ Las pruebas de UI **generan eventos de interfaz** (teclados, clics de mouse) y o
   - **Pruebas unitarias** (base): probar funciones, métodos o clases individuales en aislamiento de dependencias; baratas y rápidas (milisegundos); retroalimentación instantánea al developer.
   - **Pruebas de integración** (medio): verificar que componentes, servicios o módulos distintos funcionen juntos correctamente; prueban endpoints de API, operaciones de base de datos y comunicaciones de servicios.
   - **Pruebas de UI/E2E** (cima): verificar journeys completos del usuario a través de la UI de la aplicación.
+
+![TDD circle of life: test fails, refactor, test passes](../notes_img/L5/p44_00_p44_0.jpg)
 
 ## 8. Test-Driven Development (TDD)
 

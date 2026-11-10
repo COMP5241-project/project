@@ -1,7 +1,5 @@
 # 軟體測試總覽
 
-> 整理自課程簡報(60 頁)。測試基礎(happy path / 邊界 / 負面)、靜態 vs 動態測試、DRE、測試金字塔、unit/integration/UI 測試(含 Playwright)、TDD,以及可用性測試。
-
 ---
 
 ## 1. 什麼是軟體測試
@@ -15,6 +13,12 @@
   - 檔案大小恰好等於 Supabase 上限;檔名極長;文件打到 LLM 的上下文視窗上限;首次回應前快速連點「總結」;上傳中途離開頁面再回來。
   - 相關 API 錯誤:`200 OK`、`400 Bad Request`(內容過濾/請求無效)、`429 Too Many Requests`(速率限制)、`500 Internal Server Error`。
 - **Negative testing(負面測試)** — 系統應拒絕或優雅處理的無效輸入與錯誤條件:不支援的檔案類型(`.exe`、`.mp4`、`.zip`)、損壞的 PDF、超大小限制、呼叫 LLM API 時的例外、短時間內重複提交總結請求。
+
+![Defect origins: specification and design dominate, then code and other](../notes_img/L5/p06_00_p06_0.jpg)
+
+![The final product includes code, manuals, help files, labels, error messages and more](../notes_img/L5/p07_00_p07_0.jpg)
+
+![Cost to fix a bug rises the later it is found: specification, design, code, test, release](../notes_img/L5/p08_00_p08_0.jpg)
 
 ## 2. 缺陷、測試類型、成本
 
@@ -38,6 +42,10 @@
 - **練習**:A 團隊測試中找 30 / 使用者找 70(DRE ≈ 30%);B 團隊找 20 / 30(DRE ≈ 40%)→ **B 更有效**,儘管總數較少。
 - 每個階段都可能注入*與*移除缺陷;測試主要負責移除 — 且修錯缺陷本身可能引入新缺陷。
 
+![Market Lane shop: storefront, shopping cart and checkout pages](../notes_img/L5/p15_00_p15_0.jpg)
+
+![Shopping cart with 3 items totalling $49.97](../notes_img/L5/p16_00_p16_0.jpg)
+
 ## 3. 手動 vs 自動化測試
 
 ### 手動測試
@@ -56,6 +64,18 @@
 用軟體控制測試執行。Agile 短週期使手動回歸測試幾乎不可能。**層級**(快/便宜 → 慢/貴):**單元測試 → service 層測試 → UI 測試**。
 
 撰寫自動化測試的方式:**手寫腳本**、**錄製式**(工具捕捉 UI 互動供重放)、**GenAI 輔助**(如 GitHub Copilot)。
+
+![Test layers: UI, service and logic, as a pyramid of UI, integration and unit tests](../notes_img/L5/p18_00_p18_0.jpg)
+
+![Unit tests target the logic layer (circled)](../notes_img/L5/p20_00_p20_0.jpg)
+
+![Add to cart button](../notes_img/L5/p21_02_p21_2.jpg)
+
+![Cart holding two juices and a baguette](../notes_img/L5/p21_03_p21_3.jpg)
+
+![The same cart test written in JUnit and pytest](../notes_img/L5/p21_04_p21_4.jpg)
+
+![Flaky test: the same test passes, fails, then passes across runs](../notes_img/L5/p23_00_p23_0.jpg)
 
 ## 4. 單元測試
 
@@ -85,11 +105,31 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 - **相依與 flaky test**:等 IO/外部服務會殺死測試速度;依賴 live service/DB/网络的測試會間歇性失敗 → **flaky test** = 程式碼與環境未變但結果不一致。
 - **Mock** — 模擬真實相依行為的擬製物件:控制回傳值、模擬錯誤,而不碰真實外部系統。
 
+![CheckoutService with its database and external payment and mail services](../notes_img/L5/p23_01_p23_1.jpg)
+
+![A mock API client returns a controlled response to the business logic](../notes_img/L5/p24_00_p24_0.jpg)
+
 ## 5. 整合測試
 
 - 驗證多個元件協同運作:REST API endpoints、商業邏輯、資料庫。
 - HTTP 是網頁的請求/回應協定;REST API 透過 HTTP methods(GET、POST、PUT、DELETE)交換資料。
 - **Mocking**:API 跑真實商業邏輯、寫 app 自己的資料庫,但**外部服務(如付款業者)被 mock**,因為 app 不控制它們。
+
+![Happy path checkout flow: browser, API, logic, Stripe, database and mail service](../notes_img/L5/p15_01_p15_1.jpg)
+
+![Checkout page showing payment successful and order abc12345](../notes_img/L5/p29_01_p29_1.jpg)
+
+![Playwright test: click Pay with an empty form and assert required-field errors](../notes_img/L5/p30_00_p30_0.jpg)
+
+![Playwright test: fill a declined card number and assert the declined message](../notes_img/L5/p30_01_p30_1.jpg)
+
+![Checkout form with all required fields flagged](../notes_img/L5/p30_02_p30_2.jpg)
+
+![Checkout page showing the transaction declined error](../notes_img/L5/p30_03_p30_3.jpg)
+
+![Playwright MCP: the IDE and MCP protocol drive a server that controls a browser](../notes_img/L5/p33_00_p33_0.jpg)
+
+![A Copilot agent drives the Market Lane checkout through the Playwright MCP server](../notes_img/L5/p33_01_p33_1.jpg)
 
 ## 6. UI / 端到端測試(Playwright)
 
@@ -104,6 +144,16 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 - **Playwright + MCP**(Model Context Protocol):讓 LLM 應用串接外部工具/服務的開放協定 — 讓 AI 代理以自然語言控制瀏覽器,不必每步寫新 script。
 - **練習**:`git clone https://github.com/HKPolyUSE/playwright_testing`;在 IDE 設定 `@playwright/mcp` MCP server;跑登入 helper 範例(`doLogin` 用 `getByRole` locator)。
 
+![UI and integration tests are good for integration testing](../notes_img/L5/p38_00_p38_0.jpg)
+
+![Smoke tests: quick checks like login and search](../notes_img/L5/p38_01_p38_1.jpg)
+
+![Test speed: UI ~1000ms, integration ~100ms, unit ~1ms; UI tests tend to be slow](../notes_img/L5/p39_00_p39_0.jpg)
+
+![A Submit button broken by an ID change, new animation or layout shift](../notes_img/L5/p39_01_p39_1.jpg)
+
+![Debugging a UI failure: is it the database, the API or the rendering?](../notes_img/L5/p39_02_p39_2.jpg)
+
 ### UI 測試取捨
 
 | 優勢 | 限制 |
@@ -112,9 +162,17 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 | 端到端覆蓋(UI → services → DB) | 脆弱:標籤從 "Submit" 改成 "Confirm" 就會打破 hard-code 選擇器 |
 | 適合高階 **smoke test**(系統是否啟動、部署、連線) | E2E 失敗告訴你*有*問題,很少告訴你*在哪* |
 
+![Test automation infrastructure: case manager, controllers, machines, results and reports](../notes_img/L5/p40_00_p40_0.jpg)
+
 ### 自動化測試的整體好處
 
 **快**(負載測試、大量隨機測試)、**可靠**(每次操作完全相同,消除人類失誤)、**可重現**(回歸測試)。
+
+![Ice cream cone: mostly manual testing with automation at the UI level](../notes_img/L5/p41_00_p41_0.jpg)
+
+![Unit vs integration vs E2E by focus, dependencies, speed and cost](../notes_img/L5/p41_01_p41_1.jpg)
+
+![Test pyramid: 70% unit, 20% integration, 10% E2E](../notes_img/L5/p42_00_p42_0.jpg)
 
 ## 7. 測試形狀:金字塔 vs 甜筒
 
@@ -123,6 +181,8 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
   - **單元測試**(底) — 隔離的函式/方法;便宜、毫秒級、即時回饋。
   - **整合測試**(中) — 元件/services 協同:API endpoints、DB 操作、service 通訊。
   - **UI/E2E 測試**(頂) — 透過 UI 的完整使用者旅程。
+
+![TDD circle of life: test fails, refactor, test passes](../notes_img/L5/p44_00_p44_0.jpg)
 
 ## 8. 測試驅動開發(TDD)
 

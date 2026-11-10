@@ -1,7 +1,5 @@
 # ソフトウェアテスト概論
 
-> コース資料(60スライド)から抽出・整理したノート。テストの基礎(happy path / エッジ / ネガティブ)、静的 vs 動的テスト、DRE、テストピラミッド、unit/integration/UI テスト(Playwright 含む)、TDD、ユーザビリティテスト。
-
 ---
 
 ## 1. ソフトウェアテストとは
@@ -15,6 +13,12 @@
   - Supabase の最大ファイルサイズちょうど;非常に長いファイル名;LLM の最大コンテキストウィンドウに到達する文書;最初の応答前に「要約」を高速連打;アップロード中にページを離れて戻る。
   - 関連 API エラー:`200 OK`、`400 Bad Request`(コンテンツフィルタ/無効なリクエスト)、`429 Too Many Requests`(レート制限)、`500 Internal Server Error`。
 - **Negative testing(ネガティブテスト)** — システムが拒否または適切に扱うべき無効入力・エラー条件:非対応ファイル形式(`.exe`、`.mp4`、`.zip`)、破損 PDF、サイズ超過、LLM API 呼び出し時の例外、短時間での要約リクエスト連続送信。
+
+![Defect origins: specification and design dominate, then code and other](../notes_img/L5/p06_00_p06_0.jpg)
+
+![The final product includes code, manuals, help files, labels, error messages and more](../notes_img/L5/p07_00_p07_0.jpg)
+
+![Cost to fix a bug rises the later it is found: specification, design, code, test, release](../notes_img/L5/p08_00_p08_0.jpg)
 
 ## 2. 欠陥、テストタイプ、コスト
 
@@ -38,6 +42,10 @@
 - **演習**:A チームはテストで 30 / ユーザーで 70 発見(DRE ≈ 30%);B チームは 20 / 30(DRE ≈ 40%)→ **B の方が有効**(総数が少ないのに)。
 - 各フェーズは欠陥を注入*し*除去しうる;テストは主に除去を担当 — ただし誤った修正自体が新規欠陥を生みうる。
 
+![Market Lane shop: storefront, shopping cart and checkout pages](../notes_img/L5/p15_00_p15_0.jpg)
+
+![Shopping cart with 3 items totalling $49.97](../notes_img/L5/p16_00_p16_0.jpg)
+
 ## 3. 手動 vs 自動テスト
 
 ### 手動テスト
@@ -56,6 +64,18 @@
 ソフトウェアでテスト実行を制御。アジャイルの短いサイクルでは手動回帰テストはほぼ不可能。**レイヤ**(速い/安い → 遅い/高い):**ユニットテスト → サービスレイヤテスト → UI テスト**。
 
 自動テストの書き方:**ハンドスクリプト**(テストコードを直接書く)、**記録式**(ツールが UI 操作をキャプチャしてリプレイ)、**GenAI 支援**(例:GitHub Copilot)。
+
+![Test layers: UI, service and logic, as a pyramid of UI, integration and unit tests](../notes_img/L5/p18_00_p18_0.jpg)
+
+![Unit tests target the logic layer (circled)](../notes_img/L5/p20_00_p20_0.jpg)
+
+![Add to cart button](../notes_img/L5/p21_02_p21_2.jpg)
+
+![Cart holding two juices and a baguette](../notes_img/L5/p21_03_p21_3.jpg)
+
+![The same cart test written in JUnit and pytest](../notes_img/L5/p21_04_p21_4.jpg)
+
+![Flaky test: the same test passes, fails, then passes across runs](../notes_img/L5/p23_00_p23_0.jpg)
 
 ## 4. ユニットテスト
 
@@ -85,11 +105,31 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 - **依存とフラaky テスト**:IO/外部サービス待ちがテスト速度を殺す;ライブサービス/DB/ネットワークに依存するテストは断続的に失敗 → **flaky test** = コードや環境を変更しないのに結果が一定しない。
 - **モック** — 実依存の挙動を模倣する擬似オブジェクト:戻り値を制御し、エラーをシミュレートし、実外部システムには触れない。
 
+![CheckoutService with its database and external payment and mail services](../notes_img/L5/p23_01_p23_1.jpg)
+
+![A mock API client returns a controlled response to the business logic](../notes_img/L5/p24_00_p24_0.jpg)
+
 ## 5. 統合テスト
 
 - 複数コンポーネントが正しく連携するかの検証:REST API エンドポイント、ビジネスロジック、データベース。
 - HTTP は Web が情報を送受信するプロトコル;REST API は HTTP メソッド(GET、POST、PUT、DELETE)でデータをやり取り。
 - **モッキング**:API は実ビジネスロジックを実行してアプリ自身の DB に書き込むが、**外部サービス(例:決済プロバイダ)はモック** — アプリが制御できないため。
+
+![Happy path checkout flow: browser, API, logic, Stripe, database and mail service](../notes_img/L5/p15_01_p15_1.jpg)
+
+![Checkout page showing payment successful and order abc12345](../notes_img/L5/p29_01_p29_1.jpg)
+
+![Playwright test: click Pay with an empty form and assert required-field errors](../notes_img/L5/p30_00_p30_0.jpg)
+
+![Playwright test: fill a declined card number and assert the declined message](../notes_img/L5/p30_01_p30_1.jpg)
+
+![Checkout form with all required fields flagged](../notes_img/L5/p30_02_p30_2.jpg)
+
+![Checkout page showing the transaction declined error](../notes_img/L5/p30_03_p30_3.jpg)
+
+![Playwright MCP: the IDE and MCP protocol drive a server that controls a browser](../notes_img/L5/p33_00_p33_0.jpg)
+
+![A Copilot agent drives the Market Lane checkout through the Playwright MCP server](../notes_img/L5/p33_01_p33_1.jpg)
 
 ## 6. UI / E2E テスト(Playwright)
 
@@ -104,6 +144,16 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 - **Playwright + MCP**(Model Context Protocol):LLM アプリと外部ツール/サービスを接続するオープンプロトコル — AI エージェントが自然言語でブラウザを制御でき、各ステップごとに新しいスクリプトを書く必要がない。
 - **演習**:`git clone https://github.com/HKPolyUSE/playwright_testing`;IDE に `@playwright/mcp` MCP サーバを設定;ログインヘルパー例を実行(`doLogin` は `getByRole` ロケータ使用)。
 
+![UI and integration tests are good for integration testing](../notes_img/L5/p38_00_p38_0.jpg)
+
+![Smoke tests: quick checks like login and search](../notes_img/L5/p38_01_p38_1.jpg)
+
+![Test speed: UI ~1000ms, integration ~100ms, unit ~1ms; UI tests tend to be slow](../notes_img/L5/p39_00_p39_0.jpg)
+
+![A Submit button broken by an ID change, new animation or layout shift](../notes_img/L5/p39_01_p39_1.jpg)
+
+![Debugging a UI failure: is it the database, the API or the rendering?](../notes_img/L5/p39_02_p39_2.jpg)
+
 ### UI テストのトレードオフ
 
 | 強み | 制限 |
@@ -112,9 +162,17 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
 | E2E カバレッジ(UI → サービス → DB) | 脆い:「Submit」を「Confirm」にリネームするだけでハードコードセレクタが壊れる |
 | 高レベル**スモークテスト**に最適(システム起動・デプロイ・接続確認) | E2E 失敗は*何か*が壊れていることは示すが*どこ*かは rarely 示さない |
 
+![Test automation infrastructure: case manager, controllers, machines, results and reports](../notes_img/L5/p40_00_p40_0.jpg)
+
 ### 自動テストの全体利点
 
 **速い**(ロードテスト、大量ランダムテスト)、**信頼性**(毎回全く同じ操作、人間エラー排除)、**再現可能**(回帰テスト)。
+
+![Ice cream cone: mostly manual testing with automation at the UI level](../notes_img/L5/p41_00_p41_0.jpg)
+
+![Unit vs integration vs E2E by focus, dependencies, speed and cost](../notes_img/L5/p41_01_p41_1.jpg)
+
+![Test pyramid: 70% unit, 20% integration, 10% E2E](../notes_img/L5/p42_00_p42_0.jpg)
 
 ## 7. テストの形:ピラミッド vs アイスクリームコーン
 
@@ -123,6 +181,8 @@ assert abs(cart.get_total_amount() - 49.97) < 0.001, "Total amount should be 49.
   - **ユニットテスト**(底) — 隔離された関数/メソッド;安価、ミリ秒、即時フィードバック。
   - **統合テスト**(中) — コンポーネント/サービスの連携:API エンドポイント、DB 操作、サービス通信。
   - **UI/E2E テスト**(頂) — UI を通じた完全なユーザージャーニー。
+
+![TDD circle of life: test fails, refactor, test passes](../notes_img/L5/p44_00_p44_0.jpg)
 
 ## 8. テスト駆動開発(TDD)
 

@@ -1,7 +1,5 @@
 # Ciclo de Vida del Desarrollo de Software (SDLC)
 
-> Destilado de la presentación del curso (57 diapositivas). Requisitos, diseño, implementación, pruebas, despliegue y mantenimiento — incluyendo *verification* vs *validation*, estrategias de despliegue y un caso de estudio de fallo de despliegue.
-
 ---
 
 ## 1. ¿Qué es el SDLC?
@@ -10,12 +8,20 @@ Un proceso estructurado que describe las etapas del desarrollo de software. Desa
 
 Etapas: **análisis de requisitos → diseño del sistema → implementación → prueba unitaria → pruebas de integración → pruebas de sistema → pruebas de aceptación → despliegue → mantenimiento**.
 
+![Requirement analysis: gathering and documenting functional requirements — stakeholder interviews, user needs, SRS document, feasibility study](../notes_img/L2/p03_00_p03_0.jpg)
+
 ## 2. Requisitos
+
+![Functional requirement: a description of what a system must do, with a text-note app example](../notes_img/L2/p04_00_p04_0.jpg)
+
+![Non-functional requirements with examples: scalability, availability, performance, usability, maintainability, reliability](../notes_img/L2/p17_00_p17_0.jpg)
 
 ### Funcionales vs no funcionales
 
 - **Requisitos funcionales**: definen *qué* debe lograr el sistema (p. ej., "envía un correo de confirmación al crear una cuenta", "permite buscar contenido escribiendo en la barra de búsqueda", "revisar/cambiar/eliminar artículos del carrito antes del checkout", "login con credenciales o redes sociales", "enviar notificaciones", "permitir feedback o calificar productos").
 - **Requisitos no funcionales**: definen *qué tan bien* opera el sistema (rendimiento, seguridad, disponibilidad, etc.).
+
+![Six requirements-elicitation techniques: document analysis, observation, interviews, surveys and questionnaires, focus groups, prototyping](../notes_img/L2/p05_00_p05_0.jpg)
 
 ### Recolectar requisitos funcionales
 
@@ -42,6 +48,8 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
 - **Hacer mejores preguntas**: empezar por el problema, no por la solución ("¿Qué dolor estamos resolviendo? ¿Cuál es el valor de negocio?"); preguntas abiertas y enfocadas en el proceso ("¿Cómo lo hacen hoy? ¿Qué se rompe? ¿Qué información necesitan para decidir?"); cuestionar suposiciones ("¿Y si faltan datos? ¿Cuáles son las excepciones? ¿Quién decide?"); usar **5 Whys** para llegar a causas raíz, no síntomas.
 - **Sintetizar, aclarar y resolver conflictos**: parafrasear y confirmar durante las sesiones ("Lo que oigo es… ¿es correcto?"); convertir declaraciones vagas en requisitos o reglas de negocio **probables y específicas**; usar la técnica **MoSCoW** (Must/Should/Could/Won't) para acordar lo esencial ahora vs después.
 
+![Mobile wireframes: login, registration, and registration-confirmation screens](../notes_img/L2/p11_00_p11_0.jpg)
+
 ## 3. Prototipos y MVP
 
 - **Wireframes**: estructuras gráficas de baja fidelidad de un sitio o app; mapean páginas, secciones e elementos interactivos. **Mockups**: representaciones estáticas pero más realistas del producto final (branding, colores, fuentes, iconografía); herramientas: InVision, Sketch, Figma, Adobe XD, Framer. **Prototipo de alta fidelidad**: el parecido más cercano al producto final; permite probar la reacción a los visuales y al flujo de usuario.
@@ -50,6 +58,10 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
   - *Evolucionario*: se refina incrementalmente hasta la versión final.
   - *Incremental*: el producto final se divide en piezas, se desarrollan por separado y se integran al final.
 - "No puedo decirte qué quiero, pero lo reconoceré cuando lo vea."
+
+![Iterative delivery with user feedback (Henrik Kniberg): prefer many small increments over one big-bang release](../notes_img/L2/p14_00_p14_0.jpg)
+
+![Build–measure–learn loop around the MVP](../notes_img/L2/p15_00_p15_0.jpg)
 
 ### MVP (Producto Mínimo Viable)
 
@@ -66,6 +78,12 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
 | Etapa de desarrollo | Temprana, antes del desarrollo completo | Fase de lanzamiento temprano, primera versión usable |
 | Objetivo | Validar ideas de diseño y factibilidad técnica | Validar la idea de negocio y atraer usuarios |
 
+![GenAI chat app architecture: React frontend, Python Flask API backend, OpenAI Azure service, chat-history database](../notes_img/L2/p19_00_p19_0.jpg)
+
+![.env with API key and .gitignore shield keep secrets out of the public GitHub repository](../notes_img/L2/p21_00_p21_0.jpg)
+
+![Secret-injection flow: .env on the laptop, .gitignore shield, code-only GitHub repo, server with injected API key, Azure OpenAI](../notes_img/L2/p22_00_p22_0.jpg)
+
 ## 4. Diseño e implementación
 
 - Los requisitos dicen **qué** debe hacer el sistema; el diseño describe **cómo** lo hace.
@@ -74,6 +92,18 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
 - **Protección de API keys:**
   - En desarrollo: el archivo `.env` guarda claves secretas como variables de entorno locales; `.gitignore` excluye `.env` y otros archivos sensibles del control de versiones, evitando que se suban a repositorios públicos como GitHub. **Las claves secretas y datos sensibles NUNCA deben aparecer en el repositorio remoto.**
   - En producción: las API keys se guardan de forma segura en plataformas en línea (p. ej., la configuración de variables de entorno de Vercel) e inyectadas en la aplicación al desplegar; permanecen ocultas al público y al código frontend.
+
+![Mock Weather Station API replacing the real API inside an isolated unit-test environment](../notes_img/L2/p23_00_p23_0.jpg)
+
+![Integration testing: combining individual units and testing them as a group](../notes_img/L2/p24_01_p24_1.jpg)
+
+![System testing: verifying the complete system meets all specified requirements](../notes_img/L2/p25_00_p25_0.jpg)
+
+![Confirmation testing: re-test the fixed feature to verify the fix](../notes_img/L2/p27_00_p27_0.jpg)
+
+![Regression testing: re-test previously working features to ensure no side effects](../notes_img/L2/p27_01_p27_1.jpg)
+
+![Acceptance testing: customers/end-users validate the system and sign off](../notes_img/L2/p29_00_p29_0.jpg)
 
 ## 5. Etapas de prueba
 
@@ -95,16 +125,38 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
   - **Prueba alfa**: se realiza en las instalaciones del desarrollador, con usuarios y presencia del desarrollador.
   - **Prueba beta**: se realiza en varios sitios de usuarios sin el desarrollador; imita más el uso real del sistema.
 
+![Code → Verify → Validate → Iterate loop toward product success](../notes_img/L2/p34_01_p34_1.jpg)
+
 ### Verificación vs validación
 
 - **Verificación**: evaluar los productos del SDLC para comprobar si vas por el buen camino para crear el producto final (code review, pruebas unitarias, de integración y de sistema). Generalmente la hace el desarrollador, para asegurar que el software cumple los requisitos especificados y está implementado correctamente. **Construir el producto bien** (*build the product right*).
 - **Validación**: evaluar el producto para comprobar si cumple las necesidades de usuario/negocio (prototipado, pruebas de aceptación, pruebas de usabilidad, pruebas en producción, A/B testing). **Construir el producto correcto** (*build the right product*).
 - La validación genera **nuevos requisitos** para mejorar el software (bucle de feedback).
 
+![Deployment: releasing software to the production environment (environment prep, install, data migration, training, go-live)](../notes_img/L2/p35_04_p35_4.jpg)
+
+![Dev vs production environment: different OS/libraries, stricter access controls, edge-case data volumes](../notes_img/L2/p36_01_p36_1.jpg)
+
 ## 6. Despliegue y entornos
 
 - El software se despliega al entorno del cliente o se libera a mercado/producción.
 - **Diferencias dev vs producción**: versiones de OS y librerías distintas; los datos de producción pueden contener casos límite o volúmenes ausentes en dev; el entorno de producción puede tener controles de acceso o firewalls más estrictos; límites de recursos distintos; servicios externos en vivo que se comportan de forma distinta. (Ejemplo: "¿Por qué tu código funciona localmente pero falla para usuarios reales?")
+
+![Maintenance: ongoing support, bug fixes, and updates after deployment](../notes_img/L2/p37_00_p37_0.jpg)
+
+![Maintenance split: ~60% adding new features while keeping the system stable](../notes_img/L2/p38_00_p38_0.jpg)
+
+![40% initial development vs 60% average maintenance cost (IEEE Software, 2001)](../notes_img/L2/p38_01_p38_1.jpg)
+
+![Maintenance challenge (constrained, high risk) vs clean-slate project (fewer constraints)](../notes_img/L2/p38_02_p38_2.jpg)
+
+![Corrective maintenance: fixing defects found in the software](../notes_img/L2/p39_00_p39_0.jpg)
+
+![Adaptive maintenance: staying compatible with a changing environment (e.g., a new iOS version)](../notes_img/L2/p39_01_p39_1.jpg)
+
+![Perfective maintenance: enhancing performance or maintainability](../notes_img/L2/p39_02_p39_2.jpg)
+
+![Preventive maintenance: addressing potential issues before they become problems](../notes_img/L2/p39_03_p39_3.jpg)
 
 ## 7. Mantenimiento
 
@@ -115,6 +167,10 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
   - **Adaptativo**: modificar el software para mantenerse compatible con un entorno cambiante.
   - **Perfectivo**: mejorar rendimiento o mantenibilidad.
   - **Preventivo**: abordar problemas potenciales antes de que se conviertan en problemas.
+
+![Three production-incident categories: deployment failure, capacity issues, software bugs](../notes_img/L2/p40_00_p40_0.jpg)
+
+![Upgrade failure between V1.0 and V2.0: HTTP 500 Internal Server Error](../notes_img/L2/p40_01_p40_1.jpg)
 
 ### Estudio de caso: fallo de despliegue
 
@@ -131,6 +187,32 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
 | **TTM** (Time to Mitigate) | Velocidad operativa del equipo: diagnosticar, arreglar y verificar una vez conocido el problema | ~8 horas (la complejidad de optimizar queries dominó esta ventana) |
 | **TTR** (Time to Recover) | Duración total del impacto para el cliente | 18 horas (3:00 AM → 9:00 PM) |
 
+![1:00 AM — new feature deployed from code to production](../notes_img/L2/p41_00_p41_0.jpg)
+
+![3:00 AM to 10:00 AM — the visibility gap: users degrade while the team is unaware](../notes_img/L2/p42_00_p42_0.jpg)
+
+![10:00 AM — incident discovered with 50+ new alerts](../notes_img/L2/p42_01_p42_1.jpg)
+
+![Investigation: high CPU usage and slow query response](../notes_img/L2/p43_00_p43_0.jpg)
+
+![Root cause identified: unoptimized queries](../notes_img/L2/p43_01_p43_1.jpg)
+
+![Patching in progress (50%)](../notes_img/L2/p44_00_p44_0.jpg)
+
+![Patch v1.1 verified in the staging environment](../notes_img/L2/p44_01_p44_1.jpg)
+
+![6:00 PM — patch v1.1 deployed from staging to the production cloud](../notes_img/L2/p45_00_p45_0.jpg)
+
+![9:00 PM — incident resolved](../notes_img/L2/p45_01_p45_1.jpg)
+
+![TTD (time to discover): 7 hours](../notes_img/L2/p46_00_p46_0.jpg)
+
+![TTM (time to mitigate): 8 hours](../notes_img/L2/p46_01_p46_1.jpg)
+
+![TTR (total time to recover): 18 hours = TTD 7h + TTM 8h + stabilization 3h](../notes_img/L2/p46_02_p46_2.jpg)
+
+![MTBF = MTTF + MTTR: time from application failure to system restored to next failure](../notes_img/L2/p47_01_p47_1.jpg)
+
 ## 8. Disponibilidad
 
 - Proporción de tiempo que el sistema es funcional; medida como porcentaje de uptime. A menudo se describe en "9s" (p. ej., "cuatro 9s" = 99.99%).
@@ -145,6 +227,20 @@ Desafíos: los stakeholders no logran comunicar necesidades claramente; priorida
 | 99.999% | 6 s | 26 s | 5.26 min |
 
 - Factores que afectan la disponibilidad: falla de hardware; inestabilidad de red; bugs de software; downtime por mantenimiento; ataques de seguridad (DDoS, malware); cortes de energía; sobrecarga de capacidad; errores de configuración; fallas de terceros; mala copia de seguridad/recuperación.
+
+![Prototype (AI-accelerated) to production (human-hardened)](../notes_img/L2/p50_00_p50_0.jpg)
+
+![Big Bang deployment: all users switch from V1.0 to V2.0 at once](../notes_img/L2/p52_00_p52_0.jpg)
+
+![Rolling deployment: phased replacement of old servers with V2.0](../notes_img/L2/p53_00_p53_0.jpg)
+
+![Blue-Green deployment: two identical environments with instant rollback](../notes_img/L2/p54_00_p54_0.jpg)
+
+![Canary deployment: a slice of users routed to the new version](../notes_img/L2/p55_00_p55_0.jpg)
+
+![Feature flag rollouts: percent rollout from 10% to 100% with performance feedback](../notes_img/L2/p56_00_p56_0.jpg)
+
+![The dark launch: feature flags control which consumers see the new feature](../notes_img/L2/p56_01_p56_1.jpg)
 
 ## 9. Estrategias de despliegue
 

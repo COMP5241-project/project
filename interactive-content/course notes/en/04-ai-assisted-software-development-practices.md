@@ -1,7 +1,5 @@
 # AI-Assisted Software Development Practices
 
-> Distilled from the course deck (44 slides). Practical workflows for working with coding agents: context engineering, AGENTS.md files, spec-driven development, agent skills, and the evidence on AI productivity.
-
 ---
 
 ## 1. Monorepo vs polyrepo
@@ -16,6 +14,8 @@
 
 Conversation history · system & agent setup (role prompt, safety rules, project profile) · code & docs (source, README, guidance files like `CLAUDE.md`) · current task instructions & constraints · tool descriptions (schemas, MCP servers) · tool outputs (JSON, errors, logs) · streaming output.
 
+![Context filter: relevant specs (CLAUDE.md, .cursorrules, project_context.md, SKILL.md) instead of the entire repository](../notes_img/L4/p05_00_p05_0.jpg)
+
 ### Ground the model with the right context
 
 - Provide **relevant** files, contracts, examples, latest API versions, internal SDKs — so the model doesn't guess.
@@ -23,6 +23,8 @@ Conversation history · system & agent setup (role prompt, safety rules, project
 - Summarize libraries/docs with examples; be specific (e.g., "Create a Streamlit app. Use `st.login()` for authentication").
 
 > **Context engineering** = carefully curating what the LLM sees in a session to improve quality, reliability, and alignment with project conventions. **Too little** context reduces effectiveness; **too much** is noisy, costly, and can worsen behavior.
+
+![CLAUDE.md instruction file with project style rules](../notes_img/L4/p06_00_p06_0.jpg)
 
 ## 3. Agent instruction files
 
@@ -50,6 +52,18 @@ A special Markdown file read automatically by coding agents at the start of each
 - **Include** — **WHAT** (tech stack, structure, what each part does — critical for monorepos), **WHY** (purpose/intent), **HOW** (build, test, verify; non-obvious tooling like `uv` instead of `pip`, `bun` instead of `npm`).
 - **Exclude** — detailed codebase overviews/directory listings (agents discover structure themselves), task-specific instructions that only apply sometimes (they dilute every session), and **auto-generated content** (data shows it hurts more than helps).
 
+![Agent toolbox: quick fixes, reasoning, coding](../notes_img/L4/p09_00_p09_0.jpg)
+
+![Monolithic prompt broken into sequential steps](../notes_img/L4/p11_00_p11_0.jpg)
+
+![AI experiment sandboxed in a worktree off the main branch](../notes_img/L4/p12_00_p12_0.jpg)
+
+![Technical-debt codebase vs modular, maintainable code](../notes_img/L4/p13_00_p13_0.jpg)
+
+![Vibe coding house of cards: hallucinations, spaghetti code, missing context, security gaps](../notes_img/L4/p14_00_p14_0.jpg)
+
+![Vague prompts: fix this, make it pop, try again](../notes_img/L4/p14_01_p14_1.jpg)
+
 ## 4. Model & workflow practices
 
 - **Choose models deliberately** — each LLM has strengths; use reasoning-heavy models for planning/architecture and fast models for implementation; if one model gets stuck, swap to break the blind spot.
@@ -59,11 +73,15 @@ A special Markdown file read automatically by coding agents at the start of each
 - **Refactor regularly** — AI-assisted coding accumulates technical debt; split long functions, break large modules, remove duplication (AI prefers generating new code over reusing existing), make code reusable/testable.
 - **"Chatting is not engineering."** Casual vibe-coding produces a "house of cards" that works until the context window closes — then it's hard to maintain, debug, or scale.
 
+![Vague idea turned into a written spec.md](../notes_img/L4/p15_00_p15_0.jpg)
+
 ## 5. Spec-driven development (SDD)
 
 - **Spec first**: iterate on the specification with the AI before writing code — requirements (edge cases, user flows), architecture (tech stack), data models (schema), testing strategy.
 - **SDD core idea**: formal, detailed specs are the **"executable blueprints" and source of truth**; code is a **derived artifact**. Developers define the *what* and *why*; AI handles the *how*.
 - Tools: **GitHub Spec Kit**, **AWS Kiro**.
+
+![constitution.md as the project's system prompt](../notes_img/L4/p18_00_p18_0.jpg)
 
 ### Key components
 
@@ -72,12 +90,22 @@ A special Markdown file read automatically by coding agents at the start of each
 - **Technical plan** (`plan.md`) — the "how".
 - **Context files** (`AGENTS.md`, `SKILL.md`) — persistent instructions, a "README for AI agents".
 
+![spec.md with user story, acceptance criteria, and constraint](../notes_img/L4/p19_00_p19_0.jpg)
+
+![Architecture board: React, Zustand, SQLite, QuestionGenerator (plan.md)](../notes_img/L4/p20_00_p20_0.jpg)
+
+![tasks.md checklist with one failed task](../notes_img/L4/p21_00_p21_0.jpg)
+
+![Agentic loop: code generation, self-correction, verification](../notes_img/L4/p22_00_p22_0.jpg)
+
 ### Lifecycle
 
 1. **Specify** — user stories, acceptance criteria, edge cases, error handling, success metrics; no technical decisions yet.
 2. **Plan** — agent proposes architecture, data models, API contracts; developer reviews against standards and the Constitution.
 3. **Atomic task generation** — plan broken into small, testable tasks; one at a time, with human checkpoints.
 4. **Implement** — agent codes task-by-task against the rigid spec/plan; developer shifts from writing syntax to **verifying output against acceptance criteria**.
+
+![Spec drives agent output; on verification failure, update the spec, not the code](../notes_img/L4/p23_00_p23_0.jpg)
 
 ### Spec drift
 
@@ -108,6 +136,8 @@ my-skill/
 - **When SKILL.md grows too long**: split each style into its own reference file (`minimalist.md`, `tech-style.md`, `editorial.md`); `SKILL.md` becomes a summary with pointers — the agent reads it first, then loads only the relevant reference.
 - **Scripts** let the agent call tested code for calculations, transformations, validation, tool interaction — predictably (e.g., `python scripts/generate_image.py --style tech`).
 
+![Skill layers: description, instructions, tools & scripts](../notes_img/L4/p34_00_p34_0.jpg)
+
 ### Progressive disclosure (3 levels)
 
 1. **Metadata** (name + description) — always loaded at startup.
@@ -116,6 +146,8 @@ my-skill/
 
 The agent keeps a **catalog** of skill names/descriptions; on a request like "develop a beautiful blog website" it matches `website-ui-design`, then pulls in the full guidance.
 
+![Monolithic prompt vs composable /research, /writer, /formatter commands](../notes_img/L4/p36_00_p36_0.jpg)
+
 ### Composable > monolithic
 
 - **Isolated debugging** — a focused skill that fails tells you exactly which file/parameters broke; monolithic prompts with conflicting rules are undiagnosable.
@@ -123,6 +155,8 @@ The agent keeps a **catalog** of skill names/descriptions; on a request like "de
 - **High reusability** — plug-and-play: any subagent or prompt can trigger a saved skill.
 - Notable public collections: Matt Pocock's skills (aihero.dev/skills), Addy Osmani's agent-skills (Define → Plan → Build → Verify → Review → Ship stages, e.g., `interview-me`, `spec-driven-development`, `planning-and-task-breakdown`, `test-driven-development`, `doubt-driven-development`, `code-review-and-quality`, `git-workflow-and-versioning`, `ci-cd-and-automation`, `shipping-and-launch`).
 - Example skill lifecycle (frontend-slides): detect job type → content questions → pick style by preview → generate single-HTML deck → optional PPTX extraction → deliver with click-to-edit → optional publish/PDF export (scripts: `extract-pptx.py`, `deploy.sh`, `export-pdf.sh`).
+
+![AI code funnel: PR size +154%, review time +91%, human review capacity](../notes_img/L4/p41_00_p41_0.jpg)
 
 ## 7. Evidence: MERT study (2025)
 

@@ -1,7 +1,5 @@
 # ソフトウェア開発ライフサイクル(SDLC)
 
-> コース資料(57スライド)から抽出・整理したノート。要件、設計、実装、テスト、デプロイ、メンテナンス——Verification(検証)と Validation(妥当性検証)の違い、デプロイ戦略、デプロイ失敗のケーススタディを含む。
-
 ---
 
 ## 1. SDLC とは
@@ -10,12 +8,20 @@
 
 各段階:**要件分析 → システム設計 → 実装 → ユニットテスト → 統合テスト → システムテスト → 受入テスト → デプロイ → メンテナンス**。
 
+![Requirement analysis: gathering and documenting functional requirements — stakeholder interviews, user needs, SRS document, feasibility study](../notes_img/L2/p03_00_p03_0.jpg)
+
 ## 2. 要件
+
+![Functional requirement: a description of what a system must do, with a text-note app example](../notes_img/L2/p04_00_p04_0.jpg)
+
+![Non-functional requirements with examples: scalability, availability, performance, usability, maintainability, reliability](../notes_img/L2/p17_00_p17_0.jpg)
 
 ### 機能要件 vs 非機能要件
 
 - **機能要件**はシステムが*何を達成すべきか*を定義(例:「アカウント作成時に確認メールを送信」「検索バーでクエリを入力して項目を検索」「チェックアウト前にカート内の項目を確認・数量変更・削除」「SNS ログイン」「通知」「評価/フィードバック」)。
 - **非機能要件**はシステムが*どれだけ良く動くか*を定義(性能、セキュリティ、可用性など)。
+
+![Six requirements-elicitation techniques: document analysis, observation, interviews, surveys and questionnaires, focus groups, prototyping](../notes_img/L2/p05_00_p05_0.jpg)
 
 ### 機能要件の収集
 
@@ -42,11 +48,17 @@ AI が補助できる(例:Zoom 会議を要件要約に)——ただし**必ず 
 - **より良い質問をする**:解ではなく問題から始める(「何を解決したい?ビジネス価値は?」);オープンでプロセス重視の質問(「今はどうやっている?何が壊れる?判断に必要な情報は?」);前提に疑問を投げかける(「データが欠落したら?例外は?誰が決裁か?」);**5 Whys** で症状ではなく根本原因を。
 - **統合・明確化・衝突解消**:セッション中に言い換え確認(「私の理解では……それで合っていますか?」);曖昧な記述をテスト可能で具体的な要件/ビジネスルールに変換;**MoSCoW**(Must/Should/Could/Won't)で「今必須 vs 後回し」の合意形成。
 
+![Mobile wireframes: login, registration, and registration-confirmation screens](../notes_img/L2/p11_00_p11_0.jpg)
+
 ## 3. プロトタイプと MVP
 
 - **ワイヤーフレーム** — Web/App の低忠実度の構造図。**モックアップ** — 静的だが最終製品に近しい見た目(ブランド、色、フォント、アイコン)。**高忠実度プロトタイプ** — 最終製品に最も近く、見た目とユーザーフローの両方をテスト可能。
 - **タイプ**:使い捨て(迅速にフィードバックを得て要件を磨き、使ったら捨てる)/ 進化型(フィードバックで逐次磨き上げ最終版へ)/ 増分型(最終製品を部品に分割し、個別開発して最後に統合)。
 - 「私が何想要的かは言えない。でも見たらわかる。」
+
+![Iterative delivery with user feedback (Henrik Kniberg): prefer many small increments over one big-bang release](../notes_img/L2/p14_00_p14_0.jpg)
+
+![Build–measure–learn loop around the MVP](../notes_img/L2/p15_00_p15_0.jpg)
 
 ### MVP(Minimum Viable Product)
 
@@ -62,6 +74,12 @@ AI が補助できる(例:Zoom 会議を要件要約に)——ただし**必ず 
 | 開発段階 | 初期、本開発の前 | 初期リリース、最初の使える版 |
 | ゴール | デザイン・技術実現可能性の検証 | ビジネスアイデアの検証・ユーザー獲得 |
 
+![GenAI chat app architecture: React frontend, Python Flask API backend, OpenAI Azure service, chat-history database](../notes_img/L2/p19_00_p19_0.jpg)
+
+![.env with API key and .gitignore shield keep secrets out of the public GitHub repository](../notes_img/L2/p21_00_p21_0.jpg)
+
+![Secret-injection flow: .env on the laptop, .gitignore shield, code-only GitHub repo, server with injected API key, Azure OpenAI](../notes_img/L2/p22_00_p22_0.jpg)
+
 ## 4. 設計と実装
 
 - 要件は**何を(what)**するかを述べ、設計は**どのように(how)**実装するかを述べる。
@@ -70,6 +88,18 @@ AI が補助できる(例:Zoom 会議を要件要約に)——ただし**必ず 
 - **API キーの保護:**
   - 開発時:秘密キーは `.env`(ローカル環境変数)に保存;`.gitignore` で `.env` と機密ファイルをバージョン管理から除外。**秘密キーはリモートリポジトリに一切載せてはならない。**
   - 本番時:キーはオンラインプラットフォーム(例:Vercel の環境変数設定)に安全に保存し、デプロイ時に実行中のアプリへ注入。公開とフロントエンドコードからは隠される。
+
+![Mock Weather Station API replacing the real API inside an isolated unit-test environment](../notes_img/L2/p23_00_p23_0.jpg)
+
+![Integration testing: combining individual units and testing them as a group](../notes_img/L2/p24_01_p24_1.jpg)
+
+![System testing: verifying the complete system meets all specified requirements](../notes_img/L2/p25_00_p25_0.jpg)
+
+![Confirmation testing: re-test the fixed feature to verify the fix](../notes_img/L2/p27_00_p27_0.jpg)
+
+![Regression testing: re-test previously working features to ensure no side effects](../notes_img/L2/p27_01_p27_1.jpg)
+
+![Acceptance testing: customers/end-users validate the system and sign off](../notes_img/L2/p29_00_p29_0.jpg)
 
 ## 5. テスト段階
 
@@ -84,22 +114,48 @@ AI が補助できる(例:Zoom 会議を要件要約に)——ただし**必ず 
   - **αテスト(Alpha)**:開発者のサイトで行い、開発者が立ち会う。
   - **βテスト(Beta)**:開発者不在の複数ユーザーサイトで行う——実際の使用に最も近い。
 
+![Code → Verify → Validate → Iterate loop toward product success](../notes_img/L2/p34_01_p34_1.jpg)
+
 ### Verification(検証)vs Validation(妥当性検証)
 
 - **Verification(検証)** — 最終製品を**正しく**作っているか(「product right」)の評価。例:コードレビュー、ユニット/統合/システムテスト;通常は開発者が行い、仕様に合致し正しく実装されていることを保証。
 - **Validation(妥当性検証)** — ソフトウェアがユーザー/ビジネスのニーズを満たし、**正しい**製品を作っているかの評価(「right product」)。例:プロトタイピング、受入テスト、ユーザビリティテスト、本番テスト、A/B テスト。
 - Validation はソフトウェアを改良する**新しい要件**を生み、フィードバックループを形成。
 
+![Deployment: releasing software to the production environment (environment prep, install, data migration, training, go-live)](../notes_img/L2/p35_04_p35_4.jpg)
+
+![Dev vs production environment: different OS/libraries, stricter access controls, edge-case data volumes](../notes_img/L2/p36_01_p36_1.jpg)
+
 ## 6. デプロイと環境
 
 - ソフトウェアは顧客環境にデプロイされ、または市場/本番にリリースされる。
 - **Dev vs Production の差異**:OS バージョン・ライブラリが異なる;本番データには開発環境にないエッジケースやデータ量;より厳格なアクセス制御やファイアウォール;異なるリソース制限;依存するライブ外部サービスの挙動が異なる。「自分の環境では動く」≠「本番で動く」。
+
+![Maintenance: ongoing support, bug fixes, and updates after deployment](../notes_img/L2/p37_00_p37_0.jpg)
+
+![Maintenance split: ~60% adding new features while keeping the system stable](../notes_img/L2/p38_00_p38_0.jpg)
+
+![40% initial development vs 60% average maintenance cost (IEEE Software, 2001)](../notes_img/L2/p38_01_p38_1.jpg)
+
+![Maintenance challenge (constrained, high risk) vs clean-slate project (fewer constraints)](../notes_img/L2/p38_02_p38_2.jpg)
+
+![Corrective maintenance: fixing defects found in the software](../notes_img/L2/p39_00_p39_0.jpg)
+
+![Adaptive maintenance: staying compatible with a changing environment (e.g., a new iOS version)](../notes_img/L2/p39_01_p39_1.jpg)
+
+![Perfective maintenance: enhancing performance or maintainability](../notes_img/L2/p39_02_p39_2.jpg)
+
+![Preventive maintenance: addressing potential issues before they become problems](../notes_img/L2/p39_03_p39_3.jpg)
 
 ## 7. メンテナンス
 
 - 本番へのデプロイ**後**のソフトウェア製品の変更:本番のバグ・問題修正、パッチリリース、製品・性能の強化、機能強化版の新リリース。
 - **60/60 ルール**(IEEE Software, 2001):メンテナンスは平均して**ソフトウェアライフサイクルコストの 60%**;メンテナンスの約 60% は、システムを止めずに壊さずに新機能を追加すること。クリーンスレート(ゼロから設計)プロジェクトでは、メンテナンスの方が開発より難しいことが多い。
 - **ISO/IEC 14764:2006** のメンテナンスタイプ:**Corrective(是正)**欠陥の修正;**Adaptive(適応)**変化する環境との互換性維持;**Perfective(完全化)**性能・保守性の向上;**Preventive(予防)**潜在問題を先回りで処理。
+
+![Three production-incident categories: deployment failure, capacity issues, software bugs](../notes_img/L2/p40_00_p40_0.jpg)
+
+![Upgrade failure between V1.0 and V2.0: HTTP 500 Internal Server Error](../notes_img/L2/p40_01_p40_1.jpg)
 
 ### デプロイ失敗ケーススタディ
 
@@ -115,6 +171,32 @@ AI が補助できる(例:Zoom 会議を要件要約に)——ただし**必ず 
 | **TTM**(Time to Mitigate) | チームの運用速度:診断、修正、検証 | 約 8 時間(クエリ最適化の複雑さが主導) |
 | **TTR**(Time to Recover) | 顧客への総影響時間 | 18 時間(午前 3 時 → 夜 9 時) |
 
+![1:00 AM — new feature deployed from code to production](../notes_img/L2/p41_00_p41_0.jpg)
+
+![3:00 AM to 10:00 AM — the visibility gap: users degrade while the team is unaware](../notes_img/L2/p42_00_p42_0.jpg)
+
+![10:00 AM — incident discovered with 50+ new alerts](../notes_img/L2/p42_01_p42_1.jpg)
+
+![Investigation: high CPU usage and slow query response](../notes_img/L2/p43_00_p43_0.jpg)
+
+![Root cause identified: unoptimized queries](../notes_img/L2/p43_01_p43_1.jpg)
+
+![Patching in progress (50%)](../notes_img/L2/p44_00_p44_0.jpg)
+
+![Patch v1.1 verified in the staging environment](../notes_img/L2/p44_01_p44_1.jpg)
+
+![6:00 PM — patch v1.1 deployed from staging to the production cloud](../notes_img/L2/p45_00_p45_0.jpg)
+
+![9:00 PM — incident resolved](../notes_img/L2/p45_01_p45_1.jpg)
+
+![TTD (time to discover): 7 hours](../notes_img/L2/p46_00_p46_0.jpg)
+
+![TTM (time to mitigate): 8 hours](../notes_img/L2/p46_01_p46_1.jpg)
+
+![TTR (total time to recover): 18 hours = TTD 7h + TTM 8h + stabilization 3h](../notes_img/L2/p46_02_p46_2.jpg)
+
+![MTBF = MTTF + MTTR: time from application failure to system restored to next failure](../notes_img/L2/p47_01_p47_1.jpg)
+
 ## 8. 可用性
 
 - **可用性 = Uptime / (Uptime + Downtime)** = MTTF / (MTTF + MTTR)。「9」の個数で表現:
@@ -128,6 +210,20 @@ AI が補助できる(例:Zoom 会議を要件要約に)——ただし**必ず 
 | 99.999% | 6 秒 | 26 秒 | 5.26 分 |
 
 - 可用性に影響する要因:ハードウェア故障、ネットワーク不安定、ソフトウェアバグ、メンテナンス停止、サイバー攻撃(DDoS、マルウェア)、停電、容量オーバーロード、設定ミス、サードパーティ障害、バックアップ/復旧の不備。
+
+![Prototype (AI-accelerated) to production (human-hardened)](../notes_img/L2/p50_00_p50_0.jpg)
+
+![Big Bang deployment: all users switch from V1.0 to V2.0 at once](../notes_img/L2/p52_00_p52_0.jpg)
+
+![Rolling deployment: phased replacement of old servers with V2.0](../notes_img/L2/p53_00_p53_0.jpg)
+
+![Blue-Green deployment: two identical environments with instant rollback](../notes_img/L2/p54_00_p54_0.jpg)
+
+![Canary deployment: a slice of users routed to the new version](../notes_img/L2/p55_00_p55_0.jpg)
+
+![Feature flag rollouts: percent rollout from 10% to 100% with performance feedback](../notes_img/L2/p56_00_p56_0.jpg)
+
+![The dark launch: feature flags control which consumers see the new feature](../notes_img/L2/p56_01_p56_1.jpg)
 
 ## 9. デプロイ戦略
 
