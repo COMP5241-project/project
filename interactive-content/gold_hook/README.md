@@ -10,6 +10,11 @@ distilled from the *Software Development Lifecycle* course deck.
 
 > “Hook the DO’s, dodge the DON’Ts. That’s the whole SDLC.”
 
+## Course warm-up
+
+The game opens with a COMP 5241 welcome page introducing the SDLC warm-up.
+Choose **Play the warm-up game** to start the game at `/play`.
+
 ---
 
 ## Gameplay
@@ -58,7 +63,8 @@ distilled from the *Software Development Lifecycle* course deck.
 gold-rush-hook/
 ├── app/
 │   ├── layout.tsx            # Root layout, metadata, viewport (mobile-safe)
-│   ├── page.tsx              # Renders <GameShell/>
+│   ├── page.tsx              # COMP 5241 welcome and SDLC warm-up page
+│   ├── play/page.tsx         # Renders <GameShell/>
 │   └── globals.css           # Tailwind v4 @theme design tokens, arcade helpers, keyframes
 ├── components/
 │   ├── GameShell.tsx         # Layout: HUD + canvas + overlay screens

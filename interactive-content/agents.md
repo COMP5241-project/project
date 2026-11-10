@@ -16,7 +16,7 @@ of four self-contained pieces:
 | Testers & the Bar | `bar_animation/` | A 23-scene animated SVG story (single HTML file) |
 | Whip demo | `state your requirements clearly/` | Unified side-by-side comparison of two prompt interpretations |
 | Course notes | `course notes/` | A self-contained viewer for the COMP5241 notes (5 chapters × 6 languages) |
-| Tomori easter egg | `e_egg/` | A colored ASCII-art viewer of Tomori (single HTML file + source txt) |
+| Easter eggs | `e_egg/` | Tomori and Arale ASCII-art viewers plus the Milk Dragon university page |
 
 Each subfolder is **independent** and has its own `agents.md` / `AGENTS.md`
 with deeper detail. Read the relevant one before editing that piece:
@@ -59,7 +59,7 @@ dist/
   bar_animation/...
   state your requirements clearly/...
   course notes/...                    ← course notes viewer + markdown
-  e_egg/...                           ← Tomori ASCII art easter egg
+  e_egg/...                           ← ASCII-art viewers and Milk Dragon page
 ```
 
 **Consequences for agents:**
