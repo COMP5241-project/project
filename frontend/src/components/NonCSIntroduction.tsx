@@ -1,4 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, LoaderCircle, LogOut } from 'lucide-react'
 import { useEffect, useState, type DragEvent } from 'react'
 import { completeNonCsIntroduction } from '../lib/api'
 
@@ -11,7 +12,13 @@ const parts = [
 type PartId = (typeof parts)[number]['id']
 type DeploymentState = 'ready' | 'maintenance' | 'complete'
 
-export function NonCSIntroduction() {
+interface NonCSIntroductionProps {
+  signOut: () => Promise<void>
+  signOutError: string | null
+  isSigningOut: boolean
+}
+
+export function NonCSIntroduction({ signOut, signOutError, isSigningOut }: NonCSIntroductionProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [uiParts, setUiParts] = useState<PartId[]>([])
@@ -46,7 +53,7 @@ export function NonCSIntroduction() {
   }
 
   async function finishGame() {
-    if (isSaving) return
+    if (isSaving || isSigningOut) return
     setIsSaving(true)
     setError(null)
     try {
@@ -60,13 +67,29 @@ export function NonCSIntroduction() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#262626] flex flex-col items-center py-10 px-4 selection:bg-[#A21942] selection:text-white">
+      <nav aria-label="Introduction navigation" className="mb-4 flex w-full max-w-5xl items-center justify-between gap-3">
+        {step === 1 ? (
+          <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]" to="/">
+            <ArrowLeft aria-hidden="true" size={16} /> Back to home
+          </Link>
+        ) : (
+          <button className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942] disabled:opacity-70" disabled={isSaving || isSigningOut} onClick={() => setStep((current) => current - 1)} type="button">
+            <ArrowLeft aria-hidden="true" size={16} /> Back
+          </button>
+        )}
+        <button className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942] disabled:opacity-70" disabled={isSigningOut || isSaving} onClick={() => void signOut()} type="button">
+          {isSigningOut ? <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" size={16} /> : <LogOut aria-hidden="true" size={16} />}
+          {isSigningOut ? 'Signing out…' : 'Sign out'}
+        </button>
+      </nav>
+      {signOutError && <p className="mb-4 w-full max-w-5xl rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{signOutError}</p>}
       <header className="w-full max-w-5xl bg-white rounded-t-xl border-b-4 border-[#A21942] p-6 shadow-sm flex flex-wrap gap-3 justify-between items-center z-10 relative">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Non-CS Track // Interactive SDLC</span>
           <h1 className="text-2xl font-bold text-[#262626] mt-1">The App Factory 📱</h1>
         </div>
-        <div className={`text-sm font-bold px-4 py-2 rounded-full border transition-colors duration-300 ${deployment === 'complete' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : step === 5 ? 'bg-[#262626] text-white border-[#262626]' : 'text-[#A21942] bg-red-50 border-red-100'}`} aria-live="polite">
-          {deployment === 'complete' ? 'SDLC Complete!' : `Phase ${step}: ${phases[step - 1]}`}
+        <div className={`text-sm font-bold px-4 py-2 rounded-full border transition-colors duration-300 ${step === 5 && deployment === 'complete' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : step === 5 ? 'bg-[#262626] text-white border-[#262626]' : 'text-[#A21942] bg-red-50 border-red-100'}`} aria-live="polite">
+          {step === 5 && deployment === 'complete' ? 'SDLC Complete!' : `Phase ${step}: ${phases[step - 1]}`}
         </div>
       </header>
 
@@ -188,7 +211,7 @@ export function NonCSIntroduction() {
               )}
               {deployment === 'complete' && <div className="flex flex-col items-center text-center w-full"><div className="text-emerald-500 text-5xl mb-2">✅</div><div className="font-bold text-emerald-700 text-lg">App is Live and Stable!</div></div>}
             </div>
-            {deployment === 'complete' && <button type="button" disabled={isSaving} onClick={finishGame} className="mt-8 px-8 py-3 bg-[#A21942] text-white font-bold rounded-md hover:bg-[#801333] transition-colors shadow-md disabled:opacity-70">{isSaving ? 'Saving progress…' : 'Enter Student Learning Hub →'}</button>}
+            {deployment === 'complete' && <button type="button" disabled={isSaving || isSigningOut} onClick={finishGame} className="mt-8 px-8 py-3 bg-[#A21942] text-white font-bold rounded-md hover:bg-[#801333] transition-colors shadow-md disabled:opacity-70">{isSaving ? 'Saving progress…' : 'Enter Student Learning Hub →'}</button>}
             {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
           </div>
         )}

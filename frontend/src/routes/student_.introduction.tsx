@@ -20,5 +20,5 @@ function NonCSIntroductionPage() {
   if (state.profile.role !== 'student' || !state.profile.assessment_completed || state.profile.cs_qualified || state.profile.non_cs_introduction_completed) {
     return <Navigate to="/student" replace />
   }
-  return <NonCSIntroduction />
+  return <NonCSIntroduction signOut={state.signOut} signOutError={state.signOutError} isSigningOut={state.isSigningOut} />
 }
