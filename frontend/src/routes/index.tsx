@@ -1057,8 +1057,23 @@ function Footer() {
               Kong Polytechnic University.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-600">AI-powered learning</span>
-              <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-600">Human-centred by design</span>
+              <button
+                className="cursor-pointer rounded-full border border-[#A21942] bg-[#A21942] px-[15px] py-1.5 text-[15px] font-semibold text-white transition-colors hover:border-[#801333] hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
+                onClick={() => window.location.assign('/e_egg/milk-dragon.html')}
+                type="button"
+              >
+                About US
+              </button>
+              <button
+                className="cursor-pointer rounded-full border border-[#A21942] bg-[#A21942] px-[15px] py-1.5 text-[15px] font-semibold text-white transition-colors hover:border-[#801333] hover:bg-[#801333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
+                onClick={() => {
+                  const contactPage = Math.random() < 0.5 ? 'arale.html' : 'tomori.html'
+                  window.location.assign(`/e_egg/${contactPage}`)
+                }}
+                type="button"
+              >
+                Contact US
+              </button>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-12 gap-y-6 sm:gap-x-16">
