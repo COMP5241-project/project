@@ -169,7 +169,7 @@ function StudentPage() {
               <CourseGroup courses={completed} label="Completed" />
             </div>
           )}
-        </div>
+        </section>
 
         <section aria-labelledby="games-heading" className="space-y-3 pt-4">
           <div>
@@ -233,31 +233,6 @@ function StudentPage() {
             Browse courses <ArrowRight aria-hidden="true" size={15} />
           </a>
         </div>
-
-        {state.profile.cs_qualified && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-4">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">
-                  <Library aria-hidden="true" size={20} />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-[#262626]">COMP5241 course catalogue</h3>
-                  <p className="mt-1 text-sm leading-6 text-gray-600">
-                    Explore the COMP5241 Software Engineering course: chapter notes in six
-                    languages and the full SDLC reading path.
-                  </p>
-                </div>
-              </div>
-              <a
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
-                href="/course.html"
-              >
-                Browse courses <ArrowRight aria-hidden="true" size={15} />
-              </a>
-            </div>
-          </div>
-        </section>
 
         {state.profile.cs_qualified && (
           <section aria-labelledby="coming-soon-heading" className="space-y-3">
@@ -406,46 +381,6 @@ function CourseLink({ course }: { course: PublishedCourseSummary }) {
         <ArrowRight aria-hidden="true" className="shrink-0 text-gray-400 transition-colors group-hover:text-[#A21942]" size={16} />
       </div>
     </Link>
-  )
-}
-
-function GameCard({
-  cta,
-  description,
-  href,
-  icon,
-  tag,
-  title,
-  to,
-}: {
-  cta: string
-  description: string
-  href?: string
-  icon: ReactNode
-  tag: string
-  title: string
-  to?: string
-}) {
-  const callToAction = (
-    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#A21942] transition-colors group-hover:underline">
-      {cta}
-      <ArrowRight aria-hidden="true" size={14} />
-    </span>
-  )
-  return (
-    <div className="group flex flex-col rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-[#A21942]/40">
-      <div className="flex items-center justify-between gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">
-          {icon}
-        </span>
-        <span className="truncate rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-500">
-          {tag}
-        </span>
-      </div>
-      <h3 className="mt-4 text-base font-bold text-[#262626]">{title}</h3>
-      <p className="mt-1.5 flex-1 text-sm leading-6 text-gray-600">{description}</p>
-      {to ? <Link className="contents" to={to}>{callToAction}</Link> : <a className="contents" href={href}>{callToAction}</a>}
-    </div>
   )
 }
 
