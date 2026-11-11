@@ -862,8 +862,7 @@ function InteractivePreview() {
             Less watching. More figuring it out.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-gray-600">
-            Mini-courses put you in the driver’s seat. Explore a sample learning
-            experience and see what learning by doing feels like.
+            Mini-courses and interactive contents let you learn by doing, not just by watching.
           </p>
         </div>
 
@@ -873,14 +872,13 @@ function InteractivePreview() {
               <div>
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#A21942]/15 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#801333]">
                   <Code2 aria-hidden="true" size={13} />
-                  Sample mini-course
+                  View our Courses
                 </span>
                 <h3 className="mt-5 max-w-md text-2xl font-extrabold leading-tight tracking-[-0.04em] text-[#262626] sm:text-3xl">
                   Fundamentals of AI-Assisted Software Engineering
                 </h3>
                 <p className="mt-4 max-w-md text-sm leading-6 text-gray-600">
-                  Go from a fuzzy idea to a working prototype. You’ll learn how
-                  to brief AI well, shape the code, and check what it makes.
+                  Try our interactive mini-course !
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2">
                   <span className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600">⏱ 25 min</span>
@@ -891,9 +889,9 @@ function InteractivePreview() {
               </div>
               <a
                 className="mt-8 inline-flex w-fit items-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-                href="#/courses/sample"
+                href="interactive-content/course"
               >
-                Explore this course <ArrowRight aria-hidden="true" size={16} />
+                Explore our course <ArrowRight aria-hidden="true" size={16} />
               </a>
             </div>
             <div className="p-5 sm:p-8 lg:p-10">
