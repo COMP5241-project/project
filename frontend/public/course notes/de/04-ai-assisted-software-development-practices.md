@@ -1,7 +1,5 @@
 # KI-gestützte Softwareentwicklungs-Praktiken
 
-> Aus den Kursfolien (44 Folien) destilliert. Praktische Workflows für die Arbeit mit Coding-Agenten: Context Engineering, AGENTS.md-Dateien, spezifikationsgetriebene Entwicklung, Agent-Skills und die Evidenz zur KI-Produktivität.
-
 ---
 
 ## 1. Monorepo vs. Polyrepo
@@ -16,6 +14,8 @@
 
 Konversationshistorie · System- & Agent-Setup (Role-Prompt, Sicherheitsregeln, Projektprofil) · Code & Doku (Quellcode, README, Guidance-Dateien wie `CLAUDE.md`) · aktuelle Task-Anweisungen & Constraints · Tool-Beschreibungen (Schemas, MCP-Server) · Tool-Outputs (JSON, Fehler, Logs) · Streaming-Output.
 
+![Context filter: relevant specs (CLAUDE.md, .cursorrules, project_context.md, SKILL.md) instead of the entire repository](../notes_img/L4/p05_00_p05_0.jpg)
+
 ### Das Modell mit dem richtigen Kontext verankern
 
 - **Relevante** Dateien, Contracts, Beispiele, neueste API-Versionen, interne SDKs bereitstellen — damit das Modell nicht raten muss.
@@ -23,6 +23,8 @@ Konversationshistorie · System- & Agent-Setup (Role-Prompt, Sicherheitsregeln, 
 - Libraries/Doku mit Beispielen zusammenfassen; spezifisch sein (z. B. „Erstelle eine Streamlit-App. Verwende `st.login()` für die Authentifizierung").
 
 > **Context Engineering** = sorgfältiges Kuratieren dessen, was das LLM in einer Session sieht, um Qualität, Zuverlässigkeit und Konformität mit den Projekt-Konventionen zu verbessern. **Zu wenig** Kontext reduziert die Effektivität; **zu viel** ist laut, teuer und kann das Verhalten verschlechtern.
+
+![CLAUDE.md instruction file with project style rules](../notes_img/L4/p06_00_p06_0.jpg)
 
 ## 3. Agent-Instruktions-Dateien
 
@@ -50,6 +52,18 @@ Eine spezielle Markdown-Datei, die Coding-Agenten zu Beginn jeder Session automa
 - **Einbeziehen** — **WAS** (Tech-Stack, Struktur, was jeder Teil tut — kritisch für Monorepos), **WARUM** (Zweck/Intention), **WIE** (Build, Test, Verifikation; nicht offensichtliches Tooling wie `uv` statt `pip`, `bun` statt `npm`).
 - **Auslassen** — detaillierte Codebase-Übersichten/Verzeichnislisten (Agenten entdecken die Struktur selbst), Task-spezifische Anweisungen, die nur manchmal gelten (sie verwässern jede Session), und **auto-generierte Inhalte** (die Daten zeigen, dass sie mehr schaden als nützen).
 
+![Agent toolbox: quick fixes, reasoning, coding](../notes_img/L4/p09_00_p09_0.jpg)
+
+![Monolithic prompt broken into sequential steps](../notes_img/L4/p11_00_p11_0.jpg)
+
+![AI experiment sandboxed in a worktree off the main branch](../notes_img/L4/p12_00_p12_0.jpg)
+
+![Technical-debt codebase vs modular, maintainable code](../notes_img/L4/p13_00_p13_0.jpg)
+
+![Vibe coding house of cards: hallucinations, spaghetti code, missing context, security gaps](../notes_img/L4/p14_00_p14_0.jpg)
+
+![Vague prompts: fix this, make it pop, try again](../notes_img/L4/p14_01_p14_1.jpg)
+
 ## 4. Model- & Workflow-Praktiken
 
 - **Modelle bewusst wählen** — jedes LLM hat Stärken; für Planung/Architektur reasoning-lastige Modelle, für die Implementierung schnelle Modelle verwenden; wenn ein Modell feststeckt, wechseln, um den Blindspot zu durchbrechen.
@@ -59,11 +73,15 @@ Eine spezielle Markdown-Datei, die Coding-Agenten zu Beginn jeder Session automa
 - **Regelmäßig refactorn** — KI-gestütztes Coding häuft technische Schulden auf; lange Funktionen aufteilen, große Module zerlegen, Duplizierung entfernen (KI bevorzugt das Generieren neuen Codes gegenüber der Wiederverwendung Bestehenden), Code wiederverwendbar/testbar machen.
 - **„Chatting ist kein Engineering."** Casuales Vibe-Coding erzeugt ein „Kartenhaus", das funktioniert, bis das Kontextfenster schließt — dann ist es schwer zu pflegen, zu debuggen oder zu skalieren.
 
+![Vague idea turned into a written spec.md](../notes_img/L4/p15_00_p15_0.jpg)
+
 ## 5. Spezifikationsgetriebene Entwicklung (SDD)
 
 - **Spec first**: Die Spezifikation mit der KI iterieren, bevor Code geschrieben wird — Anforderungen (Edge Cases, User-Flows), Architektur (Tech-Stack), Datenmodelle (Schema), Teststrategie.
 - **Kernidee von SDD**: Formale, detaillierte Specs sind die **„ausführbaren Blaupausen" und Single Source of Truth**; Code ist ein **abgeleitetes Artefakt**. Entwickler definieren das *Was* und *Warum*; die KI übernimmt das *Wie*.
 - Tools: **GitHub Spec Kit**, **AWS Kiro**.
+
+![constitution.md as the project's system prompt](../notes_img/L4/p18_00_p18_0.jpg)
 
 ### Kernkomponenten
 
@@ -72,12 +90,22 @@ Eine spezielle Markdown-Datei, die Coding-Agenten zu Beginn jeder Session automa
 - **Technischer Plan** (`plan.md`) — das „Wie".
 - **Kontext-Dateien** (`AGENTS.md`, `SKILL.md`) — persistente Anweisungen, ein „README für KI-Agenten".
 
+![spec.md with user story, acceptance criteria, and constraint](../notes_img/L4/p19_00_p19_0.jpg)
+
+![Architecture board: React, Zustand, SQLite, QuestionGenerator (plan.md)](../notes_img/L4/p20_00_p20_0.jpg)
+
+![tasks.md checklist with one failed task](../notes_img/L4/p21_00_p21_0.jpg)
+
+![Agentic loop: code generation, self-correction, verification](../notes_img/L4/p22_00_p22_0.jpg)
+
 ### Lebenszyklus
 
 1. **Spezifizieren** — User-Stories, Akzeptanzkriterien, Edge Cases, Fehlerbehandlung, Success-Metriken; noch keine technischen Entscheidungen.
 2. **Planen** — Der Agent schlägt Architektur, Datenmodelle, API-Contracts vor; der Developer reviewt gegen die Standards und die Constitution.
 3. **Atomare Task-Generierung** — Der Plan wird in kleine, testbare Tasks zerlegt; eine nach der anderen, mit menschlichen Checkpoints.
 4. **Implementieren** — Der Agent codet Task für Task gegen die starre Spec/Plan; der Developer wechselt vom Schreiben von Syntax zur **Verifikation des Outputs gegen die Akzeptanzkriterien**.
+
+![Spec drives agent output; on verification failure, update the spec, not the code](../notes_img/L4/p23_00_p23_0.jpg)
 
 ### Spec-Drift
 
@@ -108,6 +136,8 @@ my-skill/
 - **Wenn SKILL.md zu lang wird**: Jeden Style in seine eigene Referenz-Datei aufteilen (`minimalist.md`, `tech-style.md`, `editorial.md`); `SKILL.md` wird zu einer Zusammenfassung mit Zeigern — der Agent liest sie zuerst und lädt dann nur die relevante Referenz.
 - **Scripts** lassen den Agenten getesteten Code für Berechnungen, Transformationen, Validierung, Tool-Interaktion aufrufen — vorhersagbar (z. B. `python scripts/generate_image.py --style tech`).
 
+![Skill layers: description, instructions, tools & scripts](../notes_img/L4/p34_00_p34_0.jpg)
+
 ### Progressive disclosure (3 Level)
 
 1. **Metadaten** (Name + Beschreibung) — werden immer beim Start geladen.
@@ -116,6 +146,8 @@ my-skill/
 
 Der Agent hält ein **Katalog** von Skill-Namen/Beschreibungen vor; auf eine Anfrage wie „Entwickle eine schöne Blog-Website" ordnet er `website-ui-design` zu und lädt dann die komplette Guidance.
 
+![Monolithic prompt vs composable /research, /writer, /formatter commands](../notes_img/L4/p36_00_p36_0.jpg)
+
 ### Composable > monolithisch
 
 - **Isoliertes Debugging** — Eine fokussierte Skill, die fehlschlägt, sagt genau, welche Datei/welche Parameter kaputt sind; monolithische Prompts mit widersprüchlichen Regeln sind nicht diagnosierbar.
@@ -123,6 +155,8 @@ Der Agent hält ein **Katalog** von Skill-Namen/Beschreibungen vor; auf eine Anf
 - **Hohe Wiederverwendbarkeit** — Plug-and-Play: Jeder Subagent oder Prompt kann eine gespeicherte Skill auslösen.
 - Bedeutende öffentliche Sammlungen: Matt Pococks Skills (aihero.dev/skills), Addy Osmanis agent-skills (Define → Plan → Build → Verify → Review → Ship-Phasen, z. B. `interview-me`, `spec-driven-development`, `planning-and-task-breakdown`, `test-driven-development`, `doubt-driven-development`, `code-review-and-quality`, `git-workflow-and-versioning`, `ci-cd-and-automation`, `shipping-and-launch`).
 - Beispiel-Skill-Lebenszyklus (frontend-slides): Job-Typ erkennen → Content-Fragen → Style per Preview wählen → Single-HTML-Deck generieren → optionale PPTX-Extraktion → mit Klick-zum-Bearbeiten liefern → optionales Publishen/PDF-Export (Scripts: `extract-pptx.py`, `deploy.sh`, `export-pdf.sh`).
+
+![AI code funnel: PR size +154%, review time +91%, human review capacity](../notes_img/L4/p41_00_p41_0.jpg)
 
 ## 7. Evidenz: MERT-Studie (2025)
 

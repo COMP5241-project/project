@@ -1,7 +1,5 @@
 # 软件开发生命周期(SDLC)
 
-> 整理自课程讲义(57 页)。涵盖需求、设计、实现、测试、部署与维护——包括 Verification(验证/确认)与 Validation(确认/验收)的区别、部署策略,以及一个部署失败案例研究。
-
 ---
 
 ## 1. 什么是 SDLC
@@ -10,12 +8,20 @@
 
 阶段:**需求分析 → 系统设计 → 实现 → 单元测试 → 集成测试 → 系统测试 → 验收测试 → 部署 → 维护**。
 
+![Requirement analysis: gathering and documenting functional requirements — stakeholder interviews, user needs, SRS document, feasibility study](../notes_img/L2/p03_00_p03_0.jpg)
+
 ## 2. 需求
+
+![Functional requirement: a description of what a system must do, with a text-note app example](../notes_img/L2/p04_00_p04_0.jpg)
+
+![Non-functional requirements with examples: scalability, availability, performance, usability, maintainability, reliability](../notes_img/L2/p17_00_p17_0.jpg)
 
 ### 功能需求 vs 非功能需求
 
 - **功能需求**定义系统*要做什么*(例:"创建账号时发送确认邮件""按搜索词检索条目""结账前查看/修改/移除购物车条目""社交账号登录""推送通知""反馈/评分")。
 - **非功能需求**定义系统*运行得如何*(性能、安全、可用性等)。
+
+![Six requirements-elicitation techniques: document analysis, observation, interviews, surveys and questionnaires, focus groups, prototyping](../notes_img/L2/p05_00_p05_0.jpg)
 
 ### 收集功能需求
 
@@ -42,11 +48,17 @@ AI 可以辅助(例如把 Zoom 会议摘要成需求)——但**务必检查 AI 
 - **问更好的问题**:从问题出发而非方案("我们在解决什么痛点?业务价值是什么?");开放式、流程导向的问题("你现在怎么做?哪里会卡?你决策需要什么信息?");挑战假设("如果数据缺失呢?例外情况是什么?谁拍板?");用 **5 Whys** 找到根因而非表象。
 - **综合、澄清并解决冲突**:会中复述确认("我听到的是……对吗?");把模糊说法转成可测试、具体的需求或业务规则;用 **MoSCoW**(Must/Should/Could/Won't)帮助干系人达成"现在必备 vs 之后再做"的共识。
 
+![Mobile wireframes: login, registration, and registration-confirmation screens](../notes_img/L2/p11_00_p11_0.jpg)
+
 ## 3. 原型与 MVP
 
 - **线框图(Wireframe)**——网站/App 的低保真图形结构,映射页面区块与交互元素。**模型图(Mockup)**——静态但更真实地呈现最终产品(品牌、颜色、字体、图标)。**高保真原型**——最接近最终产品;同时测试视觉与用户流程的反应。
 - **类型**:抛弃式(快速建立以收集反馈、细化需求,用完即弃)/ 演化式(基于反馈增量精化至最终版)/ 增量式(把最终产品切成部件,各部分独立开发、最后集成)。
 - "我说不出我要什么,但看到了我才知道。"
+
+![Iterative delivery with user feedback (Henrik Kniberg): prefer many small increments over one big-bang release](../notes_img/L2/p14_00_p14_0.jpg)
+
+![Build–measure–learn loop around the MVP](../notes_img/L2/p15_00_p15_0.jpg)
 
 ### MVP(最小可行产品)
 
@@ -62,6 +74,12 @@ AI 可以辅助(例如把 Zoom 会议摘要成需求)——但**务必检查 AI 
 | 开发阶段 | 早期、完整开发前 | 早期上线、第一个可用版本 |
 | 目标 | 验证设计想法与技术可行性 | 验证商业想法、吸引用户 |
 
+![GenAI chat app architecture: React frontend, Python Flask API backend, OpenAI Azure service, chat-history database](../notes_img/L2/p19_00_p19_0.jpg)
+
+![.env with API key and .gitignore shield keep secrets out of the public GitHub repository](../notes_img/L2/p21_00_p21_0.jpg)
+
+![Secret-injection flow: .env on the laptop, .gitignore shield, code-only GitHub repo, server with injected API key, Azure OpenAI](../notes_img/L2/p22_00_p22_0.jpg)
+
 ## 4. 设计与实现
 
 - 需求规格说明**是什么(what)**;设计说明**如何做到(how)**。
@@ -70,6 +88,18 @@ AI 可以辅助(例如把 Zoom 会议摘要成需求)——但**务必检查 AI 
 - **API key 保护:**
   - 开发期:密钥放 `.env`(本地环境变量);`.gitignore` 把 `.env` 与敏感文件排除在版本控制外。**密钥绝不能出现在远程仓库。**
   - 生产期:密钥安全存储在线平台(例:Vercel 环境变量设置),部署时注入运行中的应用,对公开与前端代码不可见。
+
+![Mock Weather Station API replacing the real API inside an isolated unit-test environment](../notes_img/L2/p23_00_p23_0.jpg)
+
+![Integration testing: combining individual units and testing them as a group](../notes_img/L2/p24_01_p24_1.jpg)
+
+![System testing: verifying the complete system meets all specified requirements](../notes_img/L2/p25_00_p25_0.jpg)
+
+![Confirmation testing: re-test the fixed feature to verify the fix](../notes_img/L2/p27_00_p27_0.jpg)
+
+![Regression testing: re-test previously working features to ensure no side effects](../notes_img/L2/p27_01_p27_1.jpg)
+
+![Acceptance testing: customers/end-users validate the system and sign off](../notes_img/L2/p29_00_p29_0.jpg)
 
 ## 5. 测试阶段
 
@@ -85,22 +115,48 @@ AI 可以辅助(例如把 Zoom 会议摘要成需求)——但**务必检查 AI 
   - **Alpha 测试**:在开发者场地,用户有开发者驻场下进行。
   - **Beta 测试**:在多个用户场地,无开发者参与——更接近系统真实使用。
 
+![Code → Verify → Validate → Iterate loop toward product success](../notes_img/L2/p34_01_p34_1.jpg)
+
 ### Verification vs Validation
 
 - **Verification(验证)**——评估是否走在正确轨道上、最终产品被**正确地**构建。例:代码评审、单元/集成/系统测试;通常由开发者执行,确保符合需求且实现正确。
 - **Validation(确认)**——评估软件是否满足用户/业务需求,确保构建的是**正确的**产品。例:原型、验收测试、可用性测试、生产环境测试、A/B 测试。
 - Validation 会带来改进软件的**新需求**(反馈回路)。
 
+![Deployment: releasing software to the production environment (environment prep, install, data migration, training, go-live)](../notes_img/L2/p35_04_p35_4.jpg)
+
+![Dev vs production environment: different OS/libraries, stricter access controls, edge-case data volumes](../notes_img/L2/p36_01_p36_1.jpg)
+
 ## 6. 部署与环境
 
 - 软件部署到客户环境,或发布到市场/生产。
 - **Dev vs Production 差异**:不同 OS 版本与库;生产数据可能含开发环境没有的边界情况与量级;生产环境可能有更严格的访问控制/防火墙;不同的资源上限;依赖的外部服务行为可能不同。"在我机器上能跑"≠"对真实用户能跑"。
+
+![Maintenance: ongoing support, bug fixes, and updates after deployment](../notes_img/L2/p37_00_p37_0.jpg)
+
+![Maintenance split: ~60% adding new features while keeping the system stable](../notes_img/L2/p38_00_p38_0.jpg)
+
+![40% initial development vs 60% average maintenance cost (IEEE Software, 2001)](../notes_img/L2/p38_01_p38_1.jpg)
+
+![Maintenance challenge (constrained, high risk) vs clean-slate project (fewer constraints)](../notes_img/L2/p38_02_p38_2.jpg)
+
+![Corrective maintenance: fixing defects found in the software](../notes_img/L2/p39_00_p39_0.jpg)
+
+![Adaptive maintenance: staying compatible with a changing environment (e.g., a new iOS version)](../notes_img/L2/p39_01_p39_1.jpg)
+
+![Perfective maintenance: enhancing performance or maintainability](../notes_img/L2/p39_02_p39_2.jpg)
+
+![Preventive maintenance: addressing potential issues before they become problems](../notes_img/L2/p39_03_p39_3.jpg)
 
 ## 7. 维护
 
 - 部署到生产**之后**对软件产品的修改:修生产环境的 bug 与问题、发布补丁、提升产品与性能、发布含增强的新版本。
 - **60/60 法则**(IEEE Software, 2001):维护平均占**软件生命周期成本的 60%**;维护的约 60% 是在保持系统运行、不破坏的前提下增加新功能。在 clean-slate(从零设计)项目中,维护常比开发更具挑战。
 - **ISO/IEC 14764:2006** 维护类型:**Corrective(纠正)**修缺陷;**Adaptive(适应)**随环境变化保持兼容;**Perfective(完善)**提升性能或可维护性;**Preventive(预防)**提前处理潜在问题。
+
+![Three production-incident categories: deployment failure, capacity issues, software bugs](../notes_img/L2/p40_00_p40_0.jpg)
+
+![Upgrade failure between V1.0 and V2.0: HTTP 500 Internal Server Error](../notes_img/L2/p40_01_p40_1.jpg)
 
 ### 部署失败案例研究
 
@@ -116,6 +172,32 @@ AI 可以辅助(例如把 Zoom 会议摘要成需求)——但**务必检查 AI 
 | **TTM**(缓解时间) | 团队的运维速度:诊断、修复、验证 | 约 8 小时(查询优化的复杂度主导) |
 | **TTR**(恢复时间) | 对客户的总影响时长 | 18 小时(凌晨 3 点 → 晚 9 点) |
 
+![1:00 AM — new feature deployed from code to production](../notes_img/L2/p41_00_p41_0.jpg)
+
+![3:00 AM to 10:00 AM — the visibility gap: users degrade while the team is unaware](../notes_img/L2/p42_00_p42_0.jpg)
+
+![10:00 AM — incident discovered with 50+ new alerts](../notes_img/L2/p42_01_p42_1.jpg)
+
+![Investigation: high CPU usage and slow query response](../notes_img/L2/p43_00_p43_0.jpg)
+
+![Root cause identified: unoptimized queries](../notes_img/L2/p43_01_p43_1.jpg)
+
+![Patching in progress (50%)](../notes_img/L2/p44_00_p44_0.jpg)
+
+![Patch v1.1 verified in the staging environment](../notes_img/L2/p44_01_p44_1.jpg)
+
+![6:00 PM — patch v1.1 deployed from staging to the production cloud](../notes_img/L2/p45_00_p45_0.jpg)
+
+![9:00 PM — incident resolved](../notes_img/L2/p45_01_p45_1.jpg)
+
+![TTD (time to discover): 7 hours](../notes_img/L2/p46_00_p46_0.jpg)
+
+![TTM (time to mitigate): 8 hours](../notes_img/L2/p46_01_p46_1.jpg)
+
+![TTR (total time to recover): 18 hours = TTD 7h + TTM 8h + stabilization 3h](../notes_img/L2/p46_02_p46_2.jpg)
+
+![MTBF = MTTF + MTTR: time from application failure to system restored to next failure](../notes_img/L2/p47_01_p47_1.jpg)
+
 ## 8. 可用性
 
 - **可用性 = Uptime / (Uptime + Downtime)** = MTTF / (MTTF + MTTR),以"9"的个数描述:
@@ -129,6 +211,20 @@ AI 可以辅助(例如把 Zoom 会议摘要成需求)——但**务必检查 AI 
 | 99.999% | 6 秒 | 26 秒 | 5.26 分钟 |
 
 - 影响可用性的因素:硬件故障、网络不稳、软件 bug、维护停机、安全攻击(DDoS、恶意软件)、断电、容量过载、配置错误、第三方中断、备份/恢复不良。
+
+![Prototype (AI-accelerated) to production (human-hardened)](../notes_img/L2/p50_00_p50_0.jpg)
+
+![Big Bang deployment: all users switch from V1.0 to V2.0 at once](../notes_img/L2/p52_00_p52_0.jpg)
+
+![Rolling deployment: phased replacement of old servers with V2.0](../notes_img/L2/p53_00_p53_0.jpg)
+
+![Blue-Green deployment: two identical environments with instant rollback](../notes_img/L2/p54_00_p54_0.jpg)
+
+![Canary deployment: a slice of users routed to the new version](../notes_img/L2/p55_00_p55_0.jpg)
+
+![Feature flag rollouts: percent rollout from 10% to 100% with performance feedback](../notes_img/L2/p56_00_p56_0.jpg)
+
+![The dark launch: feature flags control which consumers see the new feature](../notes_img/L2/p56_01_p56_1.jpg)
 
 ## 9. 部署策略
 

@@ -1,7 +1,5 @@
 # AI 支援ソフトウェア開発プラクティス
 
-> コース資料(44スライド)から抽出・整理したノート。コーディングエージェントとの実務ワークフロー:コンテキストエンジニアリング、AGENTS.md ファイル、仕様駆動開発、Agent Skills、AI 生産性の根拠。
-
 ---
 
 ## 1. Monorepo vs Polyrepo
@@ -16,6 +14,8 @@
 
 会話履歴 · system と agent の設定(ロールプロンプト、安全ルール、プロジェクトプロファイル)· コードとドキュメント(ソース、README、`CLAUDE.md` 等のガイダンスファイル)· 現在のタスク指示と制約 · ツール記述(MCP サーバ・プラグインのスキーマ)· ツール出力(JSON、エラー、ログ)· ストリーミング出力。
 
+![Context filter: relevant specs (CLAUDE.md, .cursorrules, project_context.md, SKILL.md) instead of the entire repository](../notes_img/L4/p05_00_p05_0.jpg)
+
 ### 正しい文脈でモデルを地面に固定する
 
 - **関連する**ファイル、契約、例、最新の API バージョン、社内 SDK を提供 — モデルに推測させない。
@@ -23,6 +23,8 @@
 - ライブラリ/ドキュメントを例付きで要約;プロンプトを具体的にする(例:「Streamlit アプリを作成。認証には `st.login()` を使用」)。
 
 > **コンテキストエンジニアリング** = セッション中に LLM が見るものを慎重に選び、品質・信頼性・プロジェクト規約との適合性を高めること。**少なすぎると**効果が下がり、**多すぎると**ノイズが増えコストが上がって、行動が悪化することもある。
+
+![CLAUDE.md instruction file with project style rules](../notes_img/L4/p06_00_p06_0.jpg)
 
 ## 3. エージェント指示ファイル
 
@@ -50,6 +52,18 @@
 - **含めるべき** — **WHAT**(技術スタック、構造、各部分の役割——モノレポで特に重要)、**WHY**(プロジェクトと主要コンポーネントの目的/意図)、**HOW**(ビルド・テスト・検証の方法;自明でないツール選択、例:`uv` ではなく `pip`、`bun` ではなく `npm`)。
 - **含めるべきでない** — 詳細なコードベース概説やディレクトリ一覧(エージェントは構造を自分で発見できる)、時々しか適用されないタスク固有の指示(全セッションの焦点を薄める)、**自動生成の内容**(データ上、害が利を上回る)。
 
+![Agent toolbox: quick fixes, reasoning, coding](../notes_img/L4/p09_00_p09_0.jpg)
+
+![Monolithic prompt broken into sequential steps](../notes_img/L4/p11_00_p11_0.jpg)
+
+![AI experiment sandboxed in a worktree off the main branch](../notes_img/L4/p12_00_p12_0.jpg)
+
+![Technical-debt codebase vs modular, maintainable code](../notes_img/L4/p13_00_p13_0.jpg)
+
+![Vibe coding house of cards: hallucinations, spaghetti code, missing context, security gaps](../notes_img/L4/p14_00_p14_0.jpg)
+
+![Vague prompts: fix this, make it pop, try again](../notes_img/L4/p14_01_p14_1.jpg)
+
 ## 4. モデルとワークフローのプラクティス
 
 - **モデルを賢く選ぶ** — LLM にはそれぞれ個性と強みがある;計画/アーキテクチャは推論重視モデル、実装は高速度モデル;1 つのモデルが詰まったら別のサービスに切り替えて盲点を打破。
@@ -59,11 +73,15 @@
 - **定期リファクタ** — AI 支援コーディングは技術的負債を蓄積;長い関数を分割、大きなモジュールを結合性の高いモジュールに分割、重複を削除(AI は既存コードの再利用より新規生成を好む)、再利用性・テスト性を高める。
 - **「チャットはエンジニアリングではない」。** カジュアルなバイブコーディング(会話)は文脈と先見が欠け、「紙の城」を生む — 最初は動くが、コンテキストウィンドウが閉じると保守・デバッグ・スケールが困難に。
 
+![Vague idea turned into a written spec.md](../notes_img/L4/p15_00_p15_0.jpg)
+
 ## 5. 仕様駆動開発(SDD)
 
 - **仕様優先**:コードを書く前に、AI と仕様を反復して磨く — 要件(エッジケース、ユーザーフロー)、アーキテクチャ(技術スタック)、データモデル(schema)、テスト戦略。
 - **SDD の中核**:正式で詳細な仕様は**「実行可能な設計図」であり真実の唯一のソース**;コードは**派生成果物**。開発者は *what* と *why* を定義、AI が *how* を担当。
 - ツール:**GitHub Spec Kit**、**AWS Kiro**。
+
+![constitution.md as the project's system prompt](../notes_img/L4/p18_00_p18_0.jpg)
 
 ### 主要コンポーネント
 
@@ -72,12 +90,22 @@
 - **技術計画**(`plan.md`) — 「どうやって」。
 - **コンテキストファイル**(`AGENTS.md`、`SKILL.md`) — 永続的な指示と「スキル」、AI エージェント向けの「README」。
 
+![spec.md with user story, acceptance criteria, and constraint](../notes_img/L4/p19_00_p19_0.jpg)
+
+![Architecture board: React, Zustand, SQLite, QuestionGenerator (plan.md)](../notes_img/L4/p20_00_p20_0.jpg)
+
+![tasks.md checklist with one failed task](../notes_img/L4/p21_00_p21_0.jpg)
+
+![Agentic loop: code generation, self-correction, verification](../notes_img/L4/p22_00_p22_0.jpg)
+
 ### ライフサイクル
 
 1. **Specify(仕様化)** — ユーザーストーリー、受入基準、エッジケース、エラー処理要件、成功指標;この段階では技術判断を除外し、純粋にユーザー成果とビジネス価値に集中。
 2. **Plan(計画)** — エージェントが spec を消費して技術計画を提案:コードを書く前にアーキテクチャ、データモデル、API 契約を決定;開発者がエンジニアリング基準とプロジェクトの Constitution に適合するかレビュー。
 3. **アトミックタスク生成** — 計画を小さなテスト可能なタスクに分解;AI は全体を一度に作らず、1 つのアトミックタスクずつ実行;人間が spec に対して進捗を確認するチェックポイントが可能。
 4. **Implement(実装)** — エージェントが rigid な Plan と Spec に従いタスクごとにコードを実装;コードは一貫性を保つ。開発者の役割は構文を書くことから、Phase 1 で定義した受入基準への出力検証へ。
+
+![Spec drives agent output; on verification failure, update the spec, not the code](../notes_img/L4/p23_00_p23_0.jpg)
 
 ### Spec drift(仕様ドリフト)
 
@@ -108,6 +136,8 @@ my-skill/
 - **SKILL.md が長すぎたら**:各スタイルを独立したリファレンスファイルに分割(`minimalist.md`、`tech-style.md`、`editorial.md`);`SKILL.md` はポインタ付きの要約に — エージェントはまず SKILL.md を読み、関連するリファレンスファイルだけロード。
 - **Scripts** はエージェントがテスト済みのスクリプトを呼び出して計算、変換、データ検証、ツール連携を予測可能に行える(例:`python scripts/generate_image.py --style tech`)。
 
+![Skill layers: description, instructions, tools & scripts](../notes_img/L4/p34_00_p34_0.jpg)
+
 ### Progressive disclosure(段階的開示、3 層)
 
 1. **メタデータ**(name + description)— 起動時に常にロード。
@@ -116,6 +146,8 @@ my-skill/
 
 エージェントはスキル名/説明の**カタログ**を保持し、「美しいブログサイトを作ってくれ」という要求に `website-ui-design` がマッチすると、完全なガイダンスを引き込む。
 
+![Monolithic prompt vs composable /research, /writer, /formatter commands](../notes_img/L4/p36_00_p36_0.jpg)
+
 ### モノリスより組み合わせ可能
 
 - **隔離デバッグ** — フォーカスされたスキルが失敗すれば、壊れたのはどのファイル/パラメータか確実に分かる;規則が衝突するモノリスプロンプトは診断不能。
@@ -123,6 +155,8 @@ my-skill/
 - **高コード再利用性** — プラグアンドプレイ;一度スキルとして保存した技術ツールは、どのサブエージェントやプロンプトからも即座にトリガー可能。
 - 有名な公開コレクション:Matt Pocock の skills(aihero.dev/skills)、Addy Osmani の agent-skills(Define → Plan → Build → Verify → Review → Ship の各段階、例:`interview-me`、`spec-driven-development`、`planning-and-task-breakdown`、`test-driven-development`、`doubt-driven-development`、`code-review-and-quality`、`git-workflow-and-versioning`、`ci-cd-and-automation`、`shipping-and-launch`)。
 - スキルライフサイクルの例(frontend-slides):タスク種類を検出 → コンテンツ質問 → プレビューでスタイル選択 → 単一 HTML ファイルのスライドデッキ生成 → 任意で PPTX 抽出 → 納品(ブラウザでクリックして編集)→ 任意で公開/PDF エクスポート(スクリプト:`extract-pptx.py`、`deploy.sh`、`export-pdf.sh`)。
+
+![AI code funnel: PR size +154%, review time +91%, human review capacity](../notes_img/L4/p41_00_p41_0.jpg)
 
 ## 7. 根拠:MERT 研究(2025)
 

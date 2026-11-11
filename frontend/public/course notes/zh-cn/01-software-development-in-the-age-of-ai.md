@@ -1,7 +1,5 @@
 # 人工智能时代的软件开发
 
-> 整理自课程讲义(83 页幻灯片)。涵盖 AI 如何重塑软件开发:Vibe Coding(氛围编程)、Agentic Coding(智能体编程)、生产力实证、风险,以及当下关键的能力。
-
 ---
 
 ## 1. AI 辅助编程的崛起
@@ -17,12 +15,20 @@
   - **支持与扩展**——诊断错误、分析日志、比手动调试更快给出修复建议;辅助大规模重构。
 - **工具版图**:消费级(Replit、v0、Lovable、bolt…)与开发者级(GitHub Copilot、Cursor、Windsurf、Claude Code、Antigravity、Trae、Opencode),以及设计工具(Figma、Google Stitch)。
 
+![Traditional SDLC vs agentic SDLC workflow](../notes_img/p74_01_p74_1.jpg)
+
 ## 2. Vibe Coding(氛围编程)
 
 - 由 **Andrej Karpathy** 提出:"完全沉浸在感觉里……忘掉代码的存在。"出错时直接把报错信息粘贴回去,通常就好了。
 - 实践者以**结果**为导向,而非逐行审查代码。
 - 已走进企业:例如台湾餐饮科技公司 iCHEF 一位没有工程背景的销运总监,用 Gemini "氛围编程"出多个内部 AI 小工具。
 - 智能体编程让原型生成从数周缩短到几分钟/几小时。
+
+![Comic: prompting the AI to fix it, then to fix the fix](../notes_img/p12_02_p12_2.jpg)
+
+![Vibe coding: hour 1 vs hour 11](../notes_img/p25_00_p25_0.jpg)
+
+![Emotional rollercoaster of an AI coding session](../notes_img/p25_02_p25_2.jpg)
 
 ## 3. 从 LLM 到自主智能体
 
@@ -42,12 +48,18 @@
 4. 编程智能体 — 跨文件编辑、使用工具、跑测试、自我纠错循环
 5. 自主智能体 — 克隆仓库、在沙箱中规划、跑测试、提交 PR
 
+![Tool 2022, copilot 2023–2025, autonomous agent 2026 and beyond](../notes_img/p17_00_p17_0.jpg)
+
+![Autonomy ladder: autocomplete to autonomous agents, ~2021 to ~2026](../notes_img/p18_00_p18_0.jpg)
+
 ## 4. 编程智能体如何工作
 
 - 三个阶段:**收集上下文 → 采取行动 → 验证结果**。
 - 工具家族:文件操作(读/改/建/重命名)、搜索(按模式找文件、正则搜内容、探索代码库)、执行(跑 shell 命令、起服务、跑测试、用 git)、Web(搜索、抓文档、查报错)。
 - 示例:"修复失败的测试"→ 跑测试套件 → 读错误输出 → 搜相关文件 → 阅读代码 → 编辑修改 → 重跑测试验证。
 - **上下文窗口**:装着本次会话的一切(指令、读过的文件、智能体自己的回复)。**子智能体**在独立的上下文窗口中干活,大文件读取不占主窗口;只返回摘要与少量元数据。
+
+![Agentic loop: gather context, take action, verify results](../notes_img/p20_00_p20_0.png)
 
 ## 5. Harness Engineering(驾驭工程)
 
@@ -82,6 +94,10 @@
 - **Brownfield 就像"住户还住在房子里,你重新装修厨房"**——不能直接断水断电,拆墙改管必须极其精准。
 - 真实世界的编程一团糟:把模糊的业务需求翻译成可用软件;管理预期、理解复杂遗留系统、应对不可预测的人为因素。AI 的短板:上下文窗口(10万–20万 token)只占中等代码库的一小部分;真实系统有复杂依赖(数据库、API、微服务、脚本、散落在各团队的知识);难懂业务规则、边界情况、人为例外;无法轻松拉人协作澄清需求;隐藏状态与基础设施复杂度(缓存、消息队列、会话存储、散落配置)——可能在不了解关键依赖的情况下建议重构。**AI 在需要深度上下文的混乱真实场景中会失败**;开发者仍需提供上下文、方向与质量控制。
 
+![Productivity gains by project maturity and task complexity](../notes_img/p37_00_p37_0.jpg)
+
+![Greenfield vs brownfield codebases](../notes_img/p39_00_p39_0.jpg)
+
 ## 8. 劳动力与职业影响
 
 - Anthropic 警告:AI 可能在 1–5 年内消灭 50% 的白领入门岗位;Salesforce 宣布 2025 年不再新招软件工程师。
@@ -89,12 +105,20 @@
 - 实习生案例:AI 之前,把任务委派给实习生,经理要先想清楚问题、写需求/背景/技术规格,再交办、反复跟进澄清评审;有了 AI,经理把需求与设计想清楚后,直接交给 AI 实现、测试、迭代,往往比完整的实习生委派周期还快。当"执行"越来越多由 AI 承担,对实习生真正有价值的技能不再是执行定义良好的任务,而是**学会自己定义、划定范围、推理问题**。
 - AI 让编码成为**基础技能**:过去写代码是程序员价值的主要来源;现在 AI 非常擅长把清晰需求变成能跑的代码。不懂写代码肯定不行,但*只*会写代码也不够了。
 
+![Theoretical vs observed AI coverage by occupation](../notes_img/p43_00_p43_0.jpg)
+
+![AI taking on boilerplate, bug fixes and tests; senior architect work above](../notes_img/p48_00_p48_0.jpg)
+
 ### 新角色与积木
 
 - **AI 工程师**(借助 AI API 与开源模型构建应用)vs **ML 工程师**(构建 AI API/模型本身)。要求:扎实的软件工程基础;构建可靠、可扩展应用的能力;熟悉现代 AI 工具与框架;关注用户体验与实际应用。
 - 除了会调 LLM API,还要掌握广泛的积木:提示技术、智能体框架、**评估(evals)、护栏(guardrails)、RAG、语音栈、异步编程、数据抽取、向量数据库、微调、图数据库 + LLM、智能体浏览器/电脑操作、MCP、推理模型**……
 - **2023 vs 2026 求职市场**:2023 = 学 HTML/CSS → 做演示项目 → 投简历。2026 = 系统设计 + 云基础设施 + DevOps + 网络 + 性能优化 + 沟通 + LLM API + AI 智能体 + 提示/上下文工程……+ 做出真实项目,在成千上万申请人中脱颖而出。
 - **Zara Zhang**(人文背景的非技术构建者):用 Claude Code 等编程智能体端到端交付真实产品,累计 30k+ GitHub stars(其中 5 个以上项目 1,000+ stars);她认为编码正在从*职业*变成像写作一样的*通用技能*——企业主、市场、PM、设计、创作者都能受益;人文背景的人尤其被需要:发现真实用户需求与痛点、从个人挫败/对话/反馈中获得点子、理解人而不只是技术(他们的挣扎、场景、job-to-be-done)、判断"好"与"更好"。
+
+![AI engineering skills map](../notes_img/p50_02_p50_2.jpg)
+
+![Getting a tech job in 2023 vs 2026](../notes_img/p58_00_p58_0.jpg)
 
 ## 9. 人类新价值:从"做"到"定义"
 
@@ -109,10 +133,24 @@
 - **餐厅菜单类比**:AI 设计餐厅菜单可以立刻看起来很精致,但"这是对的菜单吗?客人会喜欢菜吗?设计符合品牌吗?"——**"菜单可以很漂亮,但可能仍是错的菜单。这件事没有测试可跑。"**AI 降低了执行成本,方向与判断仍来自人。
 - **品味(taste)**:"代理可以告诉你一个东西看起来正确、符合规格——但不代表它*好*。好,可以是用户体验层面的好、令人愉悦、让人愿意再来。模型要完全接住这种细腻度还需时间。即便一两年后模型追上了,工程师仍需对这些系统负责——这需要你理解系统、别人信任你、你有专业积累,不是一夜之间的事。"
 
+![Six soft skills: user empathy, systems thinking, problem framing, business awareness, communication, ownership](../notes_img/p65_00_p65_0.jpg)
+
+![FireCut: real problem plus an unfair advantage](../notes_img/p67_00_p67_0.jpg)
+
+![Fit the tool to how editors already work](../notes_img/p67_01_p67_1.jpg)
+
+![2-day rough prototype vs 6 weeks of daily iteration with 20 beta testers](../notes_img/p68_00_p68_0.jpg)
+
+![Building gets easier while attention stays scarce](../notes_img/p69_00_p69_0.jpg)
+
+![A good product nobody sees is invisible](../notes_img/p69_01_p69_1.jpg)
+
 ### 新瓶颈:审查容量
 
 - 生成代码很容易;**验证才是区分度**:写好测试(unit/integration/e2e)、批判地读代码、系统地调试。
 - **架构师的崛起**:不再以写了多少行代码评判你,而是评判你**规格说明的清晰度**与**验证的严谨度**。
+
+![From the coder and syntax to the architect with system design and verification](../notes_img/p76_00_p76_0.jpg)
 
 ### 从 Vibe Coding 到 Agentic Engineering
 
@@ -125,6 +163,8 @@
 | 适用场景 | 原型、脚本、个人项目、黑客松 | 既有代码库中的功能 | 生产系统、团队级开发 |
 | 风险 | 高;一次性代码可接受 | 中;关键节点有人类判断 | 低;每阶段系统性验证 |
 
+![Spectrum: vibe coding to structured AI-assisted to agentic engineering](../notes_img/p77_00_p77_0.jpg)
+
 ## 10. AI 时代的必备技能
 
 1. **知道构建什么、为什么重要**——这个需求服务于什么目标?它真的重要吗?用户的真实问题是什么?哪些功能值得做?
@@ -136,6 +176,8 @@
 7. **产品与干系人技能**——与干系人互动识别痛点、基于原型收集反馈、迭代改进;构建真正有用、干系人愿意用、愿意付费、愿意推荐的产品。**"干系人技能"已是核心工程技能**:和干系人(用户、客户、企业主)谈,理解他们的真实问题;深刻理解用户、能转化为精确智能体指令的工程师,价值远超他人。
 
 > 虽然 AI 能自动化(大部分)编码任务,但构建一个真正有用、上线后稳健可扩展、被大量用户可靠使用的软件产品,绝非易事!
+
+![The AI-era skill pyramid](../notes_img/p78_00_p78_0.jpg)
 
 ### 保持竞争力
 

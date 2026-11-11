@@ -1,8 +1,8 @@
 # 軟體開發中的協作與版本控制
 
-> 整理自課程簡報(46 頁)。Git 基礎、完整的 Alice/Bob 協作流程、reset/revert/restore 語意、GitHub Flow,以及語意化版本控制。
-
 ---
+
+![DevOps tool landscape across Collaborate, Build, Test, Deploy, and Run](../notes_img/L3/p02_01_p02_1.jpg)
 
 ## 1. 為什麼需要版本控制
 
@@ -13,6 +13,10 @@
 - **Git**——追蹤原始碼歷史的版本控制系統。
 - **Repository(儲存庫)**——整個專案的容器:所有檔案/資料夾加上完整修訂歷史;專案工作發生的地方。
 - **GitHub**——Git repository 的雲端託管(**remote repository** 是任何託管 Git repository 的伺服器,例:GitHub 或 Bitbucket)。
+
+![Clone: GitHub remote repository cloned to a local machine, with push back](../notes_img/L3/p05_00_p05_0.jpg)
+
+![Fork: original repository forked to a personal copy, cloned locally, contributing back via pull request](../notes_img/L3/p05_01_p05_1.jpg)
 
 ### Clone vs Fork
 
@@ -37,6 +41,8 @@
 | `git status` | 当前 repository 狀態、變更、分支資訊 |
 | `git diff` | 顯示分支/commit 間的差異 |
 
+![Working directory, staging area, local repository, and remote repository connected by git add, git commit, and git push](../notes_img/L3/p08_00_p08_0.jpg)
+
 ### 三個區域
 
 1. **工作目錄(Working directory)**——實際編輯檔案的資料夾。
@@ -47,6 +53,40 @@
 - **Push** = 上傳本地 commit(例:`main`)到 remote(`origin/main`)。
 - **Branch(分支)** = 從 `main` 分出的獨立開發線;讓功能/bug 工作在完成前保持隔離。
 - **Merge(合併)** = 把完成的分支整合回 main;建立一個**有兩個 parent** 的新 commit,包含兩邊分支的所有工作。
+
+![git clone downloads the login-app repository with full history from GitHub to a local laptop](../notes_img/L3/p07_00_p07_0.jpg)
+
+![Making a commit with git commit and viewing commit history with git log](../notes_img/L3/p09_00_p09_0.jpg)
+
+![git push origin main pushes local commits to the remote origin](../notes_img/L3/p10_00_p10_0.jpg)
+
+![git checkout -b feature creates an isolated timeline for Alice's work](../notes_img/L3/p11_00_p11_0.jpg)
+
+![Two developers on diverging branches E and F merged together in a new commit G](../notes_img/L3/p12_00_p12_0.jpg)
+
+![Project folder downloaded from the origin remote to a local machine](../notes_img/L3/p13_01_p13_1.jpg)
+
+![Login form added to index.html, staged with git add and committed](../notes_img/L3/p14_01_p14_1.jpg)
+
+![Alice's local commits pushed to the remote origin](../notes_img/L3/p15_00_p15_0.jpg)
+
+![Feature branch split off main with HEAD at its tip](../notes_img/L3/p16_00_p16_0.jpg)
+
+![Alice commits the styled login button and previews it in the browser](../notes_img/L3/p17_00_p17_0.jpg)
+
+![Bob pushes an accessible version of the login button with an aria-label](../notes_img/L3/p18_00_p18_0.jpg)
+
+![Alice's feature branch compared with the origin/main remote-tracking branch after git fetch](../notes_img/L3/p19_00_p19_0.jpg)
+
+![git diff output showing Bob's remote change against Alice's local change on the same line](../notes_img/L3/p20_00_p20_0.jpg)
+
+![The diff reveals incompatible changes on the same line](../notes_img/L3/p20_01_p20_1.jpg)
+
+![Conflict markers: HEAD (Alice's changes), the dividing line, and origin/main (Bob's changes)](../notes_img/L3/p21_01_p21_1.jpg)
+
+![Conflict resolution keeps both the style and accessibility features](../notes_img/L3/p22_01_p22_1.jpg)
+
+![Merged code pushed from the local repository to the remote origin](../notes_img/L3/p23_01_p23_1.jpg)
 
 ## 3. 情境走讀(Alice & Bob)
 
@@ -79,11 +119,15 @@
 | `test:` | 新增/修改測試 |
 | `chore:` | 維護(相依更新、`.gitignore` 等設定、專案文件等) |
 
+![git fetch is safe and does not touch current work; git pull downloads and immediately attempts to merge](../notes_img/L3/p29_00_p29_0.jpg)
+
 ## 5. Fetch vs Pull 與分支衛生
 
 - **`git fetch`**:下載新資料,不動工作檔 — 安全,可先審查再合併。
 - **`git pull`** = fetch + 立即合併到当前工作。
 - **頻繁從 main pull**:在 feature 分支上保持最新、與他人更新同步;減少合併衝突風險;小衝突增量解決,避免最後一次面對大量複雜衝突。
+
+![GitHub Flow: create branch, add commits, open pull request, review and discuss, deploy, merge](../notes_img/L3/p31_00_p31_0.jpg)
 
 ## 6. GitHub Flow
 
@@ -94,6 +138,22 @@
 3. **開 PR** — 提議把分支變更合併回 main,啟動討論與審查。
 4. **審查與討論** — 審查者提建議或提問;開發者繼續 commit 處理回饋。
 5. **合併進 main** — 功能成為生產就緒的程式碼。
+
+![HEAD history with commits C, B, A and the HEAD~2 target](../notes_img/L3/p32_00_p32_0.jpg)
+
+![git reset --soft: HEAD moves to commit A while index and working directory keep the changes](../notes_img/L3/p33_00_p33_0.jpg)
+
+![git reset --mixed: HEAD moves, the index is reset, and the working directory keeps the changes](../notes_img/L3/p34_00_p34_0.png)
+
+![git reset --hard: HEAD moves and the working directory changes are destroyed](../notes_img/L3/p35_00_p35_0.jpg)
+
+![Warning: this deletes uncommitted work; always check git status first](../notes_img/L3/p35_01_p35_1.jpg)
+
+![Reset modes compared: soft, mixed, and hard across HEAD, index, and working directory](../notes_img/L3/p36_00_p36_0.jpg)
+
+![git reset rewrites history for local mistakes; git revert preserves history with an inverse commit for shared branches](../notes_img/L3/p39_00_p39_0.jpg)
+
+![git restore discards local changes in a specific file](../notes_img/L3/p40_00_p40_0.jpg)
 
 ## 7. 取消操作
 
@@ -115,6 +175,8 @@
 - **GitHub Issues** — 追蹤增強、任務、bug(bug 回報 / 功能請求)。
 - **Release(發布)** — 把特定穩定版本的軟體打包分發給使用者/其他系統。
 - **Release notes(發布說明)** — 該版本變更、改進、修復與重要資訊的文件摘要。
+
+![Semantic versioning: MAJOR for breaking changes, MINOR for new features, PATCH for bug fixes (2.1.2)](../notes_img/L3/p45_00_p45_0.jpg)
 
 ## 9. 語意化版本控制(Semantic Versioning)
 
