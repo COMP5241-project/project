@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, Navigate, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowRight, BookOpen, Bug, CircleAlert, CircleCheck, Gamepad2, GraduationCap, House, Library, LoaderCircle, Lock, ListChecks, LogOut, Martini, Presentation, Trophy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -59,6 +59,7 @@ function groupCourses(courses: PublishedCourseSummary[]) {
 
 function StudentPage() {
   const state = useProfile()
+  const navigate = useNavigate()
   const coursesState = usePublishedCourses(state.status === 'ready' && state.profile.role === 'student')
 
   let content: ReactNode
@@ -98,7 +99,15 @@ function StudentPage() {
       />
     )
   } else if (!state.profile.assessment_completed) {
-    content = <CsValidationAssessment onComplete={() => window.location.assign('/#/student')} />
+    content = <CsValidationAssessment onComplete={(profile) => {
+      if (profile.profile.cs_qualified) {
+        window.location.assign('/student')
+      } else {
+        void navigate({ to: '/student/introduction' })
+      }
+    }} />
+  } else if (!state.profile.cs_qualified && !state.profile.non_cs_introduction_completed) {
+    content = <Navigate to="/student/introduction" replace />
   } else {
     const { inProgress, notStarted, completed } = groupCourses(coursesState.courses ?? [])
     content = (
@@ -162,7 +171,7 @@ function StudentPage() {
           )}
         </section>
 
-        <section aria-labelledby="games-heading" className="space-y-3">
+        <section aria-labelledby="games-heading" className="space-y-3 pt-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-[#A21942]">Games &amp; training</p>
             <h2 id="games-heading" className="mt-1 text-xl font-extrabold tracking-tight text-[#262626]">
@@ -172,7 +181,7 @@ function StudentPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <GameCard
               cta="Play the game"
-              description="Your AI intern wrote some everyday notes — and each one hides a ridiculous mistake. Tap the suspicious line, explain what&apos;s wrong, and let your AI tutor score your detective work."
+              description="Your AI intern wrote some code — and every snippet hides one mistake. Tap the suspicious line, explain what's wrong, and let your AI tutor score your detective work. No coding experience needed."
               icon={<Bug aria-hidden="true" size={20} />}
               tag="New · 4D AI Fluency"
               title="Spot the Hallucination"
@@ -200,41 +209,30 @@ function StudentPage() {
               href="/bar_animation/testers-bar-polyu.html"
               icon={<Martini aria-hidden="true" size={20} />}
               tag="Interactive · 20 min"
-              title="Testers &amp; the Bar"
+              title="Testers & the Bar"
             />
           </div>
         </section>
 
-        <section aria-labelledby="resources-heading" className="space-y-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#A21942]">Course resources · COMP5241</p>
-            <h2 id="resources-heading" className="mt-1 text-xl font-extrabold tracking-tight text-[#262626]">
-              Browse available courses
-            </h2>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-4">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">
-                  <Library aria-hidden="true" size={20} />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-[#262626]">COMP5241 course catalogue</h3>
-                  <p className="mt-1 text-sm leading-6 text-gray-600">
-                    Explore the COMP5241 Software Engineering course: chapter notes in six
-                    languages and the full SDLC reading path.
-                  </p>
-                </div>
-              </div>
-              <a
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
-                href="/course.html"
-              >
-                Browse courses <ArrowRight aria-hidden="true" size={15} />
-              </a>
-            </div>
-          </div>
-        </section>
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <span className="inline-flex size-12 items-center justify-center rounded-xl bg-[#A21942]/10 text-[#A21942]">
+            <Library aria-hidden="true" size={24} />
+          </span>
+          <p className="mt-6 text-sm font-semibold text-[#A21942]">Course catalogue · COMP5241</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#262626]">
+            Browse available courses
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            Explore the COMP5241 Software Engineering course: chapter notes in six
+            languages, the Gold Rush Hook SDLC game, and other interactive activities.
+          </p>
+          <a
+            className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[#A21942] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#801333]"
+            href="/course.html"
+          >
+            Browse courses <ArrowRight aria-hidden="true" size={15} />
+          </a>
+        </div>
 
         {state.profile.cs_qualified && (
           <section aria-labelledby="coming-soon-heading" className="space-y-3">
@@ -308,15 +306,7 @@ function StudentPage() {
       </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div
-          className={
-            state.status === 'ready' &&
-            state.profile.role === 'student' &&
-            state.profile.assessment_completed
-              ? 'w-full max-w-4xl'
-              : 'w-full max-w-xl'
-          }
-        >
+        <div className={`w-full ${state.status === 'ready' && state.profile.role === 'student' && state.profile.assessment_completed && (state.profile.cs_qualified || state.profile.non_cs_introduction_completed) ? 'max-w-4xl' : 'max-w-xl'}`}>
           {state.signOutError && (
             <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
               {state.signOutError}
@@ -394,42 +384,31 @@ function CourseLink({ course }: { course: PublishedCourseSummary }) {
   )
 }
 
-function GameCard({
-  cta,
-  description,
-  href,
-  icon,
-  tag,
-  title,
-  to,
-}: {
+type GameCardProps = {
   cta: string
   description: string
-  href?: string
   icon: ReactNode
   tag: string
   title: string
-  to?: string
-}) {
+} & ({ to: '/student/hallucination-game' | '/courses/sample'; href?: never } | { href: string; to?: never })
+
+function GameCard({ cta, description, href, icon, tag, title, to }: GameCardProps) {
   const callToAction = (
-    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#A21942] transition-colors group-hover:underline">
+    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#A21942] group-hover:underline">
       {cta}
       <ArrowRight aria-hidden="true" size={14} />
     </span>
   )
+
   return (
     <div className="group flex flex-col rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-[#A21942]/40">
       <div className="flex items-center justify-between gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">
-          {icon}
-        </span>
-        <span className="truncate rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-500">
-          {tag}
-        </span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">{icon}</span>
+        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-600">{tag}</span>
       </div>
       <h3 className="mt-4 text-base font-bold text-[#262626]">{title}</h3>
       <p className="mt-1.5 flex-1 text-sm leading-6 text-gray-600">{description}</p>
-      {to ? <Link className="contents" to={to}>{callToAction}</Link> : <a className="contents" href={href}>{callToAction}</a>}
+      {to ? <Link to={to}>{callToAction}</Link> : <a href={href}>{callToAction}</a>}
     </div>
   )
 }

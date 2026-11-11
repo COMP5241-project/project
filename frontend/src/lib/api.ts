@@ -6,6 +6,7 @@ export interface Profile {
   role: DashboardRole
   cs_qualified: boolean
   assessment_completed: boolean
+  non_cs_introduction_completed: boolean
 }
 
 export interface CurrentProfile {
@@ -75,6 +76,12 @@ export async function completeAssessment(csQualified: boolean): Promise<CurrentP
     cs_qualified: csQualified,
   })
   if (!data) throw new ApiError('Unable to save your assessment result.', 503)
+  return data
+}
+
+export async function completeNonCsIntroduction(): Promise<CurrentProfile> {
+  const data = await request<CurrentProfile>('/profiles/non-cs-introduction', {})
+  if (!data) throw new ApiError('Unable to save your introduction progress.', 503)
   return data
 }
 

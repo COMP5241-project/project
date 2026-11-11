@@ -35,6 +35,7 @@ def auth_client() -> Mock:
     client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
         "id": user.id, "email": user.email, "role": "student",
         "cs_qualified": True, "assessment_completed": True,
+        "non_cs_introduction_completed": False,
     }
     return client
 

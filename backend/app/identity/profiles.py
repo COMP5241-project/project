@@ -14,6 +14,7 @@ class Profile(BaseModel):
     role: Literal["student", "instructor"]
     cs_qualified: bool
     assessment_completed: bool
+    non_cs_introduction_completed: bool
 
 
 class CurrentProfile(BaseModel):
@@ -25,7 +26,7 @@ def load_profile(client: Client, user_id: str, email: str | None, token: str) ->
     try:
         client.postgrest.auth(token)
         result = client.table("profiles").select(
-            "id, email, role, cs_qualified, assessment_completed"
+            "id, email, role, cs_qualified, assessment_completed, non_cs_introduction_completed"
         ).eq("id", user_id).maybe_single().execute()
         data = result.data if result else None
     except APIError as error:

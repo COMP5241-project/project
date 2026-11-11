@@ -51,6 +51,7 @@ def auth_client() -> Mock:
     client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
         "id": user.id, "email": user.email, "role": "student",
         "cs_qualified": True, "assessment_completed": False,
+        "non_cs_introduction_completed": False,
     }
     return client
 
@@ -126,6 +127,91 @@ def test_auth_login_and_profile_use_private_cookie(client: HttpxClient, auth_cli
     auth_client.auth.get_user.assert_called_once_with("private-access-token")
     auth_client.postgrest.auth.assert_called_with("private-access-token")
     auth_client.table.return_value.select.return_value.eq.assert_called_with("id", "student-id")
+
+
+@pytest.mark.parametrize("qualified", [True, False])
+def test_assessment_completion_is_saved(client: HttpxClient, auth_client: Mock, qualified: bool):
+    profile = auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data
+    assert auth_login(client).status_code == 200
+    auth_client.table.return_value.update.return_value.eq.return_value.execute.side_effect = (
+        lambda: profile.update({"cs_qualified": qualified, "assessment_completed": True})
+    )
+
+    response = client.post("/api/profiles/assessment", json={"cs_qualified": qualified})
+
+    assert response.status_code == 200
+    assert response.json()["profile"]["cs_qualified"] is qualified
+    assert response.json()["profile"]["assessment_completed"] is True
+
+
+def test_assessment_missing_update_is_reported(client: HttpxClient, auth_client: Mock):
+    assert auth_login(client).status_code == 200
+
+    response = client.post("/api/profiles/assessment", json={"cs_qualified": False})
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "assessment_unavailable"
+
+
+def test_non_cs_introduction_completion_is_saved(client: HttpxClient, auth_client: Mock):
+    profile = auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data
+    profile.update({"cs_qualified": False, "assessment_completed": True})
+    assert auth_login(client).status_code == 200
+    auth_client.table.return_value.update.return_value.eq.return_value.execute.side_effect = (
+        lambda: profile.update({"non_cs_introduction_completed": True})
+    )
+
+    response = client.post("/api/profiles/non-cs-introduction", json={})
+
+    assert response.status_code == 200
+    assert response.json()["profile"]["non_cs_introduction_completed"] is True
+    auth_client.table.return_value.update.assert_called_with({"non_cs_introduction_completed": True})
+    auth_client.table.return_value.update.return_value.eq.assert_called_with("id", "student-id")
+
+
+@pytest.mark.parametrize("role,assessed,qualified", [
+    ("student", False, False),
+    ("student", True, True),
+    ("instructor", True, False),
+])
+def test_non_cs_introduction_requires_non_cs_student(
+    client: HttpxClient, auth_client: Mock, role: str, assessed: bool, qualified: bool
+):
+    profile = auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data
+    profile.update({"role": role, "assessment_completed": assessed, "cs_qualified": qualified})
+    assert auth_login(client).status_code == 200
+
+    response = client.post("/api/profiles/non-cs-introduction", json={})
+
+    assert response.status_code == 403
+    auth_client.table.return_value.update.assert_not_called()
+
+
+def test_non_cs_introduction_save_failure_is_reported(client: HttpxClient, auth_client: Mock):
+    profile = auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data
+    profile.update({"cs_qualified": False, "assessment_completed": True})
+    assert auth_login(client).status_code == 200
+    auth_client.table.return_value.update.return_value.eq.return_value.execute.side_effect = RuntimeError("unavailable")
+
+    response = client.post("/api/profiles/non-cs-introduction", json={})
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "introduction_unavailable"
+
+
+def test_non_cs_introduction_missing_update_is_reported(client: HttpxClient, auth_client: Mock):
+    profile = auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data
+    profile.update({"cs_qualified": False, "assessment_completed": True})
+    assert auth_login(client).status_code == 200
+
+    response = client.post("/api/profiles/non-cs-introduction", json={})
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "introduction_unavailable"
+
+
+def test_non_cs_introduction_requires_session(client: HttpxClient):
+    assert client.post("/api/profiles/non-cs-introduction", json={}).status_code == 401
 
 
 def test_password_reset_request_sends_email_otp(client: HttpxClient, auth_client: Mock):
