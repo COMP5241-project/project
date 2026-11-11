@@ -1,7 +1,5 @@
 # Prácticas de Desarrollo de Software Asistido por IA
 
-> Destilado de la presentación del curso (44 diapositivas). Flujos prácticos para trabajar con agentes de codificación: ingeniería de contexto, archivos AGENTS.md, desarrollo guiado por especificaciones, *agent skills* y evidencia sobre productividad con IA.
-
 ---
 
 ## 1. Monorepo vs polyrepo
@@ -16,6 +14,8 @@
 
 Historia de la conversación · setup del sistema y del agente (prompt de rol, reglas de seguridad, perfil del proyecto) · código y docs (archivos fuente relevantes, README, archivos de guía como `CLAUDE.md`, rules) · instrucciones de la tarea actual y constraints · descripciones de herramientas (schemas de tools/MCP servers/plugins) · salidas de herramientas (JSON, errores, logs) · salida en streaming.
 
+![Context filter: relevant specs (CLAUDE.md, .cursorrules, project_context.md, SKILL.md) instead of the entire repository](../notes_img/L4/p05_00_p05_0.jpg)
+
 ### Anclar el modelo al contexto correcto
 
 - Proveer el contexto correcto (archivos relevantes, contratos, ejemplos) para que el modelo no adivine: metas de alto nivel, ejemplos de buenos patrones, la última versión de una API/librería, SDKs internos, etc.
@@ -23,6 +23,8 @@ Historia de la conversación · setup del sistema y del agente (prompt de rol, r
 - Resumir la librería/doc con ejemplos; prompts más específicos: "Create a streamlit app. Use `st.login()` for authentication".
 
 > **Ingeniería de contexto** = curar cuidadosamente lo que el LLM ve en una sesión de agente de codificación para mejorar calidad, confiabilidad y alineación con las convenciones del proyecto. **Poco contexto** reduce la efectividad; **demasiado** es ruidoso, costoso y puede empeorar el comportamiento.
+
+![CLAUDE.md instruction file with project style rules](../notes_img/L4/p06_00_p06_0.jpg)
 
 ## 3. Archivos de instrucciones del agente
 
@@ -50,6 +52,18 @@ Un archivo Markdown especial del repositorio que los agentes de codificación **
 - **Qué incluir** — **QUÉ**: tech stack, estructura del proyecto y qué hace cada parte. Crítico para monorepos. **POR QUÉ**: el propósito del proyecto y sus componentes clave; ayuda al agente a entender la intención, no solo la estructura. **CÓMO**: cómo construir, probar y verificar cambios; incluir tooling no obvio (p. ej., `uv` en vez de `pip`, `bun` en vez de `npm`).
 - **Qué NO incluir** — overviews detalladas del código o listados de directorios (no ayudan al agente a navegar más rápido; puede descubrir la estructura solo); instrucciones específicas a tareas que solo a veces aplican (como AGENTS.md va en cada sesión, instrucciones no universales diluyen el foco); **contenido autogenerado**: no dejar que el agente escriba su propio AGENTS.md — los datos muestran que hace más daño que bien.
 
+![Agent toolbox: quick fixes, reasoning, coding](../notes_img/L4/p09_00_p09_0.jpg)
+
+![Monolithic prompt broken into sequential steps](../notes_img/L4/p11_00_p11_0.jpg)
+
+![AI experiment sandboxed in a worktree off the main branch](../notes_img/L4/p12_00_p12_0.jpg)
+
+![Technical-debt codebase vs modular, maintainable code](../notes_img/L4/p13_00_p13_0.jpg)
+
+![Vibe coding house of cards: hallucinations, spaghetti code, missing context, security gaps](../notes_img/L4/p14_00_p14_0.jpg)
+
+![Vague prompts: fix this, make it pop, try again](../notes_img/L4/p14_01_p14_1.jpg)
+
 ## 4. Prácticas de modelo y flujo de trabajo
 
 - **Elegir el modelo correcto**: no todos los LLMs de codificación son iguales; cada modelo tiene personalidad y fortalezas propias; usar modelos de razonamiento pesado (tipo Claude) para planificación/arquitectura y modelos de alta velocidad para implementación; si un modelo se atasca, cambiar a otro servicio para romper el punto ciego.
@@ -58,6 +72,8 @@ Un archivo Markdown especial del repositorio que los agentes de codificación **
 - **Commitear a menudo y usar el control de versiones como red de seguridad**: commits frecuentes y pequeños actúan como "puntos de guardado" que permiten rollback rápido cuando el código generado por IA se sale de curso; commitear tras cada pequeña tarea o cambio automatizado exitoso, más de lo habitual en codificación manual; usar ramas/isoladas git worktrees como **sandbox** para experimentos de IA separados, permitiendo sesiones de IA concurrentes sin conflicto.
 - **Refactorizar**: la codificación asistida por IA acumula deuda técnica; a medida que el código base crece, se vuelve sucio y difícil de mantener/fixear/agregar features; refactorizar de vez en cuando: dividir funciones largas en unidades pequeñas; dividir módulos grandes en módulos cohesivos; eliminar/fusionar funcionalidad duplicada (**la IA prefiere generar código nuevo en vez de usar el existente**); hacer el código más reutilizable y testeable.
 - **"Charlar no es ingeniería"**: el *vibe coding* tradicional (charlar casualmente con la IA) carece de contexto y visión; genera un "castillo de naipes" que funciona inicialmente pero es difícil de mantener, depurar o escalar una vez que la ventana de contexto se cierra.
+
+![Vague idea turned into a written spec.md](../notes_img/L4/p15_00_p15_0.jpg)
 
 ## 5. Enfoque spec-first y desarrollo guiado por especificaciones (SDD)
 
@@ -72,9 +88,19 @@ Un archivo Markdown especial del repositorio que los agentes de codificación **
 - **Plan técnico** (`plan.md`)
 - **Archivos de contexto**: como `AGENTS.md` o `SKILL.md`, proveen instrucciones persistentes y "skills" al agente; funcionan como un "README" para agentes de IA.
 
+![constitution.md as the project's system prompt](../notes_img/L4/p18_00_p18_0.jpg)
+
 ### La Constitución
 
 Documento de gobernanza que define principios innegociables: tech stack (p. ej., React/Tailwind CSS), siempre correr pruebas antes de commitear, usar TypeScript en modo strict, nunca commitear secrets, etc. Asegura que la IA siga los estándares del equipo en cada tarea.
+
+![spec.md with user story, acceptance criteria, and constraint](../notes_img/L4/p19_00_p19_0.jpg)
+
+![Architecture board: React, Zustand, SQLite, QuestionGenerator (plan.md)](../notes_img/L4/p20_00_p20_0.jpg)
+
+![tasks.md checklist with one failed task](../notes_img/L4/p21_00_p21_0.jpg)
+
+![Agentic loop: code generation, self-correction, verification](../notes_img/L4/p22_00_p22_0.jpg)
 
 ### Ciclo de vida
 
@@ -82,6 +108,8 @@ Documento de gobernanza que define principios innegociables: tech stack (p. ej.,
 2. **Fase 2: Plan (el "cómo")** — el agente consume la Spec y propone un Plan Técnico: decide arquitectura, modelos de datos y contratos de API **antes de escribir una línea de código**. El developer revisa el plan para asegurar que coincide con estándares de ingeniería y la Constitución del proyecto.
 3. **Fase 3: Generación de tareas atómicas** — el Plan se rompe en tareas pequeñas y testeables. La IA no intenta construir toda la app de una vez; ejecuta **una tarea atómica a la vez**. Esto permite checkpoints donde el humano verifica el progreso contra la Spec.
 4. **Fase 4: Implement (ejecución del agente)** — el agente implementa código tarea por tarea. Porque sigue un Plan y una Spec rígidos, el código es consistente. El rol del developer pasa de escribir sintaxis a **verificar la salida contra los criterios de aceptación** definidos en la Fase 1.
+
+![Spec drives agent output; on verification failure, update the spec, not the code](../notes_img/L4/p23_00_p23_0.jpg)
 
 ### La especificación es la fuente de verdad
 
@@ -133,6 +161,8 @@ my-skill/
 - Si hay muchos estilos de UI y siguen surgiendo: **sacar cada estilo a su propio archivo** (`minimalist.md`, `tech-style.md`, `fresh-style.md`). SKILL.md se vuelve un resumen con pointers; la IA lee SKILL.md primero y solo carga el archivo de referencia relevante para la tarea (p. ej., "Minimalist blog → read `references/minimalist.md`").
 - **Scripts**: la IA puede invocar un script probado para hacer cálculos, transformar archivos, validar datos o interactuar con tools de forma predecible (p. ej., `python scripts/generate_image.py --style tech`).
 
+![Skill layers: description, instructions, tools & scripts](../notes_img/L4/p34_00_p34_0.jpg)
+
 ### Progressive disclosure (revelación progresiva)
 
 1. **Parte 1 — Metadata**: name y description de SKILL.md, siempre cargados al arranque.
@@ -141,12 +171,16 @@ my-skill/
 
 Mecánica: el agente envía al LLM un **catálogo de nombres y descripciones** de skills; el cuerpo de instrucciones permanece en el archivo hasta que la IA lo solicite. Cuando pides "develop a beautiful blog website", el LLM coincide tu request con `website-ui-design`.
 
+![Monolithic prompt vs composable /research, /writer, /formatter commands](../notes_img/L4/p36_00_p36_0.jpg)
+
 ### Composable sobre monolítico
 
 - **Debug aislado**: cuando una skill enfocada falla, sabes exactamente qué archivo y parámetros se rompieron; los prompts monolíticos contienen reglas en conflicto, haciendo el diagnóstico imposible.
 - **Upgrades compuestos**: actualizar una sub-skill actualiza automáticamente cada workflow padre que la usa; los prompts monolíticos llevan a "duplicate rule rot".
 - **Alta reutilización de código**: arquitectura plug-and-play; una vez que una herramienta técnica se construye y se guarda como skill, cualquier subagente o prompt puede dispararla al instante.
 - Colecciones notables: skills de ingeniería de software de **Matt Pocock** (aihero.dev/skills) y de **Addy Osmani** (github.com/addyosmani/agent-skills), organizadas por etapas Define → Plan → Build → Verify → Review → Ship (p. ej., `interview-me`, `idea-refine`, `spec-driven-development`, `planning-and-task-breakdown`, `incremental-implementation`, `test-driven-development`, `context-engineering`, `source-driven-development`, `doubt-driven-development`, `frontend-ui-engineering`, `api-and-interface-design`, `browser-testing-with-devtools`, `debugging-and-error-recovery`, `code-review-and-quality`, `code-simplification`, `security-and-hardening`, `performance-optimization`, `git-workflow-and-versioning`, `ci-cd-and-automation`, `deprecation-and-migration`, `documentation-and-adrs`, `observability-and-instrumentation`, `shipping-and-launch`).
+
+![AI code funnel: PR size +154%, review time +91%, human review capacity](../notes_img/L4/p41_00_p41_0.jpg)
 
 ## 7. Evidencia: estudio MERT (2025)
 

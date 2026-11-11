@@ -1,7 +1,5 @@
 # 人工智慧時代的軟體開發
 
-> 整理自課程簡報(83 頁)。涵蓋 AI 如何重塑軟體開發:Vibe Coding(氛圍式編程)、Agentic Coding(代理式編程)、生產力實證、風險,以及現在重要的技能。
-
 ---
 
 ## 1. AI 輔助編程的崛起
@@ -17,12 +15,20 @@
   - **支援與擴展**——診斷錯誤、分析日誌、比手動除錯更快提出修正;輔助大規模重構。
 - **工具景觀**:消費級(Replit、v0、Lovable、bolt…)與開發者級(GitHub Copilot、Cursor、Windsurf、Claude Code、Antigravity、Trae、Opencode),以及設計工具(Figma、Google Stitch)。
 
+![Traditional SDLC vs agentic SDLC workflow](../notes_img/p74_01_p74_1.jpg)
+
 ## 2. Vibe Coding(氛圍式編程)
 
 - 由 **Andrej Karpathy** 提出:「完全順從氛圍、擁抱指數成長、忘了程式碼的存在」。出錯時直接把錯誤訊息貼回去,通常就修好了。
 - 實作者以**結果**導向,而非逐行審查。
 - 已進入企業:例如台灣餐廳科技公司 iCHEF 一名無工程背景的業務與營運總監,用 Gemini 建置了多個內部 AI 小工具。
 - Agentic Coding 讓原型開發從數週縮短到數分鐘/數小時。
+
+![Comic: prompting the AI to fix it, then to fix the fix](../notes_img/p12_02_p12_2.jpg)
+
+![Vibe coding: hour 1 vs hour 11](../notes_img/p25_00_p25_0.jpg)
+
+![Emotional rollercoaster of an AI coding session](../notes_img/p25_02_p25_2.jpg)
 
 ## 3. 從 LLM 到自主代理(Agent)
 
@@ -42,12 +48,18 @@
 4. 編程代理 — 多檔案編輯、工具使用、跑測試、自我修正迴路
 5. 自主代理 — 複製 repository、在沙箱中規劃、跑測試、提交 PR
 
+![Tool 2022, copilot 2023–2025, autonomous agent 2026 and beyond](../notes_img/p17_00_p17_0.jpg)
+
+![Autonomy ladder: autocomplete to autonomous agents, ~2021 to ~2026](../notes_img/p18_00_p18_0.jpg)
+
 ## 4. 編程代理如何運作
 
 - 三個階段:**收集上下文 → 採取行動 → 驗證結果**。
 - 工具家族:檔案操作(讀/改/建/重命名)、搜尋(glob、regex、探索程式碼庫)、執行(shell、伺服器、測試、git)、Web(搜尋、抓文件、查錯誤)。
 - 示例:「修復失敗的測試」→ 跑測試套件 → 讀取錯誤輸出 → 搜尋相關檔案 → 閱讀程式碼 → 編輯修改 → 重跑測試驗證。
 - **上下文視窗**:容納本次 session 的一切(指示、讀過的檔案、代理自己的回應)。**子代理(subagent)**在獨立的上下文視窗中執行,大型檔案讀取不佔用主視窗;只傳回摘要與少量元數據。
+
+![Agentic loop: gather context, take action, verify results](../notes_img/p20_00_p20_0.png)
 
 ## 5. Harness Engineering(代理框架工程)
 
@@ -82,6 +94,10 @@
 - **Brownfield 就像「屋主還住在裡面時重新裝修廚房」**——不能斷水斷電,拆牆改管必須極其精準。
 - 真實世界的編程很混亂:把模糊的商業需求轉譯成可用軟體;管理預期、理解複雜 legacy 系統、應對不可預測的人為因素。AI 的短板:上下文視窗(10萬–20萬 tokens)只占中等程式碼庫的一小部分;真實系統有複雜依賴(資料庫、API、微服務、腳本、跨團隊知識);難懂業務規則、邊界情況、人為例外;無法輕鬆拉人協作以釐清需求;隱性狀態與基礎設施複雜度(快取、訊息佇列、session 儲存、散落各處的設定)——可能在不了解關鍵基礎設施依賴的情況下建議重構。**AI 在需要深度上下文知識的混亂真實場景中會失敗**;開發者仍需提供上下文、方向與品質控制。
 
+![Productivity gains by project maturity and task complexity](../notes_img/p37_00_p37_0.jpg)
+
+![Greenfield vs brownfield codebases](../notes_img/p39_00_p39_0.jpg)
+
 ## 8. 勞動與職業影響
 
 - Anthropic 警告:AI 可能在 1–5 年內淘汰 50% 的白領入門職位;Salesforce 宣布 2025 年不再新聘軟體工程師。
@@ -89,12 +105,20 @@
 - 實習生案例:AI 出現前,把任務委派給實習生,經理要先想清楚問題、寫需求/背景/技術規格,再交接、反覆跟進、澄清、審查;有了 AI,經理把需求與設計想清楚後,直接交給 AI 實現、測試、迭代,往往比完整的實習生委派週期還快。當「執行」越來越多由 AI 承擔,對實習生真正有價值的技能不再是執行定義良好的任務,而是**學會自己定義、劃定範圍、推理問題**。
 - AI 讓編程成為**基礎技能**:過去寫程式碼是程式設計師價值的主要來源;現在 AI 非常擅長把清晰需求變成能跑的程式碼。不懂寫程式碼肯定行不通,但*只*會寫程式碼也不夠了。
 
+![Theoretical vs observed AI coverage by occupation](../notes_img/p43_00_p43_0.jpg)
+
+![AI taking on boilerplate, bug fixes and tests; senior architect work above](../notes_img/p48_00_p48_0.jpg)
+
 ### 新角色與組建元件
 
 - **AI 工程師**(借助 AI API 與開源模型構建應用)vs **ML 工程師**(構建 AI API/模型本身)。要求:扎實的軟體工程基礎;構建可靠、可擴展應用的能力;熟悉現代 AI 工具與框架;關注使用者體驗與實際應用。
 - 除了會呼叫 LLM API,還需廣泛掌握組建元件:提示技術、代理框架、**評估(evals)、防護欄(guardrails)、RAG、語音棧、非同步程式、資料抽取、向量資料庫、微調、圖資料庫 + LLM、代理式瀏覽器/電腦操作、MCP、推理模型**……
 - **2023 vs 2026 求職市場**:2023 = 學 HTML/CSS → 做示範專案 → 應徵。2026 = 系統設計 + 雲基礎設施 + DevOps + 網路 + 效能優化 + 溝通 + LLM API + AI 代理 + 提示/上下文工程……+ 做出真實專案,在成千上萬的申請者中脫穎而出。
 - **Zara Zhang**(人文背景的非技術 builder):用 Claude Code 等編程代理端到端交付真實產品,累計 30k+ GitHub stars(其中 5+ 個專案 1,000+ stars);她認為編程正從*職業*變成像寫作一般的*通用技能*——商業主、行銷、PM、設計、創作者都能受益;人文背景的人尤其被需要:察覺真實使用者需求與痛點、從個人挫敗/對話/回饋中獲得點子、理解人而不只是技術(他們的掙扎、場景、job-to-be-done)、判斷「好」與「更好」。
+
+![AI engineering skills map](../notes_img/p50_02_p50_2.jpg)
+
+![Getting a tech job in 2023 vs 2026](../notes_img/p58_00_p58_0.jpg)
 
 ## 9. 人類新價值:從「做」到「定義」
 
@@ -109,10 +133,24 @@
 - **餐廳選單比喻**:AI 設計餐廳選單可以立刻看起來很精緻,但「這是對的選單嗎?顧客會喜歡這些菜嗎?設計符合品牌嗎?」——**「選單可以很好看,但可能仍是錯的選單。這件事沒有測試可做。」**AI 降低了執行的成本;方向與判斷來自人。
 - **品味(taste)**:「代理可以告訴你一個東西看起來正確、符合規格——但不代表它*好*。好,可以是使用者體驗層面的好、令人愉悅、讓人願意回來。模型要完全接住這種細膩度還需要時間。即便一兩年後模型追上了,工程師仍需對這些系統負責——這需要理解系統、別人信任你、你有專業積累,不是一夜之間的事。」
 
+![Six soft skills: user empathy, systems thinking, problem framing, business awareness, communication, ownership](../notes_img/p65_00_p65_0.jpg)
+
+![FireCut: real problem plus an unfair advantage](../notes_img/p67_00_p67_0.jpg)
+
+![Fit the tool to how editors already work](../notes_img/p67_01_p67_1.jpg)
+
+![2-day rough prototype vs 6 weeks of daily iteration with 20 beta testers](../notes_img/p68_00_p68_0.jpg)
+
+![Building gets easier while attention stays scarce](../notes_img/p69_00_p69_0.jpg)
+
+![A good product nobody sees is invisible](../notes_img/p69_01_p69_1.jpg)
+
 ### 新瓶頸:審查容量
 
 - 產生程式碼很容易;**驗證才是差異化**:寫好測試(unit/integration/e2e)、批判性地讀程式碼、系統性地除錯。
 - **架構師的崛起**:不再以寫了多少行程式碼來評判你,而是評判你**規格說明的清晰度**與**驗證的嚴謹度**。
+
+![From the coder and syntax to the architect with system design and verification](../notes_img/p76_00_p76_0.jpg)
 
 ### 從 Vibe Coding 到 Agentic Engineering
 
@@ -125,6 +163,8 @@
 | 適用範圍 | 原型、腳本、個人專案、黑客松 | 既有程式碼庫中的功能 | 生產系統、團隊級開發 |
 | 風險 | 高;一次性程式碼可接受 | 中;關鍵節點有人類判斷 | 低;每個階段系統性驗證 |
 
+![Spectrum: vibe coding to structured AI-assisted to agentic engineering](../notes_img/p77_00_p77_0.jpg)
+
 ## 10. AI 時代的必備技能
 
 1. **知道建構什麼、為什麼重要**——這個需求服務於什麼目標?它真的重要嗎?使用者的真實問題是什麼?哪些功能值得做?
@@ -136,6 +176,8 @@
 7. **產品與持份者技能**——與持份者互動識別痛點、對原型收集回饋、迭代改進;構建真正有用、持份者願意用、願意付費、願意推薦的系統。**「持份者技能」已是核心工程技能**:和持份者(使用者、客戶、業務主)談,理解他們的真實問題;深刻理解使用者、能轉譯為精確代理指示的工程師,價值遠超他人。
 
 > 雖然 AI 能自動化(大部分)編程任務,但構建一個真正有用、上線後穩健可擴展、被大量使用者可靠使用的軟體產品,絕非易事!
+
+![The AI-era skill pyramid](../notes_img/p78_00_p78_0.jpg)
 
 ### 保持競爭力
 

@@ -1,8 +1,8 @@
 # Colaboración y Control de Versiones en el Desarrollo de Software
 
-> Destilado de la presentación del curso (46 diapositivas). Fundamentos de Git, recorrido completo de colaboración Alice/Bob, semántica de reset/revert/restore, GitHub Flow y versionado semántico.
-
 ---
+
+![DevOps tool landscape across Collaborate, Build, Test, Deploy, and Run](../notes_img/L3/p02_01_p02_1.jpg)
 
 ## 1. ¿Por qué el control de versiones?
 
@@ -13,6 +13,10 @@ Sin él, el código se acumula como un montón de archivos `final`, `final_v2`, 
 - **Git**: sistema de control de versiones que te deja gestionar y rastrear la historia del código fuente.
 - **Repositorio**: contenedor de todo tu proyecto; todas las carpetas y archivos dentro de él pertenecen a ese repositorio. Es donde ocurre el trabajo del proyecto: todos los archivos del proyecto y su historia de revisiones. Puedes trabajar solo o invitar a otros a colaborar.
 - **GitHub**: servicio de alojamiento en la nube para gestionar repositorios Git.
+
+![Clone: GitHub remote repository cloned to a local machine, with push back](../notes_img/L3/p05_00_p05_0.jpg)
+
+![Fork: original repository forked to a personal copy, cloned locally, contributing back via pull request](../notes_img/L3/p05_01_p05_1.jpg)
 
 ### Clone vs fork
 
@@ -37,6 +41,8 @@ Sin él, el código se acumula como un montón de archivos `final`, `final_v2`, 
 | `git status` | Muestra el estado actual del repositorio: cambios e información de rama |
 | `git diff` | Muestra diferencias entre ramas/commits |
 
+![Working directory, staging area, local repository, and remote repository connected by git add, git commit, and git push](../notes_img/L3/p08_00_p08_0.jpg)
+
 ### Las tres zonas
 
 1. **Directorio de trabajo**: la carpeta real del filesystem donde creas, editas y borras archivos.
@@ -47,6 +53,40 @@ Sin él, el código se acumula como un montón de archivos `final`, `final_v2`, 
 - **Push**: sube los commits locales de la rama actual (main) al servidor remoto (origin/main).
 - **Branching**: líneas de desarrollo separadas que nacen del código base principal (rama *master* o *main*); aíslan el trabajo de features y fixes hasta que estén completas.
 - **Merge**: al terminar el trabajo de una rama, `git merge` lo integra de vuelta a main, combinando las historias de ambas ramas; crea un **nuevo commit con dos padres** cuyo snapshot contiene todo el trabajo de ambas ramas.
+
+![git clone downloads the login-app repository with full history from GitHub to a local laptop](../notes_img/L3/p07_00_p07_0.jpg)
+
+![Making a commit with git commit and viewing commit history with git log](../notes_img/L3/p09_00_p09_0.jpg)
+
+![git push origin main pushes local commits to the remote origin](../notes_img/L3/p10_00_p10_0.jpg)
+
+![git checkout -b feature creates an isolated timeline for Alice's work](../notes_img/L3/p11_00_p11_0.jpg)
+
+![Two developers on diverging branches E and F merged together in a new commit G](../notes_img/L3/p12_00_p12_0.jpg)
+
+![Project folder downloaded from the origin remote to a local machine](../notes_img/L3/p13_01_p13_1.jpg)
+
+![Login form added to index.html, staged with git add and committed](../notes_img/L3/p14_01_p14_1.jpg)
+
+![Alice's local commits pushed to the remote origin](../notes_img/L3/p15_00_p15_0.jpg)
+
+![Feature branch split off main with HEAD at its tip](../notes_img/L3/p16_00_p16_0.jpg)
+
+![Alice commits the styled login button and previews it in the browser](../notes_img/L3/p17_00_p17_0.jpg)
+
+![Bob pushes an accessible version of the login button with an aria-label](../notes_img/L3/p18_00_p18_0.jpg)
+
+![Alice's feature branch compared with the origin/main remote-tracking branch after git fetch](../notes_img/L3/p19_00_p19_0.jpg)
+
+![git diff output showing Bob's remote change against Alice's local change on the same line](../notes_img/L3/p20_00_p20_0.jpg)
+
+![The diff reveals incompatible changes on the same line](../notes_img/L3/p20_01_p20_1.jpg)
+
+![Conflict markers: HEAD (Alice's changes), the dividing line, and origin/main (Bob's changes)](../notes_img/L3/p21_01_p21_1.jpg)
+
+![Conflict resolution keeps both the style and accessibility features](../notes_img/L3/p22_01_p22_1.jpg)
+
+![Merged code pushed from the local repository to the remote origin](../notes_img/L3/p23_01_p23_1.jpg)
 
 ## 3. Recorrido del escenario (Alice & Bob)
 
@@ -79,11 +119,15 @@ Una especificación ligera para estructurar mensajes de commit y crear una histo
 | `test:` | agregar o modificar pruebas |
 | `chore:` | cambios de mantenimiento que no son ni feature ni bug (p. ej., actualizar dependencias en `package.json`, modificar `.gitignore`, docs) |
 
+![git fetch is safe and does not touch current work; git pull downloads and immediately attempts to merge](../notes_img/L3/p29_00_p29_0.jpg)
+
 ## 5. Fetch vs pull e higiene de ramas
 
 - **`git fetch`**: descarga datos nuevos pero **no** toca tus archivos de trabajo; es seguro y permite revisar antes de mergear.
 - **`git pull`**: descarga datos **y** los mergea inmediatamente a tu trabajo actual (fetch + merge).
 - **Hacer pull de main con frecuencia**: al trabajar en una rama de feature, incorporar regularmente cambios de main mantiene tu rama al día; reduce el riesgo de conflictos y facilita integrar tu trabajo después; resuelve conflictos pequeños incrementalmente en vez de enfrentar muchos conflictos complejos de golpe al mergear.
+
+![GitHub Flow: create branch, add commits, open pull request, review and discuss, deploy, merge](../notes_img/L3/p31_00_p31_0.jpg)
 
 ## 6. GitHub Flow
 
@@ -94,6 +138,22 @@ Flujo de trabajo ligero basado en ramas, diseñado para equipos y proyectos con 
 3. **Abrir una PR**: proponer mergear los cambios de tu rama a main; inicia discusión y revisión.
 4. **Revisar y discutir**: los revisores sugieren mejoras o hacen preguntas; el developer sigue commiteando a la rama para abordar el feedback.
 5. **Mergear a main**: una vez aprobada, la PR se mergea; los cambios se integran al código listo para producción.
+
+![HEAD history with commits C, B, A and the HEAD~2 target](../notes_img/L3/p32_00_p32_0.jpg)
+
+![git reset --soft: HEAD moves to commit A while index and working directory keep the changes](../notes_img/L3/p33_00_p33_0.jpg)
+
+![git reset --mixed: HEAD moves, the index is reset, and the working directory keeps the changes](../notes_img/L3/p34_00_p34_0.png)
+
+![git reset --hard: HEAD moves and the working directory changes are destroyed](../notes_img/L3/p35_00_p35_0.jpg)
+
+![Warning: this deletes uncommitted work; always check git status first](../notes_img/L3/p35_01_p35_1.jpg)
+
+![Reset modes compared: soft, mixed, and hard across HEAD, index, and working directory](../notes_img/L3/p36_00_p36_0.jpg)
+
+![git reset rewrites history for local mistakes; git revert preserves history with an inverse commit for shared branches](../notes_img/L3/p39_00_p39_0.jpg)
+
+![git restore discards local changes in a specific file](../notes_img/L3/p40_00_p40_0.jpg)
 
 ## 7. Operaciones de deshacer
 
@@ -115,6 +175,8 @@ Flujo de trabajo ligero basado en ramas, diseñado para equipos y proyectos con 
 - **GitHub Issues**: forma de rastrear mejoras, tareas o bugs en tu trabajo.
 - **Release**: empaquetar y distribuir una versión específica y estable del software a usuarios u otros sistemas.
 - **Release notes**: resumen documentado de cambios, mejoras, fixes e información importante incluidos en un release.
+
+![Semantic versioning: MAJOR for breaking changes, MINOR for new features, PATCH for bug fixes (2.1.2)](../notes_img/L3/p45_00_p45_0.jpg)
 
 ## 9. Versionado semántico
 

@@ -1,7 +1,5 @@
 # Software Development in the Age of AI
 
-> Distilled from the course deck (83 slides). A survey of how AI is reshaping software development: vibe coding, agentic coding, productivity evidence, risks, and what skills matter now.
-
 ---
 
 ## 1. The rise of AI-assisted coding
@@ -17,12 +15,20 @@
   - **Support & scale** — diagnose errors, analyze logs, suggest fixes; large-scale refactoring.
 - **Tool landscape:** consumer (Replit, v0, Lovable, bolt…) and developer (GitHub Copilot, Cursor, Windsurf, Claude Code, Antigravity, Trae, Opencode), plus design tools (Figma, Google Stitch).
 
+![Traditional SDLC vs agentic SDLC workflow](../notes_img/p74_01_p74_1.jpg)
+
 ## 2. Vibe coding
 
 - Coined by **Andrej Karpathy**: "fully give in to the vibes… forget that the code even exists." Errors are fixed by copy-pasting the message back in.
 - The practitioner steers by **outcome**, not by reviewing every line.
 - It has moved into the enterprise: e.g., a non-engineer sales/ops director at iCHEF (restaurant tech, TW) built multiple internal AI mini-tools with Gemini.
 - Agentic coding makes prototype generation a matter of minutes/hours instead of weeks.
+
+![Comic: prompting the AI to fix it, then to fix the fix](../notes_img/p12_02_p12_2.jpg)
+
+![Vibe coding: hour 1 vs hour 11](../notes_img/p25_00_p25_0.jpg)
+
+![Emotional rollercoaster of an AI coding session](../notes_img/p25_02_p25_2.jpg)
 
 ## 3. From LLM to autonomous agents
 
@@ -42,12 +48,18 @@ Three levels of autonomy:
 4. Coding agents — multi-file edits, tool use, tests, self-correction loops
 5. Autonomous agents — clone repos, plan in a sandbox, run tests, submit PRs
 
+![Tool 2022, copilot 2023–2025, autonomous agent 2026 and beyond](../notes_img/p17_00_p17_0.jpg)
+
+![Autonomy ladder: autocomplete to autonomous agents, ~2021 to ~2026](../notes_img/p18_00_p18_0.jpg)
+
 ## 4. How coding agents work
 
 - Operate in three phases: **gather context → take action → verify results**.
 - Tool families: file operations (read/edit/create/rename), search (glob, regex, explore), execution (shell, servers, tests, git), web (search, docs, error lookup).
 - Example: "fix the failing tests" → run test suite → read errors → search relevant files → read them → edit → re-run tests to verify.
 - **Context window**: holds the session's instructions, files read, responses. **Subagents** run in separate context windows so large reads stay out of the main one; only summaries return.
+
+![Agentic loop: gather context, take action, verify results](../notes_img/p20_00_p20_0.png)
 
 ## 5. Harness engineering
 
@@ -82,6 +94,10 @@ Three levels of autonomy:
 - **Brownfield is "remodeling a kitchen while people are still living in the house."**
 - Real-world coding is messy: vague business requirements, legacy systems, hidden state (caches, queues, scattered config), cross-team knowledge — far beyond algorithm puzzles (GPT-5 solved all 12 ICPC finals problems, yet struggles with production reality).
 
+![Productivity gains by project maturity and task complexity](../notes_img/p37_00_p37_0.jpg)
+
+![Greenfield vs brownfield codebases](../notes_img/p39_00_p39_0.jpg)
+
 ## 8. Labor and career impact
 
 - Anthropic warns AI could eliminate up to **50% of white-collar entry-level jobs in 1–5 years**; Salesforce announced it would stop hiring new software engineers (2025).
@@ -89,12 +105,20 @@ Three levels of autonomy:
 - Intern example: before AI, delegating a task required specs, handoff, check-ins, reviews; with AI, once requirements are thought through, the manager can hand them straight to AI. **Valuable skill shifts from executing well-specified tasks to defining, scoping, and reasoning about problems.**
 - Coding becomes a **foundational skill**: not knowing how to code won't work, but *only* knowing how to code won't be enough.
 
+![Theoretical vs observed AI coverage by occupation](../notes_img/p43_00_p43_0.jpg)
+
+![AI taking on boilerplate, bug fixes and tests; senior architect work above](../notes_img/p48_00_p48_0.jpg)
+
 ### New roles & building blocks
 
 - **AI Engineer** (builds apps on AI models via APIs) vs **ML Engineer** (builds the models/APIs). Needs: strong SE fundamentals, reliable/scalable apps, modern AI tooling, UX focus.
 - GenAI building blocks beyond calling an LLM API: prompting techniques, agentic frameworks, **evals, guardrails, RAG, embeddings/vector DBs, fine-tuning, MCP, reasoning models, async programming, data extraction**.
 - **2023 vs 2026 job market**: 2023 = learn HTML/CSS → demo projects → apply. 2026 = system design + cloud + DevOps + networking + performance + communication + LLM APIs + AI agents + prompt/context engineering + real shipped projects.
 - **Zara Zhang** (humanities background, non-technical builder): 30k+ GitHub stars using Claude Code & coding agents; argues coding is shifting from a *profession* to a *general skill* like writing — humanists are needed to notice real user needs and judge "good vs better."
+
+![AI engineering skills map](../notes_img/p50_02_p50_2.jpg)
+
+![Getting a tech job in 2023 vs 2026](../notes_img/p58_00_p58_0.jpg)
 
 ## 9. The new human value: from doing to defining
 
@@ -108,10 +132,24 @@ Three levels of autonomy:
 - **Restaurant menu analogy**: a menu can look great and still be the wrong menu — "there is no test for that." AI lowers the cost of execution; direction and judgment come from a person.
 - **Taste**: "An agent can tell you if a thing looks correct against a spec — not that it's *good*." Engineers remain answerable for systems; accountability grows from expertise and trust.
 
+![Six soft skills: user empathy, systems thinking, problem framing, business awareness, communication, ownership](../notes_img/p65_00_p65_0.jpg)
+
+![FireCut: real problem plus an unfair advantage](../notes_img/p67_00_p67_0.jpg)
+
+![Fit the tool to how editors already work](../notes_img/p67_01_p67_1.jpg)
+
+![2-day rough prototype vs 6 weeks of daily iteration with 20 beta testers](../notes_img/p68_00_p68_0.jpg)
+
+![Building gets easier while attention stays scarce](../notes_img/p69_00_p69_0.jpg)
+
+![A good product nobody sees is invisible](../notes_img/p69_01_p69_1.jpg)
+
 ### New bottleneck: review capacity
 
 - Code generation is easy; **verification is the differentiator**: writing good tests (unit/integration/e2e), reading code critically, debugging systematically.
 - **Rise of the architect**: judged by clarity of specifications and rigor of verification, not lines of code.
+
+![From the coder and syntax to the architect with system design and verification](../notes_img/p76_00_p76_0.jpg)
 
 ### Vibe coding → structured AI-assisted coding → agentic engineering
 
@@ -124,6 +162,8 @@ Three levels of autonomy:
 | Appropriate scope | Prototypes, hackathons | Features in established codebases | Production, team-scale systems |
 | Risk | High (acceptable for throwaway) | Moderate | Low (systematic verification) |
 
+![Spectrum: vibe coding to structured AI-assisted to agentic engineering](../notes_img/p77_00_p77_0.jpg)
+
 ## 10. Essential skills in the AI era
 
 1. **Know what to build and why** — does the requirement serve a real user problem?
@@ -131,6 +171,8 @@ Three levels of autonomy:
 3. **Judge AI output** — code review for correctness, flexibility, maintainability; alternative designs; failure under extreme traffic; spot edge cases, permission leaks, bottlenecks, vulnerabilities, technical debt.
 4. **Production engineering** — reliability, security, stability, incidents, long-term maintenance at scale.
 5. **Stakeholder skills are core engineering skills** — talk to users/clients/business owners; the engineer who understands users and can translate that into precise agent instructions is far more valuable.
+
+![The AI-era skill pyramid](../notes_img/p78_00_p78_0.jpg)
 
 ### Staying competitive
 

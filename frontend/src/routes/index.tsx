@@ -889,7 +889,7 @@ function InteractivePreview() {
               </div>
               <a
                 className="mt-8 inline-flex w-fit items-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-                href="interactive-content/course"
+                href="/course.html"
               >
                 Explore our course <ArrowRight aria-hidden="true" size={16} />
               </a>

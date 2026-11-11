@@ -67,9 +67,6 @@
   }
   .field select:hover { border-color: #d1d5db; }
   .field select:focus-visible { outline: none; border-color: var(--polyu); box-shadow: 0 0 0 3px rgba(162,25,66,.2); }
-  .meta { font-size: .8rem; color: #6b7280; margin: 0 0 1.25rem; }
-  .meta code { background: #eef0f2; border-radius: .25rem; padding: .1rem .35rem; font-size: .75rem; }
-
   /* ── Layout: TOC + content ──────────────────────────────── */
   .layout { display: grid; grid-template-columns: 15rem 1fr; gap: 1.25rem; align-items: start; padding-bottom: 3rem; }
   @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .toc { position: static !important; } }
@@ -130,6 +127,7 @@
   .md th { background: var(--page); font-weight: 600; }
   .md tr:nth-child(even) td { background: #fcfcfd; }
   .md hr { border: none; border-top: 1px solid var(--line); margin: 2rem 0; }
+  .md img { display: block; max-width: 100%; height: auto; margin: 1rem auto; border-radius: .375rem; }
   .md a { color: var(--polyu); }
   .md a:hover { color: var(--polyu-dark); }
   .md strong { color: var(--ink); }
@@ -290,8 +288,6 @@
     </div>
   </div>
 
-  <p class="meta" id="metaLine"></p>
-
   <div class="layout">
     <nav class="toc" id="toc" aria-label="Table of contents">
       <h2>On this page</h2>
@@ -340,7 +336,6 @@
 <footer>
   <div class="foot-inner">
     <span>EduGenAI (PolyU) · COMP5241 course notes</span>
-    <span>Content: <code>&lt;lang&gt;/&lt;chapter&gt;.md</code> (next to this file)</span>
   </div>
 </footer>
 
@@ -365,7 +360,6 @@ const chapterSel = document.getElementById("chapterSel");
 const langSel = document.getElementById("langSel");
 const content = document.getElementById("content");
 const tocList = document.getElementById("tocList");
-const metaLine = document.getElementById("metaLine");
 
 // Populate chapter dropdown.
 CHAPTERS.forEach((c, i) => {
@@ -400,14 +394,39 @@ function persist() {
 function esc(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function inline(s) {
-  return esc(s)
+function escAttr(s) {
+  return esc(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function inline(s, baseUrl) {
+  const images = [];
+  const withImageTokens = s.replace(/!\[([^\]]*)\]\((<[^>]+>|[^)\s]+)(?:\s+"([^"]*)")?\)/g, (_, alt, source, title) => {
+    const src = source.startsWith("<") ? source.slice(1, -1) : source;
+    let resolvedSrc;
+    try {
+      const imageUrl = new URL(src, baseUrl);
+      if (imageUrl.protocol === "http:" || imageUrl.protocol === "https:") {
+        resolvedSrc = imageUrl.href;
+      }
+    } catch (_) { /* Invalid image URL; preserve the alt text. */ }
+    if (!resolvedSrc) return alt;
+
+    const token = "\u0000IMAGE" + images.length + "\u0000";
+    const titleAttr = title ? ' title="' + escAttr(title) + '"' : "";
+    images.push('<img src="' + escAttr(resolvedSrc) + '" alt="' + escAttr(alt) + '"' + titleAttr + '>');
+    return token;
+  });
+
+  let html = esc(withImageTokens)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
     .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  images.forEach((image, index) => {
+    html = html.replace("\u0000IMAGE" + index + "\u0000", image);
+  });
+  return html;
 }
-function mdToHtml(md) {
+function mdToHtml(md, baseUrl = document.baseURI) {
   const lines = md.replace(/\r\n/g, "\n").split("\n");
   const out = [];
   let i = 0;
@@ -434,7 +453,7 @@ function mdToHtml(md) {
       const lvl = h[1].length;
       const text = h[2].trim();
       const id = "sec-" + out.length + "-" + text.toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
-      out.push(`<h${lvl} id="${id}">${inline(text)}</h${lvl}>`);
+      out.push(`<h${lvl} id="${id}">${inline(text, baseUrl)}</h${lvl}>`);
       i++;
       continue;
     }
@@ -446,7 +465,7 @@ function mdToHtml(md) {
     if (/^\s*>/.test(line)) {
       const buf = [];
       while (i < lines.length && /^\s*>/.test(lines[i])) { buf.push(lines[i].replace(/^\s*>\s?/, "")); i++; }
-      out.push("<blockquote>" + buf.map((b) => "<p>" + inline(b) + "</p>").join("") + "</blockquote>");
+      out.push("<blockquote>" + buf.map((b) => "<p>" + inline(b, baseUrl) + "</p>").join("") + "</blockquote>");
       continue;
     }
 
@@ -457,8 +476,8 @@ function mdToHtml(md) {
       i += 2;
       const rows = [];
       while (i < lines.length && lines[i].includes("|") && !/^\s*$/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
-      let t = "<table><thead><tr>" + head.map((c) => "<th>" + inline(c) + "</th>").join("") + "</tr></thead><tbody>";
-      rows.forEach((r) => { t += "<tr>" + r.map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>"; });
+      let t = "<table><thead><tr>" + head.map((c) => "<th>" + inline(c, baseUrl) + "</th>").join("") + "</tr></thead><tbody>";
+      rows.forEach((r) => { t += "<tr>" + r.map((c) => "<td>" + inline(c, baseUrl) + "</td>").join("") + "</tr>"; });
       t += "</tbody></table>";
       out.push(t);
       continue;
@@ -477,7 +496,7 @@ function mdToHtml(md) {
       items.forEach((it) => {
         if (it.indent > 0) html += "</" + tag + "><" + (it.ordered ? "ol" : "ul") + " style=\"margin-top:.25rem\">";
         else if (html.endsWith("</ul>") || html.endsWith("</ol>")) html += "<" + tag + ">";
-        html += "<li>" + inline(it.text) + "</li>";
+        html += "<li>" + inline(it.text, baseUrl) + "</li>";
       });
       html += "</" + tag + ">";
       out.push(html);
@@ -492,7 +511,7 @@ function mdToHtml(md) {
            !(lines[i].includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1]))) {
       buf.push(lines[i]); i++;
     }
-    out.push("<p>" + inline(buf.join(" ")) + "</p>");
+    out.push("<p>" + inline(buf.join(" "), baseUrl) + "</p>");
   }
   return out.join("\n");
 }
@@ -584,8 +603,7 @@ async function load() {
   lastRaw = { url, lang, label: ch.label, text };
   updateChatCtx();
 
-  content.innerHTML = '<div class="md">' + mdToHtml(text) + "</div>";
-  metaLine.innerHTML = "Source: <code>" + esc(url) + "</code> · " + lang.toUpperCase();
+  content.innerHTML = '<div class="md">' + mdToHtml(text, new URL(url, document.baseURI).href) + "</div>";
   buildToc();
   setupScrollSpy();
   window.scrollTo({ top: 0 });
