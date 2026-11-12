@@ -1,7 +1,7 @@
 """Build PowerPoint files from instructor materials.
 
 Used by the PPTX export endpoint. The layout is intentionally simple —
-title, bullets, the visual (steps or photo), on 16:9 slides using the
+title, bullets, the visual (steps or photo), on landscape A4 slides using the
 material's theme colors — and mirrors the on-screen slide canvas closely
 enough that an exported deck looks like the instructor's deck.
 """
@@ -15,14 +15,18 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR
-from pptx.util import Inches, Pt
+from pptx.util import Inches, Mm, Pt
 
 PPTX_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 )
 
-SLIDE_WIDTH_IN = 13.333
-SLIDE_HEIGHT_IN = 7.5
+SLIDE_WIDTH_MM = 297
+SLIDE_HEIGHT_MM = 210
+_REFERENCE_WIDTH_IN = 13.333
+_REFERENCE_HEIGHT_IN = 7.5
+_X_SCALE = SLIDE_WIDTH_MM / 25.4 / _REFERENCE_WIDTH_IN
+_Y_SCALE = SLIDE_HEIGHT_MM / 25.4 / _REFERENCE_HEIGHT_IN
 
 _DEFAULT_THEME = {
     "background": "#FFFFFF",
@@ -52,7 +56,10 @@ def _theme_for(slide_data: dict[str, Any]) -> dict[str, str]:
 
 
 def _add_textbox(slide: Any, left: float, top: float, width: float, height: float) -> Any:
-    box = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
+    box = slide.shapes.add_textbox(
+        Inches(left * _X_SCALE), Inches(top * _Y_SCALE),
+        Inches(width * _X_SCALE), Inches(height * _Y_SCALE),
+    )
     box.text_frame.word_wrap = True
     return box.text_frame
 
@@ -97,11 +104,11 @@ def _build_slide(prs: Presentation, slide_data: dict[str, Any]) -> None:
             encoded = image_data.split(",", 1)[1]
             picture = slide.shapes.add_picture(
                 BytesIO(base64.b64decode(encoded)),
-                Inches(visual_left),
-                Inches(visual_top),
-                height=Inches(4.3),
+                Inches(visual_left * _X_SCALE),
+                Inches(visual_top * _Y_SCALE),
+                height=Inches(4.3 * _Y_SCALE),
             )
-            max_width = Inches(5.3)
+            max_width = Inches(5.3 * _X_SCALE)
             if picture.width > max_width:
                 scale = max_width / picture.width
                 picture.width = max_width
@@ -115,10 +122,10 @@ def _build_slide(prs: Presentation, slide_data: dict[str, Any]) -> None:
         if steps:
             card = slide.shapes.add_shape(
                 MSO_SHAPE.ROUNDED_RECTANGLE,
-                Inches(visual_left),
-                Inches(visual_top),
-                Inches(5.3),
-                Inches(4.3),
+                Inches(visual_left * _X_SCALE),
+                Inches(visual_top * _Y_SCALE),
+                Inches(5.3 * _X_SCALE),
+                Inches(4.3 * _Y_SCALE),
             )
             card.fill.solid()
             card.fill.fore_color.rgb = _rgb(theme["cardBackground"], _DEFAULT_THEME["cardBackground"])
@@ -191,8 +198,8 @@ def _build_quiz(prs: Presentation, material: dict[str, Any], data: dict[str, Any
 def build_pptx(material: dict[str, Any]) -> bytes:
     """Builds a PPTX file from a material row (see the ``materials`` table)."""
     prs = Presentation()
-    prs.slide_width = Inches(SLIDE_WIDTH_IN)
-    prs.slide_height = Inches(SLIDE_HEIGHT_IN)
+    prs.slide_width = Mm(SLIDE_WIDTH_MM)
+    prs.slide_height = Mm(SLIDE_HEIGHT_MM)
 
     data = material.get("data") or {}
     if data.get("type") == "quiz":
