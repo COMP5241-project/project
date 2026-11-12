@@ -90,7 +90,7 @@ npm run build
 * **Undo & versioning:** Edits can be undone/redone (buttons or Ctrl+Z / Ctrl+Shift+Z); a server-side version is captured automatically before each AI revision and can be restored from the History panel.
 * **Quiz builder:** Edit questions, answers, option order, and correct answers; student preview offers instant answer feedback and explanations.
 * **File-scoped AI conversations:** Each resource maintains its own messages and sends its current JSON structure when requesting a revision.
-* **Server persistence & export:** Resources are saved in Supabase through the backend. Slide decks and quizzes export as PPTX (built server-side; quiz answer keys stay in speaker notes) or as PDF through a print view.
+* **Server persistence & export:** Resources are saved in Supabase through the backend. Slide decks and quizzes export as landscape A4 PPTX (built server-side; quiz answer keys stay in speaker notes) or as a directly downloaded landscape A4 PDF. PDF pages are rendered as images; the editor preview remains 16:9. If content does not fit on an export page, shorten it and try again.
 
 #### C4. Course Publishing & Roster Analytics
 * **Publishing Pipeline:** Instructors toggle "Publish for students" on a slide deck or quiz (a confirmation dialog asks before publishing/unpublishing, showing the current slide/question count); published courses appear instantly in the student dashboard's "Your courses" section, and the student link (`/courses/:id`) can be copied for sharing.

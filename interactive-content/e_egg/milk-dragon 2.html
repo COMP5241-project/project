@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#a21942">
+  <meta
+    name="description"
+    content="歡迎來到香港奶龍大學。認識這所學科齊全、學術實力雄厚的綜合性大學。"
+  >
+  <title>香港奶龍大學</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --polyu: #a21942;
+      --polyu-dark: #801333;
+      --ink: #262626;
+      --page: #f8f9fa;
+      --line: #e5e7eb;
+      --muted: #59616b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 85% 15%, rgb(162 25 66 / 8%), transparent 32rem),
+        var(--page);
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.7;
+    }
+
+    .page {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .site-header {
+      background: var(--polyu);
+      color: #fff;
+      box-shadow: 0 4px 18px rgb(38 38 38 / 12%);
+    }
+
+    .header-inner,
+    main,
+    .footer-inner {
+      width: min(100% - 2rem, 72rem);
+      margin-inline: auto;
+    }
+
+    .header-inner {
+      display: flex;
+      min-height: 6rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-block: 0.9rem;
+    }
+
+    .brand {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-logo {
+      display: block;
+      width: clamp(3.5rem, 9vw, 4.75rem);
+      height: clamp(3.5rem, 9vw, 4.75rem);
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #fff;
+      object-fit: contain;
+      padding: 0.35rem;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 2rem);
+      line-height: 1.2;
+      letter-spacing: 0.04em;
+    }
+
+    .brand p {
+      margin: 0.35rem 0 0;
+      color: rgb(255 255 255 / 84%);
+      font-size: 0.875rem;
+    }
+
+    main {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      padding-block: clamp(2rem, 7vw, 5rem);
+    }
+
+    .welcome-card {
+      display: grid;
+      width: 100%;
+      grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.85fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: #fff;
+      box-shadow: 0 16px 50px rgb(38 38 38 / 9%);
+    }
+
+    .welcome-copy {
+      align-self: center;
+      padding: clamp(1.5rem, 5vw, 3.5rem);
+    }
+
+    .eyebrow {
+      margin: 0 0 0.75rem;
+      color: var(--polyu);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+    }
+
+    .welcome-copy h2 {
+      margin: 0;
+      font-size: clamp(1.6rem, 4vw, 2.25rem);
+      line-height: 1.3;
+    }
+
+    .introduction {
+      margin: 1.25rem 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.7vw, 1.125rem);
+      line-height: 2;
+    }
+
+    .dragon-panel {
+      display: grid;
+      min-height: 22rem;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at center, #fff 0%, #fff8f1 48%, #f8e9ed 100%);
+      padding: 1.5rem;
+    }
+
+    .dragon {
+      display: block;
+      width: min(100%, 24rem);
+      max-height: 28rem;
+      border-radius: 0.75rem;
+      object-fit: contain;
+      filter: drop-shadow(0 14px 18px rgb(38 38 38 / 12%));
+    }
+
+    .dragon-placeholder {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .footer-inner {
+      display: flex;
+      min-height: 6rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+      padding-block: 1rem;
+    }
+
+    .footer-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    .about-link {
+      display: inline-flex;
+      min-height: 2.75rem;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      background: var(--polyu);
+      padding: 0.7rem 1rem;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      transition: background-color 180ms ease, transform 180ms ease;
+    }
+
+    .about-link:hover {
+      transform: translateY(-1px);
+      background: var(--polyu-dark);
+    }
+
+    .site-header .about-link {
+      background: #fff;
+      color: var(--polyu);
+      white-space: nowrap;
+    }
+
+    .site-header .about-link:hover {
+      background: var(--page);
+    }
+
+    :focus-visible {
+      outline: 3px solid #d87c98;
+      outline-offset: 3px;
+    }
+
+    .music-control {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 2;
+      display: inline-flex;
+      min-height: 2.75rem;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 5px 18px rgb(38 38 38 / 15%);
+      padding: 0.55rem 0.9rem;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .music-status {
+      position: fixed;
+      right: 1rem;
+      bottom: 4.5rem;
+      max-width: min(22rem, calc(100vw - 2rem));
+      border-radius: 0.5rem;
+      background: var(--ink);
+      padding: 0.5rem 0.75rem;
+      color: #fff;
+      font-size: 0.8rem;
+    }
+
+    .music-status:empty {
+      display: none;
+    }
+
+    @media (max-width: 680px) {
+      .header-inner {
+        align-items: flex-start;
+      }
+
+      .brand {
+        gap: 0.7rem;
+      }
+
+      .brand p {
+        font-size: 0.75rem;
+      }
+
+      .site-header .about-link {
+        padding-inline: 0.65rem;
+        font-size: 0.75rem;
+      }
+
+      .welcome-card {
+        grid-template-columns: 1fr;
+      }
+
+      .dragon-panel {
+        min-height: 16rem;
+        grid-row: 1;
+      }
+
+      .dragon {
+        width: min(100%, 19rem);
+        max-height: 22rem;
+      }
+
+      .footer-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand">
+          <img
+            class="brand-logo"
+            src="polyu_milk_dragon.png"
+            alt="奶龍身上的香港理工大學標誌"
+            width="76"
+            height="76"
+          >
+          <div>
+            <h1>香港奶龍大學</h1>
+            <p>歷史悠久 · 學科齊全 · 放眼世界</p>
+          </div>
+        </div>
+        <a
+          class="about-link"
+          href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+          target="_blank"
+          rel="noopener noreferrer"
+        >The real About Us</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="welcome-card" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <p class="eyebrow">歡迎大家報考香港奶龍大學</p>
+          <h2 id="welcome-title">恪勤向學・智創未來</h2>
+          <p class="introduction">
+            香港奶龍大學是一所歷史悠久、學科齊全、學術實力雄厚、辦學特色鮮明，在國際上具有重要影響力與競爭力的綜合性大學，秉承「恪勤向學」之精神，在人工智能等多個學術領域具有非常前瞻的科技實力，擁有國家重点實驗室與世界一流的師資力量，2027年QS世界大學排名更躍升至全球第50位、多個學科位居全球前列。
+          </p>
+        </div>
+        <div class="dragon-panel">
+          <img
+            class="dragon"
+            id="milkDragon"
+            src="milk_dragon_laugh.gif"
+            alt="奶龍開心大笑"
+            fetchpriority="high"
+          >
+          <p class="dragon-placeholder" id="dragonStatus" hidden>
+            奶龍圖片暫時無法載入。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <p class="footer-note">香港奶龍大學 · 追求卓越，快樂求知</p>
+      </div>
+    </footer>
+  </div>
+
+  <audio id="backgroundMusic" src="milk_dragon_laugh.mp3" autoplay loop preload="auto"></audio>
+  <p class="music-status" id="musicStatus" role="status" aria-live="polite"></p>
+  <button
+    class="music-control"
+    id="musicControl"
+    type="button"
+    aria-pressed="false"
+    aria-label="播放背景音樂"
+  >♫ <span id="musicLabel">播放音樂</span></button>
+
+  <script>
+    "use strict";
+
+    const dragonFiles = [
+      "milk_dragon_laugh.gif",
+      "milk_dragon_laugh_1.gif",
+      "milk_dragon_laugh_2.gif",
+    ];
+    const dragon = document.getElementById("milkDragon");
+    const dragonStatus = document.getElementById("dragonStatus");
+    const music = document.getElementById("backgroundMusic");
+    const musicControl = document.getElementById("musicControl");
+    const musicLabel = document.getElementById("musicLabel");
+    const musicStatus = document.getElementById("musicStatus");
+
+    dragon.src = dragonFiles[Math.floor(Math.random() * dragonFiles.length)];
+    dragon.addEventListener("error", () => {
+      dragon.hidden = true;
+      dragonStatus.hidden = false;
+    });
+
+    function updateMusicControl() {
+      const playing = !music.paused;
+      musicLabel.textContent = playing ? "暫停音樂" : "播放音樂";
+      musicControl.setAttribute("aria-pressed", String(playing));
+      musicControl.setAttribute(
+        "aria-label",
+        playing ? "暫停背景音樂" : "播放背景音樂",
+      );
+    }
+
+    music.addEventListener("play", updateMusicControl);
+    music.addEventListener("pause", updateMusicControl);
+    music.addEventListener("error", () => {
+      musicStatus.textContent = "背景音樂無法載入，請稍後再試。";
+    });
+
+    musicControl.addEventListener("click", async () => {
+      if (!music.paused) {
+        music.pause();
+        return;
+      }
+
+      try {
+        await music.play();
+        musicStatus.textContent = "";
+      } catch (error) {
+        musicStatus.textContent = "無法播放背景音樂，請檢查瀏覽器的音訊設定。";
+        console.error("Background music playback failed:", error);
+      }
+    });
+
+    music.play().catch(() => {
+      musicStatus.textContent = "瀏覽器可能封鎖自動播放，請按「播放音樂」。";
+      updateMusicControl();
+    });
+  </script>
+</body>
+</html>

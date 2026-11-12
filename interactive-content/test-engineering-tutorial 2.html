@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive introduction to test engineering: write testable rules, explore edge cases, and report defects.">
+  <title>Test Engineering Tutorial — EduGenAI (PolyU)</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary: #A21942;
+      --primary-dark: #801333;
+      --ink: #262626;
+      --muted: #59616B;
+      --page: #F8F9FA;
+      --line: #E5E7EB;
+      --green: #047857;
+      --green-bg: #ECFDF5;
+      --red: #B42318;
+      --red-bg: #FEF3F2;
+      --amber: #A16207;
+      --amber-bg: #FFFBEB;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    a { color: inherit; }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid #D97706;
+      outline-offset: 3px;
+    }
+    .site-header { background: var(--primary); color: #fff; }
+    .header-inner, main, .site-footer { width: min(100% - 2rem, 76rem); margin-inline: auto; }
+    .header-inner {
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand { font-weight: 750; letter-spacing: .02em; }
+    .header-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .header-links a { font-size: .9rem; font-weight: 650; text-underline-offset: 3px; }
+    main { padding-block: clamp(2rem, 6vw, 4.5rem); }
+    .hero, .panel, .lesson-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      box-shadow: 0 2px 8px rgba(38, 38, 38, .04);
+    }
+    .hero { padding: clamp(1.4rem, 5vw, 3rem); border-top: 5px solid var(--primary); }
+    .eyebrow, .kicker {
+      margin: 0 0 .55rem;
+      color: var(--green);
+      font-size: .75rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { max-width: 52rem; margin: 0; font-size: clamp(2.1rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -.04em; }
+    .hero-copy { max-width: 47rem; margin: 1rem 0 0; color: var(--muted); font-size: 1.1rem; }
+    .hero-actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.4rem; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.75rem;
+      padding: .6rem 1rem;
+      color: #fff;
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: .4rem;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color .15s ease;
+    }
+    .button:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .button.secondary { color: var(--primary); background: #fff; }
+    .button.secondary:hover { color: var(--primary-dark); background: #FFF7F9; }
+    .path { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1.3rem; }
+    .path span { padding: .65rem .8rem; color: #4B5563; background: #F3F4F6; border: 1px solid var(--line); border-radius: .5rem; font-size: .88rem; font-weight: 650; }
+    .section { margin-top: clamp(2rem, 5vw, 3.5rem); scroll-margin-top: 1rem; }
+    .section-heading { max-width: 48rem; margin-bottom: 1rem; }
+    h2 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.25; letter-spacing: -.025em; }
+    .section-heading > p:last-child { margin: .45rem 0 0; color: var(--muted); }
+    h3 { margin: 0; font-size: 1.08rem; line-height: 1.35; }
+    .rule-grid, .concept-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .85rem; }
+    .lesson-card { padding: 1.15rem; }
+    .lesson-card p { margin: .5rem 0 0; color: var(--muted); }
+    .rule { display: inline-block; margin-bottom: .55rem; padding: .2rem .55rem; color: var(--primary); background: #FFF1F5; border-radius: 999px; font-size: .75rem; font-weight: 800; }
+    .callout { margin-top: 1rem; padding: .9rem 1rem; background: #FFF7F9; border-left: 4px solid var(--primary); border-radius: .4rem; }
+    .callout strong { display: block; }
+    .callout p { margin: .25rem 0 0; }
+    .bench { display: grid; grid-template-columns: minmax(15rem, .8fr) minmax(0, 1.2fr); gap: 1rem; align-items: start; }
+    .panel { padding: clamp(1rem, 3vw, 1.5rem); }
+    .panel > p { margin: .4rem 0 1rem; color: var(--muted); }
+    .field { display: grid; gap: .35rem; margin-top: .9rem; }
+    label { font-size: .9rem; font-weight: 700; }
+    input, select, textarea {
+      width: 100%;
+      min-height: 2.75rem;
+      padding: .6rem .7rem;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid #9CA3AF;
+      border-radius: .4rem;
+      font: inherit;
+    }
+    textarea { min-height: 6rem; resize: vertical; }
+    .hint { margin: .15rem 0 0; color: var(--muted); font-size: .83rem; }
+    .preset-list { display: flex; flex-wrap: wrap; gap: .45rem; margin: .9rem 0; }
+    .preset {
+      padding: .4rem .65rem;
+      color: var(--primary);
+      background: #fff;
+      border: 1px solid #D8A5B5;
+      border-radius: 999px;
+      font: inherit;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .preset:hover { background: #FFF1F5; }
+    .result { min-height: 13rem; }
+    .result-empty { display: grid; min-height: 10rem; place-items: center; padding: 1rem; color: var(--muted); text-align: center; background: #F9FAFB; border: 1px dashed #D1D5DB; border-radius: .6rem; }
+    .result-card { padding: 1rem; border-radius: .6rem; }
+    .result-card h3 { display: flex; align-items: center; gap: .5rem; }
+    .result-card p { margin: .6rem 0 0; }
+    .result-card.pass { color: #14532D; background: var(--green-bg); border: 1px solid #A7F3D0; }
+    .result-card.fail { color: #7F1D1D; background: var(--red-bg); border: 1px solid #FECACA; }
+    .result-card.neutral { color: #713F12; background: var(--amber-bg); border: 1px solid #FDE68A; }
+    .result-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .8rem; }
+    .result-details div { padding: .6rem; color: var(--ink); background: rgba(255,255,255,.72); border-radius: .4rem; }
+    .result-details strong { display: block; font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; }
+    .report { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+    .report[hidden] { display: none; }
+    .report-output { margin-top: .8rem; padding: .85rem; white-space: pre-wrap; overflow-wrap: anywhere; background: #F3F4F6; border-radius: .45rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; }
+    .report-output[hidden] { display: none; }
+    .checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin: 0; padding: 0; list-style: none; }
+    .checklist li { padding: .8rem; background: #fff; border: 1px solid var(--line); border-radius: .55rem; }
+    .checklist strong { display: block; }
+    .next-links { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+    .site-footer { padding-block: 1.25rem 1.75rem; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 700px) {
+      .header-inner { min-height: 4rem; align-items: flex-start; flex-direction: column; justify-content: center; padding-block: .6rem; }
+      .bench { grid-template-columns: 1fr; }
+      .rule-grid, .concept-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .path, .checklist, .result-details { grid-template-columns: 1fr; }
+      .header-links { gap: .7rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="brand">EduGenAI · COMP5241</span>
+      <nav class="header-links" aria-label="Main navigation">
+        <a href="course-overview.html">Course overview</a>
+        <a href="course%20notes/course-notes.html?chapter=5">Chapter 5 notes</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">Interactive tutorial · Software testing</p>
+      <h1 id="page-title">Think like a test engineer.</h1>
+      <p class="hero-copy">
+        A bartender accepts drink orders. Your job is to turn the rules into checks,
+        try more than the happy path, compare expected and actual behavior, and
+        describe any defect so someone else can reproduce it.
+      </p>
+      <div class="hero-actions">
+        <a class="button" href="#test-bench">Start testing</a>
+        <a class="button secondary" href="bar_animation/testers-bar-polyu.html">Watch the bar story</a>
+      </div>
+      <div class="path" aria-label="Tutorial steps">
+        <span>1 · Understand the rules</span>
+        <span>2 · Design and run tests</span>
+        <span>3 · Run tests and report defects</span>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="rules-title">
+      <div class="section-heading">
+        <p class="kicker">Step 1 · Start with a specification</p>
+        <h2 id="rules-title">What should the bar app do?</h2>
+        <p>A test needs a clear oracle: a reliable way to decide whether the result is correct.</p>
+      </div>
+      <div class="rule-grid">
+        <article class="lesson-card">
+          <span class="rule">Menu</span>
+          <h3>Only known drinks</h3>
+          <p>Beer, coffee, and tea are on the menu. Anything else must be rejected.</p>
+        </article>
+        <article class="lesson-card">
+          <span class="rule">Quantity</span>
+          <h3>Whole numbers from 1 to 10</h3>
+          <p>Every order must contain at least one and no more than ten drinks.</p>
+        </article>
+        <article class="lesson-card">
+          <span class="rule">Feedback</span>
+          <h3>Explain invalid orders</h3>
+          <p>For invalid input, show a helpful error; do not silently accept the order.</p>
+        </article>
+      </div>
+      <div class="callout">
+        <strong>Testable requirement</strong>
+        <p>“A customer can order one to ten whole-number drinks from the menu; all other orders are rejected with an explanation.”</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="types-title">
+      <div class="section-heading">
+        <p class="kicker">Step 2 · Design more than one kind of test</p>
+        <h2 id="types-title">Cover normal use, boundaries, and invalid input</h2>
+        <p>Strong test sets check both what should work and what the system must refuse.</p>
+      </div>
+      <div class="concept-grid">
+        <article class="lesson-card">
+          <h3>Happy path</h3>
+          <p>Try a typical valid order, such as two coffees. The app should accept it.</p>
+        </article>
+        <article class="lesson-card">
+          <h3>Boundary / edge case</h3>
+          <p>Check the valid limits (1 and 10) and the values just outside them (0 and 11).</p>
+        </article>
+        <article class="lesson-card">
+          <h3>Negative test</h3>
+          <p>Try invalid data such as −1, 1.5, an unknown drink, or non-numeric text.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="test-bench" aria-labelledby="bench-title">
+      <div class="section-heading">
+        <p class="kicker">Step 3 · Experiment</p>
+        <h2 id="bench-title">Test the bar ordering app</h2>
+        <p>This small system under test has a few planted defects. Set your expectation first, run a test, and compare the result.</p>
+      </div>
+      <div class="bench">
+        <form class="panel" id="testForm">
+          <h3>Build a test case</h3>
+          <p>Choose an input, classify the test, and state what the specification requires.</p>
+          <div class="preset-list" aria-label="Load example test inputs">
+            <button class="preset" type="button" data-item="beer" data-quantity="2">Typical: 2 beers</button>
+            <button class="preset" type="button" data-item="coffee" data-quantity="1">Boundary: 1 coffee</button>
+            <button class="preset" type="button" data-item="tea" data-quantity="10">Boundary: 10 teas</button>
+            <button class="preset" type="button" data-item="beer" data-quantity="0">Boundary: 0 beers</button>
+            <button class="preset" type="button" data-item="beer" data-quantity="1.5">Invalid: 1.5 beers</button>
+            <button class="preset" type="button" data-item="lizard" data-quantity="1">Invalid: lizard</button>
+          </div>
+          <div class="field">
+            <label for="item">Drink</label>
+            <select id="item" name="item">
+              <option value="beer">Beer</option>
+              <option value="coffee">Coffee</option>
+              <option value="tea">Tea</option>
+              <option value="lizard">Lizard (not on the menu)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="quantity">Quantity</label>
+            <input id="quantity" name="quantity" type="text" inputmode="decimal" value="2" autocomplete="off">
+            <p class="hint">Text input lets you try decimals and non-numeric values too.</p>
+          </div>
+          <div class="field">
+            <label for="testType">Test type</label>
+            <select id="testType" name="testType" required>
+              <option value="" selected disabled>Choose a test type</option>
+              <option value="happy">Happy path</option>
+              <option value="edge">Boundary / edge case</option>
+              <option value="negative">Negative test</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="expected">Expected behavior</label>
+            <select id="expected" name="expected" required>
+              <option value="" selected disabled>Choose the expected result</option>
+              <option value="accept">Accept the order</option>
+              <option value="reject">Reject the order with an error</option>
+            </select>
+          </div>
+          <button class="button" type="submit" style="margin-top:1rem">Run test</button>
+        </form>
+
+        <section class="panel result" aria-labelledby="result-title" aria-live="polite">
+          <h3 id="result-title">Test result</h3>
+          <p>Use a preset or edit the input values, then run your test.</p>
+          <div id="resultOutput" class="result-empty">Your expected and actual results will appear here.</div>
+          <form id="reportForm" class="report" hidden>
+            <h3>Practice writing the defect report</h3>
+            <p>Summarize the difference in a way that helps a developer reproduce it.</p>
+            <div class="field">
+              <label for="severity">Severity</label>
+              <select id="severity">
+                <option value="Low">Low — minor inconvenience</option>
+                <option value="Medium" selected>Medium — feature behaves incorrectly</option>
+                <option value="High">High — major function or data at risk</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="notes">Your observation</label>
+              <textarea id="notes" placeholder="What happened? What impact could it have?"></textarea>
+            </div>
+            <button class="button secondary" type="submit">Generate report</button>
+            <pre id="reportOutput" class="report-output" hidden></pre>
+          </form>
+        </section>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="principles-title">
+      <div class="section-heading">
+        <p class="kicker">Step 4 · Turn findings into useful work</p>
+        <h2 id="principles-title">A good test is reproducible; a good report is actionable</h2>
+      </div>
+      <ul class="checklist">
+        <li><strong>Setup</strong> What state or data is needed before the test?</li>
+        <li><strong>Steps</strong> What exact actions and input values reproduce it?</li>
+        <li><strong>Expected</strong> What does the requirement say should happen?</li>
+        <li><strong>Actual</strong> What did the system display or do instead?</li>
+      </ul>
+      <div class="callout">
+        <strong>Remember</strong>
+        <p>A test passing means the result matched its expectation; it does not prove the entire app is defect-free. Keep tests focused, repeatable, and tied to clear requirements.</p>
+      </div>
+      <div class="next-links">
+        <a class="button" href="course%20notes/course-notes.html?chapter=5">Read the testing chapter</a>
+        <a class="button secondary" href="bar_animation/testers-bar-polyu.html">Explore all 23 story scenes</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">PolyU · GenAI-Powered Software Engineering Learning</footer>
+
+  <script>
+    const form = document.getElementById("testForm");
+    const itemInput = document.getElementById("item");
+    const quantityInput = document.getElementById("quantity");
+    const testTypeInput = document.getElementById("testType");
+    const expectedInput = document.getElementById("expected");
+    const resultOutput = document.getElementById("resultOutput");
+    const reportForm = document.getElementById("reportForm");
+    const reportOutput = document.getElementById("reportOutput");
+
+    const menu = new Set(["beer", "coffee", "tea"]);
+    let lastFailure = null;
+
+    function classify(item, quantityText) {
+      const quantity = Number(quantityText);
+      if (!menu.has(item) || !Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+        return "reject";
+      }
+      return "accept";
+    }
+
+    function classifyTest(item, quantityText) {
+      const quantity = Number(quantityText);
+      if (!menu.has(item) || quantityText.trim() === "" || !Number.isFinite(quantity) || !Number.isInteger(quantity)) {
+        return "negative";
+      }
+      if ([0, 1, 10, 11].includes(quantity)) return "edge";
+      if (quantity < 0 || quantity > 11) return "negative";
+      return "happy";
+    }
+
+    function runBarApp(item, quantityText) {
+      const quantity = Number(quantityText);
+      if (quantityText.trim() === "" || !Number.isFinite(quantity)) {
+        return { accepted: false, message: "Please enter a numeric quantity." };
+      }
+      if (quantity > 10) {
+        return { accepted: false, message: "The kitchen limit is 10 drinks." };
+      }
+      return { accepted: true, message: `Order placed: ${quantityText} ${item}${quantity === 1 ? "" : "s"}.` };
+    }
+
+    function testTypeDescription(type) {
+      return {
+        happy: "Happy path: a normal, valid customer order.",
+        edge: "Boundary / edge case: a limit or value near a limit.",
+        negative: "Negative test: invalid input the system must reject.",
+      }[type];
+    }
+
+    function showResult({ item, quantityText, expected, testType }) {
+      const actual = runBarApp(item, quantityText);
+      const expectedAccepted = expected === "accept";
+      const matched = actual.accepted === expectedAccepted;
+      const specResult = classify(item, quantityText);
+      const element = document.createElement("div");
+      element.className = "result-card " + (matched ? "pass" : "fail");
+
+      const heading = document.createElement("h3");
+      heading.textContent = matched ? "✓ Test passed" : "⚠ Defect detected";
+      element.appendChild(heading);
+
+      const type = document.createElement("p");
+      type.textContent = testTypeDescription(testType);
+      element.appendChild(type);
+      const recommendedType = classifyTest(item, quantityText);
+      const classification = document.createElement("p");
+      classification.textContent = testType === recommendedType
+        ? "Classification check: this is a good fit for the input."
+        : `Classification check: this input is best treated as a ${recommendedType === "edge" ? "boundary / edge case" : recommendedType === "negative" ? "negative test" : "happy path"}.`;
+      element.appendChild(classification);
+
+      const details = document.createElement("div");
+      details.className = "result-details";
+      const expectedBlock = document.createElement("div");
+      const expectedTitle = document.createElement("strong");
+      expectedTitle.textContent = "Your expected result";
+      expectedBlock.append(expectedTitle, document.createTextNode(expectedAccepted ? "Accept order" : "Reject order"));
+      const actualBlock = document.createElement("div");
+      const actualTitle = document.createElement("strong");
+      actualTitle.textContent = "Actual app result";
+      actualBlock.append(actualTitle, document.createTextNode(actual.accepted ? `Accepted — ${actual.message}` : `Rejected — ${actual.message}`));
+      details.append(expectedBlock, actualBlock);
+      element.appendChild(details);
+
+      const explanation = document.createElement("p");
+      explanation.textContent = !matched
+        ? "The behavior does not match your expectation. Compare it with the written rules, then capture the input and actual result in a defect report."
+        : (expectedAccepted === (specResult === "accept")
+          ? "This result matches both your expectation and the specification."
+          : "The app matched your expectation, but that expectation conflicts with the specification. Revisit the rule before marking the test as correct.");
+      element.appendChild(explanation);
+
+      resultOutput.replaceChildren(element);
+      reportForm.hidden = matched;
+      reportOutput.hidden = true;
+      lastFailure = matched ? null : { item, quantityText, expected, actual };
+    }
+
+    document.querySelectorAll(".preset").forEach((button) => {
+      button.addEventListener("click", () => {
+        itemInput.value = button.dataset.item;
+        quantityInput.value = button.dataset.quantity;
+        testTypeInput.value = "";
+        expectedInput.value = "";
+        reportForm.hidden = true;
+        reportOutput.hidden = true;
+        lastFailure = null;
+        resultOutput.className = "result-empty";
+        resultOutput.textContent = "Preset loaded. Choose the test type and expected behavior, then run it.";
+        quantityInput.focus();
+        document.getElementById("test-bench").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      showResult({
+        item: itemInput.value,
+        quantityText: quantityInput.value,
+        expected: expectedInput.value,
+        testType: testTypeInput.value,
+      });
+    });
+
+    reportForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!lastFailure) return;
+      const expectedText = lastFailure.expected === "accept" ? "The app should accept the order." : "The app should reject the order with an error.";
+      const actualText = lastFailure.actual.accepted
+        ? `The app accepted it: ${lastFailure.actual.message}`
+        : `The app rejected it: ${lastFailure.actual.message}`;
+      const notes = document.getElementById("notes").value.trim();
+      const report = [
+        `Title: Bar app ${lastFailure.expected === "accept" ? "accepted" : "rejected"} an order unexpectedly`,
+        `Severity: ${document.getElementById("severity").value}`,
+        "Steps to reproduce:",
+        `1. Select ${lastFailure.item} from the menu.`,
+        `2. Enter quantity "${lastFailure.quantityText}".`,
+        "3. Run the test.",
+        `Expected: ${expectedText}`,
+        `Actual: ${actualText}`,
+        `Impact / notes: ${notes || "Add a concise description of user impact."}`,
+      ].join("\n");
+      reportOutput.textContent = report;
+      reportOutput.hidden = false;
+    });
+  </script>
+</body>
+</html>

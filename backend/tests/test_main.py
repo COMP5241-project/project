@@ -1,3 +1,4 @@
+import base64
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
@@ -9,8 +10,11 @@ from unittest.mock import Mock
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Client as HttpxClient
+from PIL import Image
 from postgrest.exceptions import APIError as PostgrestAPIError
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.util import Mm
 from storage3.exceptions import StorageApiError
 
 from app.database.supabase import get_supabase
@@ -1468,7 +1472,13 @@ def test_material_export_pptx_roundtrip(client: HttpxClient, auth_client: Mock) 
     )
     assert 'filename="Export Deck.pptx"' in response.headers["content-disposition"]
     presentation = Presentation(BytesIO(response.content))
+    assert presentation.slide_width == Mm(297)
+    assert presentation.slide_height == Mm(210)
     assert len(presentation.slides) == 2
+    for slide in presentation.slides:
+        for shape in slide.shapes:
+            assert 0 <= shape.left and shape.left + shape.width <= presentation.slide_width
+            assert 0 <= shape.top and shape.top + shape.height <= presentation.slide_height
     first_slide_text = "\n".join(
         shape.text_frame.text for shape in presentation.slides[0].shapes if shape.has_text_frame
     )
@@ -1493,8 +1503,14 @@ def test_build_pptx_quiz_keeps_answer_key_in_notes() -> None:
         },
     }
     presentation = Presentation(BytesIO(build_pptx(material)))
+    assert presentation.slide_width == Mm(297)
+    assert presentation.slide_height == Mm(210)
     # One heading slide + one slide per question.
     assert len(presentation.slides) == 2
+    for slide in presentation.slides:
+        for shape in slide.shapes:
+            assert 0 <= shape.left and shape.left + shape.width <= presentation.slide_width
+            assert 0 <= shape.top and shape.top + shape.height <= presentation.slide_height
     notes = presentation.slides[1].notes_slide.notes_text_frame.text
     assert "Correct answer: B" in notes
     assert "Basic arithmetic." in notes
@@ -1502,6 +1518,31 @@ def test_build_pptx_quiz_keeps_answer_key_in_notes() -> None:
     # The answer key must never appear on the slide itself.
     assert "Correct answer" not in slide_text
     assert "B. 4" in slide_text
+
+
+@pytest.mark.parametrize("size", [(800, 200), (200, 800)])
+def test_build_pptx_photo_fits_landscape_a4(size: tuple[int, int]) -> None:
+    image = BytesIO()
+    Image.new("RGB", size, "red").save(image, format="PNG")
+    material = {
+        "data": {
+            "type": "slides",
+            "content": [{
+                "title": "Photo",
+                "bullets": [],
+                "visual": {"kind": "photo", "steps": []},
+                "imageData": "data:image/png;base64," + base64.b64encode(image.getvalue()).decode(),
+            }],
+        },
+    }
+
+    presentation = Presentation(BytesIO(build_pptx(material)))
+    pictures = [shape for shape in presentation.slides[0].shapes if shape.shape_type == MSO_SHAPE_TYPE.PICTURE]
+    assert len(pictures) == 1
+    picture = pictures[0]
+    assert picture.left + picture.width <= presentation.slide_width
+    assert picture.top + picture.height <= presentation.slide_height
+    assert picture.width / picture.height == pytest.approx(size[0] / size[1], rel=0.001)
 
 
 def _course_tables(auth_client: Mock, role: str = "student"):
