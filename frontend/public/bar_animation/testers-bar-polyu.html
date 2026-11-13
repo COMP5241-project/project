@@ -23,6 +23,15 @@
   }
   /* Layout: max-w-7xl mx-auto px-4 */
   .wrap{ width:min(80rem, 100%); padding:24px 16px 48px; }
+  .topbar{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+  .return-course{
+    display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:8px 16px;
+    border:1px solid var(--primary); border-radius:6px; background:var(--primary); color:#fff;
+    font-size:14px; font-weight:500; line-height:1.25; text-decoration:none;
+    transition:background-color .15s ease, border-color .15s ease;
+  }
+  .return-course:hover{ background:var(--primary-hover); border-color:var(--primary-hover); }
+  .return-course:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
   h1{
     text-align:center; font-size:clamp(20px,3vw,30px); letter-spacing:.08em; font-weight:700;
     margin:8px 0 6px; color:var(--ink);
@@ -128,6 +137,9 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="topbar">
+    <a class="return-course" href="/course-overview.html#your-progress">Return to course</a>
+  </div>
   <h1>🍺 測試工程師與酒吧 🍺
     <span class="sub">一個關於「走進酒吧」的無限迴圈</span>
   </h1>
@@ -521,9 +533,12 @@
     <!-- 結局卡 -->
     <g id="endcard" style="opacity:0">
       <rect x="-270" y="-95" width="540" height="190" rx="18" fill="rgba(13,10,22,.9)" stroke="#d4a94e" stroke-width="2"/>
-      <text x="0" y="-32" text-anchor="middle" font-size="34" fill="#f2c14e" font-weight="bold">—— 完 ——</text>
-      <text x="0" y="10" text-anchor="middle" font-size="18" fill="#cfc4e6">一份炒飯，炸掉整間酒吧</text>
-      <text x="0" y="50" text-anchor="middle" font-size="14" fill="#8a7fb5">按「重播」再看一次</text>
+      <text x="0" y="-32" text-anchor="middle" font-size="22" fill="#f2c14e" font-weight="bold">
+        <tspan x="0" dy="0">就算做了大量測試，仍可能會發現 bug，</tspan>
+        <tspan x="0" dy="27">不要氣餒</tspan>
+      </text>
+      <text x="0" y="32" text-anchor="middle" font-size="16" fill="#cfc4e6">一份炒飯，炸掉整間酒吧</text>
+      <text x="0" y="64" text-anchor="middle" font-size="13" fill="#8a7fb5">按「重播」再看一次</text>
     </g>
   </svg>
   </div>
