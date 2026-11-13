@@ -1109,7 +1109,7 @@ function DemoDialog({ onClose }: DemoDialogProps) {
                 allowFullScreen
                 className="absolute inset-0 size-full"
                 referrerPolicy="strict-origin-when-cross-origin"
-                src="https://www.youtube.com/embed/Finl16JZ7Ww?autoplay=1&rel=0"
+                src="https://www.youtube.com/embed/Finl16JZ7Ww?start=48&autoplay=1&rel=0"
                 title="PolyU Education 4.0 video"
               />
             ) : (
