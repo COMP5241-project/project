@@ -289,7 +289,7 @@
                 <h3 class="mb-2 text-3xl sm:text-4xl">Keep building your engineering practice.</h3>
                 <p class="text-stone-600">One of five modules completed · Continue with the SDLC foundations.</p>
               </div>
-              <a href="course%20notes/course-notes.html?chapter=2" class="btn-primary inline-flex shrink-0 items-center justify-center gap-2">
+              <a data-resume-course href="course%20notes/course-notes.html?chapter=2" class="btn-primary inline-flex shrink-0 items-center justify-center gap-2">
                 Resume course <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
               </a>
             </div>
@@ -308,16 +308,6 @@
             </div>
           </div>
 
-          <div class="card-soft mb-16 flex flex-col gap-6 bg-brand-50/60 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-            <div>
-              <p class="mb-2 text-sm font-extrabold uppercase tracking-[0.18em] text-brand-600">SDLC in two minutes</p>
-              <p class="max-w-3xl leading-relaxed text-stone-700">The Software Development Lifecycle is the structured process used to design, develop, and test high-quality software.</p>
-            </div>
-            <button type="button" class="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-stone-900 px-5 py-3 font-bold text-white transition-colors hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stone-900">
-              <span aria-hidden="true">▶</span> What is the SDLC? (2 min)
-            </button>
-          </div>
-
           <div id="activities-title" class="relative">
             <div class="absolute bottom-0 left-1/2 top-0 hidden -translate-x-1/2 border-l-2 border-dashed border-brand-200 lg:block" aria-hidden="true"></div>
             <ol class="space-y-12 border-l-2 border-dashed border-brand-200 pl-6 lg:space-y-20 lg:border-l-0 lg:pl-0">
@@ -330,9 +320,9 @@
                   </div>
                   <h3 class="mb-4 text-2xl sm:text-3xl">Software Development in the Age of AI</h3>
                   <p class="mb-7 leading-relaxed text-stone-600">Survey AI-assisted and agentic coding, where AI can help across the SDLC, the productivity debate, and the skills developers still need.</p>
-                  <a data-module-id="reading-1" href="course%20notes/course-notes.html?chapter=1" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-900 px-5 py-3 font-bold text-white transition-colors hover:bg-stone-800">Review reading <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
+                  <a data-module-id="reading-1" href="course%20notes/course-notes.html?chapter=1" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-900 px-5 py-3 font-bold text-white transition-colors hover:bg-stone-800"><span data-module-action-label>Review Module</span> <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
                 </article>
-                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-emerald-500 text-3xl text-white shadow-[0_0_0_8px_rgba(16,185,129,0.14)]" aria-label="Completed"><i class="ph-bold ph-check" aria-hidden="true"></i></div></div>
+                <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-emerald-500 text-3xl text-white shadow-[0_0_0_8px_#6ee7b7]" aria-label="Completed"><i class="ph-bold ph-check" aria-hidden="true"></i></div></div>
                 <article class="card-soft group border-2 border-emerald-100 p-6 sm:p-8">
                   <div class="mb-5"><span class="rounded-full bg-emerald-50 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-emerald-700">🎮 Interactive · 15 mins</span></div>
                   <h3 class="mb-4 text-2xl sm:text-3xl">Gold Rush Hook</h3>
@@ -349,7 +339,7 @@
                   </div>
                   <h3 class="mb-4 text-2xl sm:text-3xl">Software Development Lifecycle</h3>
                   <p class="mb-7 leading-relaxed text-stone-600">Follow software from requirements and design through implementation, verification and validation, deployment strategies, and maintenance.</p>
-                  <a data-module-id="reading-2" href="course%20notes/course-notes.html?chapter=2" class="btn-primary inline-flex items-center gap-2 px-5 py-3">Resume reading <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
+                  <a data-module-id="reading-2" href="course%20notes/course-notes.html?chapter=2" class="btn-primary inline-flex items-center gap-2 px-5 py-3"><span data-module-action-label>Resume reading</span> <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
                 </article>
                 <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-brand-500 text-2xl text-white shadow-[0_0_0_8px_rgba(162,25,66,0.12)] motion-safe:animate-pulse" aria-label="In progress"><i class="ph-bold ph-play" aria-hidden="true"></i></div></div>
                 <article class="card-soft group p-6 sm:p-8">
@@ -365,20 +355,20 @@
                   <div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 40 mins</span><span data-status-pill class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div>
                   <h3 class="mb-4 text-2xl sm:text-3xl">Collaboration and Version Control</h3>
                   <p class="mb-7 leading-relaxed text-stone-600">Learn Git fundamentals and collaborative workflows, including how to manage changes safely and work together through GitHub Flow.</p>
-                  <a href="course%20notes/course-notes.html?chapter=3" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start module <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a>
+                  <a href="course%20notes/course-notes.html?chapter=3" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500"><span data-module-action-label>Start module</span> <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a>
                 </article>
                 <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-stone-300 text-2xl text-stone-600" aria-label="Locked"><i class="ph-fill ph-lock-key" aria-hidden="true"></i></div></div>
                 <article class="card-soft p-6 sm:p-8"><div class="mb-5"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">🎮 Interactive · 15 mins</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Two Whip Demo Interpretations</h3><p class="mb-7 leading-relaxed text-stone-600">Explore how an ambiguous prompt can lead an AI agent to make different assumptions. Compare its likely interpretations, view the resulting demos, and use a checklist to write clearer requirements.</p><a href="state%20your%20requirements%20clearly/prompt-tutorial.html" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start lab <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
               </li>
               <li class="sdlc-phase relative grid items-center gap-8 opacity-75 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="4" data-locked="true">
                 <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 4: Testing &amp; Review</h4>
-                <article class="card-soft p-6 sm:p-8 lg:text-right"><div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 35 mins</span><span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div><h3 class="mb-4 text-2xl sm:text-3xl">AI-Assisted Software Development Practices</h3><p class="mb-7 leading-relaxed text-stone-600">Explore context engineering, project instruction files, specification-driven development, agent skills, and evidence about AI productivity.</p><a href="course%20notes/course-notes.html?chapter=4" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start module <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+                <article class="card-soft p-6 sm:p-8 lg:text-right"><div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 35 mins</span><span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div><h3 class="mb-4 text-2xl sm:text-3xl">AI-Assisted Software Development Practices</h3><p class="mb-7 leading-relaxed text-stone-600">Explore context engineering, project instruction files, specification-driven development, agent skills, and evidence about AI productivity.</p><a href="course%20notes/course-notes.html?chapter=4" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500"><span data-module-action-label>Start module</span> <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
                 <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-stone-300 text-2xl text-stone-600" aria-label="Locked"><i class="ph-fill ph-lock-key" aria-hidden="true"></i></div></div>
                 <article class="card-soft p-6 sm:p-8"><div class="mb-5"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">🎮 Interactive · 20 mins</span></div><h3 class="mb-4 text-2xl sm:text-3xl">The Prompt Injection Butterfly Effect</h3><p class="mb-7 leading-relaxed text-stone-600">Follow a mall service robot as one instruction to ignore its safety guidance derails its behavior. This animated scenario introduces prompt injection and shows how a seemingly small manipulation can escalate.</p><a href="Prompt_injection/qwen_prompt_injection.html" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start lab <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
               </li>
               <li class="sdlc-phase relative grid items-center gap-8 opacity-75 lg:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)]" data-step="5" data-locked="true">
                 <h4 class="sdlc-step-label col-span-full text-center text-base font-extrabold uppercase tracking-wide text-brand-700 sm:text-lg">Step 5: Deployment &amp; Maintenance</h4>
-                <article class="card-soft p-6 sm:p-8 lg:text-right"><div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 40 mins</span><span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Software Testing Overview</h3><p class="mb-7 leading-relaxed text-stone-600">Compare test types and levels, examine happy paths, edge cases and negative tests, and learn about test-driven and usability testing.</p><a href="course%20notes/course-notes.html?chapter=5" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start module <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
+                <article class="card-soft p-6 sm:p-8 lg:text-right"><div class="mb-5 flex items-center justify-between gap-3 lg:flex-row-reverse"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">📖 Reading · 40 mins</span><span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Locked</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Software Testing Overview</h3><p class="mb-7 leading-relaxed text-stone-600">Compare test types and levels, examine happy paths, edge cases and negative tests, and learn about test-driven and usability testing.</p><a href="course%20notes/course-notes.html?chapter=5" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500"><span data-module-action-label>Start module</span> <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
                 <div class="relative z-10 mx-auto hidden h-20 w-20 items-center justify-center lg:flex"><div data-node class="flex h-20 w-20 items-center justify-center rounded-full border-8 border-stone-50 bg-stone-300 text-2xl text-stone-600" aria-label="Locked"><i class="ph-fill ph-lock-key" aria-hidden="true"></i></div></div>
                 <article class="card-soft p-6 sm:p-8"><div class="mb-5"><span class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-stone-600">🎮 Interactive · 15 mins</span></div><h3 class="mb-4 text-2xl sm:text-3xl">Quality Assurance Lab</h3><p class="mb-7 leading-relaxed text-stone-600">Use the testing chapter as a guided practice checkpoint for happy paths, edge cases, negative tests, and usability testing.</p><a href="course%20notes/course-notes.html?chapter=5" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-200 px-5 py-3 font-bold text-stone-500">Start lab <i class="ph-bold ph-lock-key" aria-hidden="true"></i></a></article>
               </li>
@@ -439,13 +429,23 @@
           const node = phase.querySelector("[data-node]");
           if (!node) return;
           const icon = node.querySelector("i");
-          node.classList.remove("bg-emerald-500", "bg-brand-500", "bg-stone-300", "text-stone-600", "motion-safe:animate-pulse");
+          node.classList.remove(
+            "bg-emerald-500",
+            "bg-brand-500",
+            "bg-stone-300",
+            "text-stone-600",
+            "text-white",
+            "motion-safe:animate-pulse",
+            "shadow-[0_0_0_8px_rgba(16,185,129,0.14)]",
+            "shadow-[0_0_0_8px_rgba(162,25,66,0.12)]",
+            "shadow-[0_0_0_8px_#6ee7b7]",
+          );
           if (complete) {
-            node.classList.add("bg-emerald-500");
+            node.classList.add("bg-emerald-500", "text-white", "shadow-[0_0_0_8px_#6ee7b7]");
             node.setAttribute("aria-label", "Completed");
             icon.className = "ph-bold ph-check";
           } else if (unlocked) {
-            node.classList.add("bg-brand-500", "motion-safe:animate-pulse");
+            node.classList.add("bg-brand-500", "text-white", "motion-safe:animate-pulse");
             node.setAttribute("aria-label", "In progress");
             icon.className = "ph-bold ph-play";
           } else {
@@ -455,7 +455,7 @@
           }
         }
 
-        function updateActions(phase, unlocked) {
+        function updateActions(phase, complete, unlocked) {
           phase.querySelectorAll("[data-module-id]").forEach((action) => {
             action.setAttribute("aria-disabled", String(!unlocked));
             action.className = [
@@ -473,11 +473,33 @@
                   : "ph-bold ph-arrow-up-right"
                 : "ph-fill ph-lock-key";
             }
+
+            const label = action.querySelector("[data-module-action-label]");
+            if (label) {
+              label.textContent = complete
+                ? "Review Module"
+                : state[action.dataset.moduleId] === true
+                  ? "Resume Module"
+                  : "Start module";
+            }
           });
         }
 
         function renderProgress() {
           const completedSteps = phases.filter((phase) => isComplete(phase.dataset.step)).length;
+          const inProgressPhase = phases.find((phase, index) =>
+            !isComplete(phase.dataset.step) && (index === 0 || isComplete(String(index))),
+          );
+          const resumePhase = inProgressPhase ?? [...phases].reverse().find((phase) =>
+            isComplete(phase.dataset.step),
+          );
+          const resumeReading = resumePhase?.querySelector('a[data-module-id^="reading-"]');
+          const resumeHref = resumeReading?.getAttribute("href");
+          const resumeCourse = document.querySelector("[data-resume-course]");
+          if (resumeHref && resumeCourse) {
+            resumeCourse.setAttribute("href", resumeHref);
+          }
+
           const percent = Math.round((completedSteps / phases.length) * 100);
           document.querySelector("[data-progress-percent]").textContent = `${percent}% completed`;
           document.querySelector("[data-progress-count]").textContent = `${completedSteps} / ${phases.length} modules`;
@@ -493,7 +515,7 @@
             phase.classList.toggle("opacity-75", !unlocked);
             phase.dataset.locked = String(!unlocked);
             updateStatus(phase, complete, unlocked);
-            updateActions(phase, unlocked);
+            updateActions(phase, complete, unlocked);
           });
         }
 

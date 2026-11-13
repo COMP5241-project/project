@@ -119,7 +119,6 @@ function HomePage() {
         <FeaturesGrid />
         <AIFluencySection />
         <InteractivePreview />
-        <CTASection />
       </main>
       <Footer />
       {demoOpen && <DemoDialog onClose={() => setDemoOpen(false)} />}
@@ -994,50 +993,6 @@ function PreviewModule({
   )
 }
 
-function CTASection() {
-  return (
-    <section className="px-5 pb-20 sm:px-8 sm:pb-24" id="get-started">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-2xl bg-[#A21942] px-7 py-12 text-white sm:px-12 sm:py-16 lg:px-16">
-        <span aria-hidden="true" className="absolute -right-16 -top-36 size-96 rounded-full border border-white/10" />
-        <span aria-hidden="true" className="absolute -right-2 -top-24 size-72 rounded-full border border-white/10" />
-        <span aria-hidden="true" className="absolute -bottom-48 right-1/3 size-72 rounded-full bg-white/[0.04]" />
-        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">
-              Your next step starts here
-            </p>
-            <h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-[-0.05em] sm:text-4xl">
-              Ready to learn what you can do with AI?
-            </h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-white/80 sm:text-base">
-              Students: find a mini-course and start building. Instructors:
-              make space for a more personal way to learn.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-            <a
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#801333] transition-colors hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              href="#/courses/sample"
-            >
-              I’m a student <ArrowRight aria-hidden="true" size={16} />
-            </a>
-            <a
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-white/35 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              href="#instructors"
-              onClick={(event) => {
-                event.preventDefault()
-                scrollToId('instructors')
-              }}
-            >
-              I’m an instructor <ArrowRight aria-hidden="true" size={16} />
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function Footer() {
   return (
     <footer className="scroll-mt-20 border-t border-gray-200 bg-[#F8F9FA]" id="instructors">
@@ -1090,7 +1045,6 @@ function Footer() {
               <ul className="mt-3 space-y-2.5">
                 <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#audiences" onClick={(event) => { event.preventDefault(); scrollToId('audiences') }}>Students</a></li>
                 <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#instructors" onClick={(event) => { event.preventDefault(); scrollToId('instructors') }}>Instructors</a></li>
-                <li><a className="text-sm text-gray-600 transition-colors hover:text-[#A21942]" href="#get-started" onClick={(event) => { event.preventDefault(); scrollToId('get-started') }}>Get started</a></li>
               </ul>
             </div>
           </div>
@@ -1110,6 +1064,7 @@ interface DemoDialogProps {
 
 function DemoDialog({ onClose }: DemoDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const [videoPlaying, setVideoPlaying] = useState(false)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -1147,14 +1102,32 @@ function DemoDialog({ onClose }: DemoDialogProps) {
           </button>
         </div>
         <div className="bg-[#FBF8F6] p-5 sm:p-8">
-          <div className="relative flex aspect-video flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#A21942] via-[#76263d] to-[#262626] text-center text-white">
-            <span aria-hidden="true" className="absolute -right-8 -top-20 size-64 rounded-full border border-white/15" />
-            <span aria-hidden="true" className="absolute -bottom-32 -left-10 size-72 rounded-full border border-white/15" />
-            <span className="relative flex size-14 items-center justify-center rounded-full border border-white/30 bg-white/15 backdrop-blur-sm">
-              <Play aria-hidden="true" className="ml-1" fill="currentColor" size={21} />
-            </span>
-            <p className="relative mt-4 text-sm font-bold">Your learning journey starts with an idea.</p>
-            <p className="relative mt-1 text-xs text-white/70">AI-powered learning, built around you.</p>
+          <div className="relative aspect-video overflow-hidden rounded-xl bg-[#262626]">
+            {videoPlaying ? (
+              <iframe
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="absolute inset-0 size-full"
+                referrerPolicy="strict-origin-when-cross-origin"
+                src="https://www.youtube.com/embed/Finl16JZ7Ww?autoplay=1&rel=0"
+                title="PolyU Education 4.0 video"
+              />
+            ) : (
+              <button
+                aria-label="Play PolyU Education 4.0 video"
+                className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#A21942] via-[#76263d] to-[#262626] text-center text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A21942]"
+                onClick={() => setVideoPlaying(true)}
+                type="button"
+              >
+                <span aria-hidden="true" className="absolute -right-8 -top-20 size-64 rounded-full border border-white/15" />
+                <span aria-hidden="true" className="absolute -bottom-32 -left-10 size-72 rounded-full border border-white/15" />
+                <span aria-hidden="true" className="relative flex size-14 items-center justify-center rounded-full border border-white/30 bg-white/15 backdrop-blur-sm">
+                  <Play className="ml-1" fill="currentColor" size={21} />
+                </span>
+                <span className="relative mt-4 text-sm font-bold">Your learning journey starts with an idea.</span>
+                <span className="relative mt-1 text-xs text-white/70">AI-powered learning, built around you.</span>
+              </button>
+            )}
           </div>
           <p className="mt-4 text-center text-xs leading-5 text-gray-500">
             This preview is a product tour. Explore the mini-courses below to see
@@ -1162,7 +1135,7 @@ function DemoDialog({ onClose }: DemoDialogProps) {
           </p>
           <a
             className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
-            href="/courses/sample"
+            href="/course.html"
             onClick={onClose}
           >
             Explore mini-courses <ArrowRight aria-hidden="true" size={16} />
