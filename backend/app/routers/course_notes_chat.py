@@ -18,7 +18,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "openai/gpt-4o-mini"
+MODEL = "baidu/ernie-5.5-flash-preview:free"
 MAX_BODY_BYTES = 200_000
 MAX_HISTORY_MESSAGES = 18
 MAX_MESSAGE_CHARS = 24_000
