@@ -6,6 +6,7 @@ from app.database.supabase import get_supabase
 from app.identity.errors import ApiError
 from app.routers.auth import router as auth_router
 from app.routers.courses import router as courses_router
+from app.routers.course_notes_chat import router as course_notes_chat_router
 from app.routers.hallucination import router as hallucination_router
 from app.routers.instructor import router as instructor_router
 from app.routers.materials import router as materials_router
@@ -20,6 +21,7 @@ app = FastAPI()
 app.include_router(auth_router)
 app.include_router(profiles_router)
 app.include_router(courses_router)
+app.include_router(course_notes_chat_router)
 app.include_router(results_router)
 app.include_router(hallucination_router)
 app.include_router(instructor_router)
@@ -31,7 +33,7 @@ app.include_router(sample_course_router)
 @app.middleware("http")
 async def prevent_auth_caching(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/api/"):
+    if request.url.path.startswith("/api/") and "cache-control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
     return response
 
