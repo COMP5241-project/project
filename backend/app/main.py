@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from app.database.supabase import get_supabase
 from app.identity.errors import ApiError
 from app.routers.auth import router as auth_router
+from app.routers.course_notes_chat import router as course_notes_chat_router
 from app.routers.courses import router as courses_router
 from app.routers.curriculum_courses import router as curriculum_courses_router
 from app.routers.hallucination import router as hallucination_router
@@ -20,6 +21,7 @@ from supabase import Client
 
 app = FastAPI()
 app.include_router(auth_router)
+app.include_router(course_notes_chat_router)
 app.include_router(profiles_router)
 app.include_router(courses_router)
 app.include_router(curriculum_courses_router)
