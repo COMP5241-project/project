@@ -8,6 +8,7 @@ from app.routers.auth import router as auth_router
 from app.routers.courses import router as courses_router
 from app.routers.hallucination import router as hallucination_router
 from app.routers.instructor import router as instructor_router
+from app.routers.instructor_courses import router as instructor_courses_router
 from app.routers.materials import router as materials_router
 from app.routers.profiles import router as profiles_router
 from app.routers.rosters import router as rosters_router
@@ -23,6 +24,7 @@ app.include_router(courses_router)
 app.include_router(results_router)
 app.include_router(hallucination_router)
 app.include_router(instructor_router)
+app.include_router(instructor_courses_router)
 app.include_router(materials_router)
 app.include_router(rosters_router)
 app.include_router(sample_course_router)

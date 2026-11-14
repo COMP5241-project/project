@@ -14,6 +14,83 @@ export interface CurrentProfile {
   profile: Profile
 }
 
+export type CoursePresentationFormat =
+  | 'text-and-images'
+  | 'interactive-simulations'
+  | 'interactive-role-play-activities'
+  | 'games'
+  | 'animations'
+  | 'slides-based'
+  | 'online-coding'
+
+export interface CourseDraftRequest {
+  topic: string
+  learning_goal: string | null
+  target_audience: string | null
+  experience_level: string | null
+  time_budget_minutes: number | null
+  constraints: string[]
+  preferred_formats: CoursePresentationFormat[]
+}
+
+export interface SuggestedCourseActivity {
+  title: string
+  description: string
+  presentation_format: CoursePresentationFormat
+}
+
+export interface CourseLessonPlan {
+  lesson_id: string
+  title: string
+  purpose: string
+  objectives: string[]
+  key_topics: string[]
+  suggested_activity: SuggestedCourseActivity
+  completion_check: string
+  prerequisite_lesson_ids: string[]
+  estimated_minutes: number | null
+}
+
+export interface CourseModulePlan {
+  module_id: string
+  title: string
+  description: string
+  lessons: CourseLessonPlan[]
+}
+
+export interface CoursePlan {
+  overview: string
+  target_audience: string
+  assumptions: string[]
+  learning_outcomes: string[]
+  prerequisites: string[]
+  modules: CourseModulePlan[]
+  milestones: string[]
+  capstone: string
+}
+
+export interface CourseDraftProposal {
+  title: string
+  description: string
+  default_presentation_format: CoursePresentationFormat
+  visibility: 'public' | 'restricted'
+  plan: CoursePlan
+}
+
+export interface CourseDraftSaveResponse {
+  course_id: string
+  version_id: string
+  version_number: number
+  status: 'draft'
+  visibility: 'public' | 'restricted'
+}
+
+export interface CoursePublishResponse {
+  course_id: string
+  status: 'published'
+  published_at: string
+}
+
 interface ErrorResponse {
   error?: { code?: string; message?: string; signed_out?: boolean }
 }
@@ -499,6 +576,39 @@ export async function generateCourseContent(
     existing_content: existingContent,
   })
   if (!data) throw new ApiError('Unable to generate course content. Try again.', 503)
+  return data
+}
+
+export async function generateInstructorCourseProposal(
+  input: CourseDraftRequest,
+): Promise<CourseDraftProposal> {
+  const data = await request<CourseDraftProposal>('/instructor/courses/generate', input)
+  if (!data) throw new ApiError('Unable to generate a course proposal. Try again.', 503)
+  return data
+}
+
+export async function saveInstructorCourseProposal(
+  proposal: CourseDraftProposal,
+  courseId?: string,
+): Promise<CourseDraftSaveResponse> {
+  const path = courseId
+    ? `/instructor/courses/${encodeURIComponent(courseId)}`
+    : '/instructor/courses'
+  const data = await request<CourseDraftSaveResponse>(
+    path,
+    proposal,
+    courseId ? 'PATCH' : 'POST',
+  )
+  if (!data) throw new ApiError('Unable to save this course draft. Try again.', 503)
+  return data
+}
+
+export async function publishInstructorCourse(courseId: string): Promise<CoursePublishResponse> {
+  const data = await request<CoursePublishResponse>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/publish`,
+    {},
+  )
+  if (!data) throw new ApiError('Unable to publish this course. Try again.', 503)
   return data
 }
 
