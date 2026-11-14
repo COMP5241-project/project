@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as StudentRouteImport } from './routes/student'
 import { Route as CoursesIdRouteImport } from './routes/courses_.$id'
 import { Route as CoursesSampleRouteImport } from './routes/courses_.sample'
+import { Route as CurriculumCoursesIdRouteImport } from './routes/curriculum-courses.$id'
 import { Route as StudentHallucinationGameRouteImport } from './routes/student_.hallucination-game'
 import { Route as StudentIntroductionRouteImport } from './routes/student_.introduction'
 import { Route as StudentIntroduction2RouteImport } from './routes/student_.introduction 2'
@@ -55,6 +56,11 @@ const CoursesSampleRoute = CoursesSampleRouteImport.update({
   path: '/courses/sample',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CurriculumCoursesIdRoute = CurriculumCoursesIdRouteImport.update({
+  id: '/curriculum-courses/$id',
+  path: '/curriculum-courses/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentHallucinationGameRoute =
   StudentHallucinationGameRouteImport.update({
     id: '/student_/hallucination-game',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/student': typeof StudentRoute
   '/courses/$id': typeof CoursesIdRoute
   '/courses/sample': typeof CoursesSampleRoute
+  '/curriculum-courses/$id': typeof CurriculumCoursesIdRoute
   '/student/hallucination-game': typeof StudentHallucinationGameRoute
   '/student/introduction': typeof StudentIntroductionRoute
   '/student/introduction 2': typeof StudentIntroduction2Route
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/student': typeof StudentRoute
   '/courses/$id': typeof CoursesIdRoute
   '/courses/sample': typeof CoursesSampleRoute
+  '/curriculum-courses/$id': typeof CurriculumCoursesIdRoute
   '/student/hallucination-game': typeof StudentHallucinationGameRoute
   '/student/introduction': typeof StudentIntroductionRoute
   '/student/introduction 2': typeof StudentIntroduction2Route
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/student': typeof StudentRoute
   '/courses_/$id': typeof CoursesIdRoute
   '/courses_/sample': typeof CoursesSampleRoute
+  '/curriculum-courses/$id': typeof CurriculumCoursesIdRoute
   '/student_/hallucination-game': typeof StudentHallucinationGameRoute
   '/student_/introduction': typeof StudentIntroductionRoute
   '/student_/introduction 2': typeof StudentIntroduction2Route
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/courses/$id'
     | '/courses/sample'
+    | '/curriculum-courses/$id'
     | '/student/hallucination-game'
     | '/student/introduction'
     | '/student/introduction 2'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/courses/$id'
     | '/courses/sample'
+    | '/curriculum-courses/$id'
     | '/student/hallucination-game'
     | '/student/introduction'
     | '/student/introduction 2'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/courses_/$id'
     | '/courses_/sample'
+    | '/curriculum-courses/$id'
     | '/student_/hallucination-game'
     | '/student_/introduction'
     | '/student_/introduction 2'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   StudentRoute: typeof StudentRoute
   CoursesIdRoute: typeof CoursesIdRoute
   CoursesSampleRoute: typeof CoursesSampleRoute
+  CurriculumCoursesIdRoute: typeof CurriculumCoursesIdRoute
   StudentHallucinationGameRoute: typeof StudentHallucinationGameRoute
   StudentIntroductionRoute: typeof StudentIntroductionRoute
   StudentIntroduction2Route: typeof StudentIntroduction2Route
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesSampleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/curriculum-courses/$id': {
+      id: '/curriculum-courses/$id'
+      path: '/curriculum-courses/$id'
+      fullPath: '/curriculum-courses/$id'
+      preLoaderRoute: typeof CurriculumCoursesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/student_/hallucination-game': {
       id: '/student_/hallucination-game'
       path: '/student/hallucination-game'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudentRoute: StudentRoute,
   CoursesIdRoute: CoursesIdRoute,
   CoursesSampleRoute: CoursesSampleRoute,
+  CurriculumCoursesIdRoute: CurriculumCoursesIdRoute,
   StudentHallucinationGameRoute: StudentHallucinationGameRoute,
   StudentIntroductionRoute: StudentIntroductionRoute,
   StudentIntroduction2Route: StudentIntroduction2Route,

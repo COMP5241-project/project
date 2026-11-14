@@ -993,6 +993,108 @@ def test_instructor_course_plan_publish_uses_owner_rpc(
     }
 
 
+def _student_profile_table(role: str = "student") -> Mock:
+    table = Mock()
+    table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "student-id",
+        "email": "student@example.com",
+        "role": role,
+        "cs_qualified": True,
+        "assessment_completed": True,
+        "non_cs_introduction_completed": True,
+    }
+    return table
+
+
+def test_student_can_list_public_curriculum_courses(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table()
+    courses_table = Mock()
+    course_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    courses_table.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{
+        "id": course_id,
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "published_at": "2026-11-14T07:00:00+00:00",
+    }]
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_login(client)
+
+    response = client.get("/api/curriculum-courses")
+
+    assert response.status_code == 200
+    assert response.json() == [{
+        "id": course_id,
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "publishedAt": "2026-11-14T07:00:00+00:00",
+    }]
+    courses_table.select.return_value.eq.assert_called_once_with("status", "published")
+    courses_table.select.return_value.eq.return_value.eq.assert_called_once_with(
+        "visibility", "public"
+    )
+
+
+def test_student_can_load_public_curriculum_plan(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table()
+    courses_table = Mock()
+    versions_table = Mock()
+    course_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    version_id = "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d"
+    proposal = _course_draft_proposal()
+    courses_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": course_id,
+        "title": proposal.title,
+        "description": proposal.description,
+        "default_presentation_format": proposal.default_presentation_format,
+        "published_at": "2026-11-14T07:00:00+00:00",
+        "published_version_id": version_id,
+    }
+    versions_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": version_id,
+        "plan": proposal.plan.model_dump(mode="json"),
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+        "instructor_course_versions": versions_table,
+    }[name]
+    auth_login(client)
+
+    response = client.get(f"/api/curriculum-courses/{course_id}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == course_id
+    assert response.json()["plan"]["overview"] == proposal.plan.overview
+    assert response.json()["publishedAt"] == "2026-11-14T07:00:00+00:00"
+    courses_table.select.return_value.eq.assert_called_once_with("id", course_id)
+    courses_table.select.return_value.eq.return_value.eq.assert_called_once_with(
+        "status", "published"
+    )
+    courses_table.select.return_value.eq.return_value.eq.return_value.eq.assert_called_once_with(
+        "visibility", "public"
+    )
+
+
+def test_instructor_cannot_use_student_curriculum_endpoint(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    auth_client.table.side_effect = lambda name: profile_table
+    auth_login(client)
+
+    response = client.get("/api/curriculum-courses")
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "student_required"
+
+
 def test_materials_api_lists_account_materials_with_nested_sources(
     client: HttpxClient, auth_client: Mock
 ):

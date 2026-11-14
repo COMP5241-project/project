@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CsValidationAssessment } from '../components/CsValidationAssessment'
 import { SigningOutOverlay } from '../components/SigningOutOverlay'
-import { fetchPublishedCourses, type PublishedCourseSummary } from '../lib/api'
+import {
+  fetchPublishedCourses,
+  fetchPublicCurriculumCourses,
+  type PublicCurriculumCourseSummary,
+  type PublishedCourseSummary,
+} from '../lib/api'
 import { useProfile } from '../lib/useProfile'
 
 export const Route = createFileRoute('/student')({
@@ -25,6 +30,30 @@ function usePublishedCourses(enabled: boolean) {
       .catch((loadError: unknown) => {
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : 'Unable to load your courses.')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [enabled])
+
+  return { courses, error }
+}
+
+function usePublicCurriculumCourses(enabled: boolean) {
+  const [courses, setCourses] = useState<PublicCurriculumCourseSummary[] | null>(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    fetchPublicCurriculumCourses()
+      .then((data) => {
+        if (!cancelled) setCourses(data)
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load instructor-created courses.')
         }
       })
     return () => {
@@ -61,6 +90,9 @@ function StudentPage() {
   const state = useProfile()
   const navigate = useNavigate()
   const coursesState = usePublishedCourses(state.status === 'ready' && state.profile.role === 'student')
+  const curriculumCoursesState = usePublicCurriculumCourses(
+    state.status === 'ready' && state.profile.role === 'student',
+  )
 
   let content: ReactNode
   if (state.status === 'loading') {
@@ -168,6 +200,64 @@ function StudentPage() {
               <CourseGroup courses={notStarted} label="Get started" />
               <CourseGroup courses={completed} label="Completed" />
             </div>
+          )}
+        </section>
+
+        <section aria-labelledby="curriculum-courses-heading" className="space-y-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#A21942]">Instructor-created courses</p>
+            <h2 id="curriculum-courses-heading" className="mt-1 text-xl font-extrabold tracking-tight text-[#262626]">
+              Explore course plans
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Public curricula are available to all students. Restricted curricula are not listed here.
+            </p>
+          </div>
+          {curriculumCoursesState.courses === null && curriculumCoursesState.error === '' && (
+            <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-sm text-gray-500">Loading instructor-created courses…</p>
+            </div>
+          )}
+          {curriculumCoursesState.error !== '' && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+              {curriculumCoursesState.error}
+            </p>
+          )}
+          {curriculumCoursesState.courses !== null && curriculumCoursesState.courses.length === 0 && (
+            <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-sm text-gray-600">No public course plans have been published yet.</p>
+            </div>
+          )}
+          {curriculumCoursesState.courses && curriculumCoursesState.courses.length > 0 && (
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+              {curriculumCoursesState.courses.map((course) => (
+                <li key={course.id}>
+                  <Link
+                    className="group flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-gray-50"
+                    params={{ id: course.id }}
+                    to="/curriculum-courses/$id"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#A21942]/10 text-[#A21942]">
+                        <BookOpen aria-hidden="true" size={18} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#262626] transition-colors group-hover:text-[#A21942]">
+                          {course.title}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-gray-600">{course.description}</p>
+                        {course.publishedAt && (
+                          <p className="mt-1 text-xs text-gray-500">Published {formatDate(course.publishedAt)}</p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[#A21942]">
+                      View plan <ArrowRight aria-hidden="true" size={15} />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 

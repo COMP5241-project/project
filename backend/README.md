@@ -139,6 +139,8 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | POST | `/api/instructor/courses` | Saves a course-plan draft |
 | PATCH | `/api/instructor/courses/{id}` | Saves a new version of an instructor course-plan draft |
 | POST | `/api/instructor/courses/{id}/publish` | Publishes an instructor course plan |
+| GET | `/api/curriculum-courses` | Lists public published instructor curriculum plans for students |
+| GET | `/api/curriculum-courses/{id}` | Loads a public published instructor curriculum plan |
 | GET | `/api/materials` | Loads the signed-in instructor's saved materials and material-scoped sources |
 | POST | `/api/materials` | Creates an instructor material |
 | PATCH | `/api/materials/{id}` | Saves material content and chat history |
@@ -181,8 +183,11 @@ extracted text is stored with the material.
 The Instructor Studio's **Create Course** view uses the same OpenRouter configuration and saves
 structured curricula separately from slide/quiz materials. Apply
 `supabase/migrations/20261114000000_create_instructor_curriculum_courses.sql` before using
-course-plan draft and publish endpoints. Publishing records the curriculum's status; connecting
-these curriculum records to the existing student slide/quiz library is not included.
+course-plan draft and publish endpoints, and apply
+`supabase/migrations/20261114010000_expose_public_curricula_to_students.sql` to let students
+browse public published plans. Restricted plans are currently instructor-only. The student
+course page displays the curriculum outline; interactive lesson delivery, enrollment, and
+progress tracking are not included.
 Apply all migrations in `../supabase/migrations/`, including the materials migration, before
 using these endpoints.
 

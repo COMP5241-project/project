@@ -137,7 +137,11 @@ export function InstructorCourseCreation({ onClose }: { onClose: () => void }) {
       const courseId = await saveProposal(proposal)
       await publishInstructorCourse(courseId)
       setPublished(true)
-      setNotice('Course published. It is not automatically added to the existing student slide and quiz library.')
+      setNotice(
+        proposal.visibility === 'public'
+          ? 'Course published. Its plan is now available in the Student Learning Hub.'
+          : 'Course published as restricted. It remains instructor-only.',
+      )
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : 'Unable to publish this course.')
     } finally {
@@ -476,7 +480,7 @@ export function InstructorCourseCreation({ onClose }: { onClose: () => void }) {
             </button>
           </div>
           <p className="text-xs leading-5 text-gray-500">
-            Publishing marks the curriculum as published. Connecting these courses to the existing student library is not part of this authoring integration.
+            Public plans are listed to students in the Student Learning Hub. Restricted plans remain instructor-only. This exposes the outline, not interactive lesson delivery or progress tracking.
           </p>
           {draftId && <p className="text-xs text-gray-500">Course ID: {draftId}</p>}
         </section>

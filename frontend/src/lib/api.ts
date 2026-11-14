@@ -390,10 +390,38 @@ export interface StudentCourse {
   content: StudentCourseContent
 }
 
+export interface PublicCurriculumCourseSummary {
+  id: string
+  title: string
+  description: string
+  publishedAt: string | null
+}
+
+export interface PublicCurriculumCourse extends PublicCurriculumCourseSummary {
+  default_presentation_format: CoursePresentationFormat
+  plan: CoursePlan
+}
+
 /** Lists the instructor-published courses available to the signed-in student. */
 export async function fetchPublishedCourses(): Promise<PublishedCourseSummary[]> {
   const data = await request<PublishedCourseSummary[]>('/courses')
   if (!data) throw new ApiError('Unable to load your courses.', 503)
+  return data
+}
+
+/** Lists public, published instructor curriculum plans available to students. */
+export async function fetchPublicCurriculumCourses(): Promise<PublicCurriculumCourseSummary[]> {
+  const data = await request<PublicCurriculumCourseSummary[]>('/curriculum-courses')
+  if (!data) throw new ApiError('Unable to load instructor-created courses.', 503)
+  return data
+}
+
+/** Loads a public, published instructor curriculum plan. */
+export async function fetchPublicCurriculumCourse(courseId: string): Promise<PublicCurriculumCourse> {
+  const data = await request<PublicCurriculumCourse>(
+    `/curriculum-courses/${encodeURIComponent(courseId)}`,
+  )
+  if (!data) throw new ApiError('Unable to load this course plan.', 503)
   return data
 }
 
