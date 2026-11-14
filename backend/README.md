@@ -41,6 +41,7 @@ Create `backend/.env` with these settings (the root `.env.example` includes plac
 ```env
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_KEY=your-public-anon-or-publishable-key
+SUPABASE_SECRET_KEY=your-server-only-secret-key
 FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 SESSION_COOKIE_SECURE=false
 OPENROUTER_API_KEY=your-openrouter-api-key
@@ -49,10 +50,12 @@ OPENROUTER_API_KEY=your-openrouter-api-key
 Configure the Supabase Auth email template used for passwordless sign-in to render
 `{{ .Token }}`. The login page uses that six-digit token for password recovery.
 
-Use a public anon/publishable key; no service-role key is required. Never commit real
-credentials. Apply the SQL migrations in `../supabase/migrations/` and provision
-accounts through Supabase Auth. Sign-in does not create accounts. Roles come from
-`profiles.role`, not email domains; new profiles default to student, and instructor
+`SUPABASE_KEY` is the public anon/publishable key used for Supabase Auth and user-scoped
+queries. `SUPABASE_SECRET_KEY` is a backend-only secret key used only for the private
+session table. Configure it in the backend's Vercel environment and never expose it to
+the frontend or commit it. Apply the SQL migrations in `../supabase/migrations/` and
+provision accounts through Supabase Auth. Sign-in does not create accounts. Roles come
+from `profiles.role`, not email domains; new profiles default to student, and instructor
 roles must be assigned administratively.
 
 ## Start the Development Server
@@ -137,6 +140,19 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
 | POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
 | POST | `/api/instructor/generate` | Generates or revises slide decks and multiple-choice quizzes for instructors |
+| POST | `/api/instructor/courses/generate` | Generates an editable instructor course-plan proposal |
+| POST | `/api/instructor/courses` | Saves a course-plan draft |
+| PATCH | `/api/instructor/courses/{id}` | Saves a new version of an instructor course-plan draft |
+| POST | `/api/instructor/courses/{id}/publish` | Publishes an instructor course plan |
+| GET | `/api/instructor/courses` | Lists the instructor's saved course plans |
+| GET | `/api/instructor/courses/{id}` | Loads a saved plan for its instructor |
+| PATCH | `/api/instructor/courses/{id}/visibility` | Sets a course to public or restricted |
+| PATCH | `/api/instructor/courses/{id}/status` | Publishes or unpublishes a saved course |
+| GET | `/api/instructor/courses/{id}/access` | Lists students who can access a restricted course |
+| POST | `/api/instructor/courses/{id}/access` | Grants a student access by existing account email |
+| DELETE | `/api/instructor/courses/{id}/access/{learner_id}` | Revokes a student's course access |
+| GET | `/api/curriculum-courses` | Lists published courses available to the signed-in student |
+| GET | `/api/curriculum-courses/{id}` | Loads a published course available to the signed-in student |
 | GET | `/api/materials` | Loads the signed-in instructor's saved materials and material-scoped sources |
 | POST | `/api/materials` | Creates an instructor material |
 | PATCH | `/api/materials/{id}` | Saves material content and chat history |
@@ -154,10 +170,19 @@ loopback spellings `localhost`, `127.0.0.1`, and `[::1]` are treated as the same
 origin (the browser picks whichever `localhost` resolves to); scheme and port are
 still matched strictly. Use the frontend's same-origin `/api` proxy; CORS is not
 enabled. Calls from Swagger must satisfy these origin requirements too.
+
+Instructors can manage saved plans in the Instructor Studio's **Manage Courses**
+view. Public published plans are available to all signed-in students. Restricted
+published plans are available only to the instructor and students granted access
+by their existing student-account email. Unpublishing a plan removes student
+access without deleting its saved content or grant list.
 Responses contain no Supabase tokens and use `Cache-Control: no-store`.
 Errors return `{"error":{"code":"...","message":"...","signed_out":false}}`.
 
-Profiles contain `id`, `email`, `role`, `cs_qualified`, and `assessment_completed`.
+Profiles contain `id`, `email`, `role`, `cs_qualified`, `assessment_completed`, and
+`non_cs_introduction_completed`. Non-CS students must complete The App Factory before
+entering the student dashboard. `POST /api/profiles/non-cs-introduction` records
+completion for an authenticated student after their non-CS assessment.
 Queries use the verified user's JWT so existing row-level security remains effective.
 Each request has its own Supabase client; the shared health client is never signed in.
 Course generation requires the `instructor` profile role and accepts `artifact_type`
@@ -176,6 +201,18 @@ Instructor materials and extracted source text are stored in Supabase Postgres u
 account. Uploaded TXT, PDF, and PPTX files are stored in the private `instructor-materials`
 bucket and accessed through short-lived signed URLs. URL sources are fetched once and their
 extracted text is stored with the material.
+The Instructor Studio's **Create Course** view uses the same OpenRouter configuration and saves
+structured curricula separately from slide/quiz materials. Apply
+`supabase/migrations/20261114000000_create_instructor_curriculum_courses.sql` before using
+course-plan draft and publish endpoints. Apply
+`supabase/migrations/20261114010000_expose_public_curricula_to_students.sql` and
+`supabase/migrations/20261114020000_manage_instructor_course_access.sql` for student browsing
+and restricted-course grants. Public published plans are visible to all students; restricted
+published plans are visible only to students the instructor grants access to by existing
+account email. The student course page displays the curriculum outline; interactive lesson
+delivery, enrollment, and progress tracking are not included. If an AI-generated plan fails
+JSON or schema validation, the generator retries up to two times and includes the validation
+paths and messages in the retry prompt.
 Apply all migrations in `../supabase/migrations/`, including the materials migration, before
 using these endpoints.
 
@@ -207,19 +244,23 @@ owner-scoped storage policy.
 ## Session Security And Limitations
 
 - The browser receives only a random, host-only `polyu_session` cookie with HttpOnly,
-	SameSite=Lax, and Path=/api. Supabase tokens stay in backend memory. Passwords are
+	SameSite=Lax, and Path=/api. The cookie contains an opaque random session ID; the
+	backend stores its hash and the Supabase tokens in the private `backend_sessions`
+	Postgres table. Only the backend secret key can access that table. Passwords are
 	forwarded to Supabase Auth and never stored.
 - Sessions expire after 24 hours. Expiring access tokens refresh on `/api/profiles/me` with
-	per-session locking. Invalid sessions return 401; temporary upstream failures return 503.
-- Logout invalidates this user's local sessions and always returns 204. Global
-	revocation of Supabase sessions is best-effort; when it fails (it cannot be
-	confirmed with the public anon key) it is logged, not reported. Supabase
-	access JWTs remain valid until their own expiry.
-- Use one backend worker only. Restarting or auto-reloading the backend clears every
-	session. Previous frontend-SDK sessions require a fresh sign-in.
-- Before production, replace the in-memory store with shared persistent storage,
-	use HTTPS with `SESSION_COOKIE_SECURE=true`, configure exact allowed origins, and
-	deploy a same-origin `/api` reverse proxy. Do not use this store across workers.
+	per-session database locking, so concurrent requests and separate Vercel instances do
+	not race token rotation. Invalid sessions return 401; temporary upstream failures
+	return 503.
+- Logout deletes this user's stored sessions and clears the cookie. Global revocation
+	of Supabase sessions is best-effort; failures are logged, not reported. If the
+	session store is unavailable, the endpoint returns 503.
+- Expired session rows are cleaned up during login; run periodic cleanup of
+	`backend_sessions` for abandoned records if needed.
+- Previous in-memory backend sessions require a fresh sign-in after deploying the
+	session-table migration and backend changes.
+- In production, use HTTPS with `SESSION_COOKIE_SECURE=true`, configure exact allowed
+	origins, and deploy a same-origin `/api` reverse proxy.
 - Moving frontend calls does not disable Supabase's public API or change existing RLS
 	grants. Signup, password reset, assessment submission, and AI endpoints are not added.
 

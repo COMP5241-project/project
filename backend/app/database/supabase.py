@@ -18,6 +18,21 @@ def get_supabase() -> Client:
     return create_client(supabase_url, supabase_key)
 
 
+@lru_cache(maxsize=1)
+def create_session_store_client() -> Client:
+    supabase_url = os.getenv("SUPABASE_URL")
+    secret_key = os.getenv("SUPABASE_SECRET_KEY")
+
+    if not supabase_url or not secret_key:
+        raise RuntimeError("SUPABASE_URL and SUPABASE_SECRET_KEY must be set")
+
+    return create_client(
+        supabase_url,
+        secret_key,
+        options=ClientOptions(auto_refresh_token=False, persist_session=False),
+    )
+
+
 def create_user_client(http_client: HttpClient) -> Client:
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_KEY")

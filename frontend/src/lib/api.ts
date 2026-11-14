@@ -6,11 +6,89 @@ export interface Profile {
   role: DashboardRole
   cs_qualified: boolean
   assessment_completed: boolean
+  non_cs_introduction_completed: boolean
 }
 
 export interface CurrentProfile {
   email: string
   profile: Profile
+}
+
+export type CoursePresentationFormat =
+  | 'text-and-images'
+  | 'interactive-simulations'
+  | 'interactive-role-play-activities'
+  | 'games'
+  | 'animations'
+  | 'slides-based'
+  | 'online-coding'
+
+export interface CourseDraftRequest {
+  topic: string
+  learning_goal: string | null
+  target_audience: string | null
+  experience_level: string | null
+  time_budget_minutes: number | null
+  constraints: string[]
+  preferred_formats: CoursePresentationFormat[]
+}
+
+export interface SuggestedCourseActivity {
+  title: string
+  description: string
+  presentation_format: CoursePresentationFormat
+}
+
+export interface CourseLessonPlan {
+  lesson_id: string
+  title: string
+  purpose: string
+  objectives: string[]
+  key_topics: string[]
+  suggested_activity: SuggestedCourseActivity
+  completion_check: string
+  prerequisite_lesson_ids: string[]
+  estimated_minutes: number | null
+}
+
+export interface CourseModulePlan {
+  module_id: string
+  title: string
+  description: string
+  lessons: CourseLessonPlan[]
+}
+
+export interface CoursePlan {
+  overview: string
+  target_audience: string
+  assumptions: string[]
+  learning_outcomes: string[]
+  prerequisites: string[]
+  modules: CourseModulePlan[]
+  milestones: string[]
+  capstone: string
+}
+
+export interface CourseDraftProposal {
+  title: string
+  description: string
+  default_presentation_format: CoursePresentationFormat
+  visibility: 'public' | 'restricted'
+  plan: CoursePlan
+}
+
+export interface CourseDraftSaveResponse {
+  course_id: string
+  version_id: string
+  version_number: number
+  status: 'draft'
+  visibility: 'public' | 'restricted'
+}
+
+export interface CoursePublishResponse {
+  course_id: string
+  status: 'published'
+  published_at: string
 }
 
 interface ErrorResponse {
@@ -75,6 +153,12 @@ export async function completeAssessment(csQualified: boolean): Promise<CurrentP
     cs_qualified: csQualified,
   })
   if (!data) throw new ApiError('Unable to save your assessment result.', 503)
+  return data
+}
+
+export async function completeNonCsIntroduction(): Promise<CurrentProfile> {
+  const data = await request<CurrentProfile>('/profiles/non-cs-introduction', {})
+  if (!data) throw new ApiError('Unable to save your introduction progress.', 503)
   return data
 }
 
@@ -306,10 +390,138 @@ export interface StudentCourse {
   content: StudentCourseContent
 }
 
-/** Lists the instructor-published courses available to the signed-in student. */
+export interface PublicCurriculumCourseSummary {
+  id: string
+  title: string
+  description: string
+  publishedAt: string | null
+}
+
+export interface PublicCurriculumCourse extends PublicCurriculumCourseSummary {
+  default_presentation_format: CoursePresentationFormat
+  plan: CoursePlan
+}
+
+export type InstructorManagedCourseStatus = 'draft' | 'published' | 'archived'
+export type InstructorManagedCourseVisibility = 'public' | 'restricted'
+
+export interface InstructorManagedCourseSummary {
+  id: string
+  title: string
+  description: string
+  status: InstructorManagedCourseStatus
+  visibility: InstructorManagedCourseVisibility
+  default_presentation_format: CoursePresentationFormat
+  publishedAt: string | null
+  updatedAt: string
+}
+
+export interface InstructorManagedCourse extends InstructorManagedCourseSummary {
+  version_number: number
+  plan: CoursePlan
+}
+
+export interface InstructorCourseAccessEntry {
+  user_id: string
+  email: string
+  grantedAt: string
+}
+
+/** Lists the instructor's saved curriculum plans. */
+export async function fetchInstructorCourses(): Promise<InstructorManagedCourseSummary[]> {
+  const data = await request<InstructorManagedCourseSummary[]>('/instructor/courses')
+  if (!data) throw new ApiError('Unable to load your saved courses.', 503)
+  return data
+}
+
+/** Loads one saved curriculum plan for its instructor. */
+export async function fetchInstructorCourse(courseId: string): Promise<InstructorManagedCourse> {
+  const data = await request<InstructorManagedCourse>(
+    `/instructor/courses/${encodeURIComponent(courseId)}`,
+  )
+  if (!data) throw new ApiError('Unable to load this course plan.', 503)
+  return data
+}
+
+export async function updateInstructorCourseVisibility(
+  courseId: string,
+  visibility: InstructorManagedCourseVisibility,
+): Promise<{ course_id: string; visibility: InstructorManagedCourseVisibility }> {
+  const data = await request<{ course_id: string; visibility: InstructorManagedCourseVisibility }>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/visibility`,
+    { visibility },
+    'PATCH',
+  )
+  if (!data) throw new ApiError('Unable to update course visibility.', 503)
+  return data
+}
+
+export async function updateInstructorCourseStatus(
+  courseId: string,
+  status: 'draft' | 'published',
+): Promise<{ course_id: string; status: 'draft' | 'published'; published_at: string | null }> {
+  const data = await request<{ course_id: string; status: 'draft' | 'published'; published_at: string | null }>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/status`,
+    { status },
+    'PATCH',
+  )
+  if (!data) throw new ApiError('Unable to update course status.', 503)
+  return data
+}
+
+export async function fetchInstructorCourseAccess(
+  courseId: string,
+): Promise<InstructorCourseAccessEntry[]> {
+  const data = await request<InstructorCourseAccessEntry[]>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/access`,
+  )
+  if (!data) throw new ApiError('Unable to load student access.', 503)
+  return data
+}
+
+export async function grantInstructorCourseAccess(
+  courseId: string,
+  email: string,
+): Promise<InstructorCourseAccessEntry> {
+  const data = await request<InstructorCourseAccessEntry>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/access`,
+    { email },
+  )
+  if (!data) throw new ApiError('Unable to grant student access.', 503)
+  return data
+}
+
+export async function revokeInstructorCourseAccess(
+  courseId: string,
+  learnerId: string,
+): Promise<void> {
+  await request(
+    `/instructor/courses/${encodeURIComponent(courseId)}/access/${encodeURIComponent(learnerId)}`,
+    undefined,
+    'DELETE',
+  )
+}
+
+/** Lists the published courses available to the signed-in student. */
 export async function fetchPublishedCourses(): Promise<PublishedCourseSummary[]> {
   const data = await request<PublishedCourseSummary[]>('/courses')
   if (!data) throw new ApiError('Unable to load your courses.', 503)
+  return data
+}
+
+/** Lists published instructor curriculum plans available to this student. */
+export async function fetchPublicCurriculumCourses(): Promise<PublicCurriculumCourseSummary[]> {
+  const data = await request<PublicCurriculumCourseSummary[]>('/curriculum-courses')
+  if (!data) throw new ApiError('Unable to load instructor-created courses.', 503)
+  return data
+}
+
+/** Loads an instructor curriculum plan available to this student. */
+export async function fetchPublicCurriculumCourse(courseId: string): Promise<PublicCurriculumCourse> {
+  const data = await request<PublicCurriculumCourse>(
+    `/curriculum-courses/${encodeURIComponent(courseId)}`,
+  )
+  if (!data) throw new ApiError('Unable to load this course plan.', 503)
   return data
 }
 
@@ -492,6 +704,39 @@ export async function generateCourseContent(
     existing_content: existingContent,
   })
   if (!data) throw new ApiError('Unable to generate course content. Try again.', 503)
+  return data
+}
+
+export async function generateInstructorCourseProposal(
+  input: CourseDraftRequest,
+): Promise<CourseDraftProposal> {
+  const data = await request<CourseDraftProposal>('/instructor/courses/generate', input)
+  if (!data) throw new ApiError('Unable to generate a course proposal. Try again.', 503)
+  return data
+}
+
+export async function saveInstructorCourseProposal(
+  proposal: CourseDraftProposal,
+  courseId?: string,
+): Promise<CourseDraftSaveResponse> {
+  const path = courseId
+    ? `/instructor/courses/${encodeURIComponent(courseId)}`
+    : '/instructor/courses'
+  const data = await request<CourseDraftSaveResponse>(
+    path,
+    proposal,
+    courseId ? 'PATCH' : 'POST',
+  )
+  if (!data) throw new ApiError('Unable to save this course draft. Try again.', 503)
+  return data
+}
+
+export async function publishInstructorCourse(courseId: string): Promise<CoursePublishResponse> {
+  const data = await request<CoursePublishResponse>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/publish`,
+    {},
+  )
+  if (!data) throw new ApiError('Unable to publish this course. Try again.', 503)
   return data
 }
 

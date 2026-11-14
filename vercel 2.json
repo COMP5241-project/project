@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "archive": {
+      "root": "archive",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "fastapi"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
+    },
+    "gold_hook": {
+      "root": "interactive-content/gold_hook",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
+}
