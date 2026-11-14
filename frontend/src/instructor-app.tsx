@@ -63,7 +63,10 @@ import {
   type SlideTheme,
 } from './lib/api'
 import { SourcesPanel } from './components/SourcesPanel'
+import { InstructorCourseCreation } from './components/InstructorCourseCreation'
+import { InstructorCourseManagement } from './components/InstructorCourseManagement'
 import { RosterAnalyticsView } from './components/RosterAnalytics'
+import { exportDeckPdf } from './lib/exportPdf'
 
 type ArtifactKind = 'slides' | 'quiz'
 interface EditableSlide extends GeneratedSlide {
@@ -641,15 +644,18 @@ export function InstructorApp() {
   const [isRestoring, setIsRestoring] = useState(false)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [exportMenuResource, setExportMenuResource] = useState<string | null>(null)
-  const [isPrinting, setIsPrinting] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [isExportingPptx, setIsExportingPptx] = useState(false)
-  const [studioView, setStudioView] = useState<'workspace' | 'analytics'>('workspace')
+  const [studioView, setStudioView] = useState<
+    'workspace' | 'analytics' | 'course-creation' | 'course-management'
+  >('workspace')
   const stageRef = useRef<HTMLDivElement>(null)
   const slideViewportRef = useRef<HTMLDivElement>(null)
   const promptRef = useRef<HTMLTextAreaElement>(null)
   const themeMenuRef = useRef<HTMLDivElement>(null)
   const historyMenuRef = useRef<HTMLDivElement>(null)
   const exportMenuRef = useRef<HTMLDivElement>(null)
+  const pdfDeckRef = useRef<HTMLDivElement>(null)
   const [slideScale, setSlideScale] = useState(1)
   const [isPresenting, setIsPresenting] = useState(false)
 
@@ -793,19 +799,6 @@ export function InstructorApp() {
       document.removeEventListener('keydown', handleEscape)
     }
   }, [exportMenuOpen])
-
-  // While a PDF export is armed, trigger the native print dialog once the
-  // print-only overlay has rendered, then disarm when printing finishes.
-  useEffect(() => {
-    if (!isPrinting) return
-    const timer = window.setTimeout(() => window.print(), 150)
-    const handleAfterPrint = () => setIsPrinting(false)
-    window.addEventListener('afterprint', handleAfterPrint)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('afterprint', handleAfterPrint)
-    }
-  }, [isPrinting])
 
   useEffect(() => {
     if (activeArtifact?.kind !== 'slides' || activeSlides.length === 0) return
@@ -1107,13 +1100,26 @@ export function InstructorApp() {
     }
   }
 
-  function startPrintExport() {
+  async function exportPdf() {
     setExportMenuOpen(false)
     if (!activeArtifact || activeContentCount === 0) {
       setFeedback('Create some content before exporting it.')
       return
     }
-    setIsPrinting(true)
+    if (!pdfDeckRef.current) {
+      setFeedback('Unable to prepare the PDF export. Please try again.')
+      return
+    }
+    setIsExportingPdf(true)
+    setFeedback('Preparing PDF…')
+    try {
+      await exportDeckPdf(pdfDeckRef.current, activeArtifact.title)
+      setFeedback('PDF download started.')
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to export this material as PDF.')
+    } finally {
+      setIsExportingPdf(false)
+    }
   }
 
   async function exportPptx() {
@@ -1368,11 +1374,9 @@ export function InstructorApp() {
   }
 
   return (
-    <div className="instructor-root mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1600px] flex-col px-3 py-4 lg:px-5">
-      {isPrinting && activeArtifact && (
-        <div className="print-only">
-          {/* 16:9 paper for this print job only; removed when the overlay unmounts. */}
-          <style>{'@page { size: 1280px 720px; margin: 0; }'}</style>
+    <>
+      {activeArtifact && activeContentCount > 0 && (
+        <div aria-hidden="true" className="pdf-deck" ref={pdfDeckRef}>
           {activeArtifact.kind === 'slides'
             ? activeSlides.map((slide, index) => (
                 <PrintSlide count={activeSlides.length} index={index} key={`${activeArtifact.id}-${index}`} slide={slide} />
@@ -1382,6 +1386,7 @@ export function InstructorApp() {
               ))}
         </div>
       )}
+    <div className="instructor-root mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1600px] flex-col px-3 py-4 lg:px-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <h1 className="truncate text-lg font-bold">Instructor studio</h1>
@@ -1399,6 +1404,20 @@ export function InstructorApp() {
               type="button"
             >
               Student Analytics
+            </button>
+            <button
+              className={`rounded px-3 py-1.5 text-xs ${studioView === 'course-creation' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+              onClick={() => setStudioView('course-creation')}
+              type="button"
+            >
+              Create Course
+            </button>
+            <button
+              className={`rounded px-3 py-1.5 text-xs ${studioView === 'course-management' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+              onClick={() => setStudioView('course-management')}
+              type="button"
+            >
+              Manage Courses
             </button>
           </div>
           {activeArtifact && studioView === 'workspace' && (
@@ -1468,7 +1487,7 @@ export function InstructorApp() {
           </div>
           <div className="relative" ref={exportMenuRef}>
             <IconButton
-              disabled={!activeArtifact || activeContentCount === 0 || isSending}
+              disabled={!activeArtifact || activeContentCount === 0 || isSending || isExportingPdf}
               icon={Download}
               label="Export"
               onClick={() => {
@@ -1484,7 +1503,7 @@ export function InstructorApp() {
               <div className="absolute right-0 top-full z-30 mt-2 w-52 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
                 <button
                   className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
-                  onClick={startPrintExport}
+                  onClick={() => void exportPdf()}
                   type="button"
                 >
                   Export as PDF
@@ -2045,8 +2064,12 @@ export function InstructorApp() {
           </div>
         </aside>
         </div>
-      ) : (
+      ) : studioView === 'analytics' ? (
         <RosterAnalyticsView />
+      ) : studioView === 'course-management' ? (
+        <InstructorCourseManagement />
+      ) : (
+        <InstructorCourseCreation onClose={() => setStudioView('workspace')} />
       )}
 
       {studioView === 'workspace' && deleteTarget && (
@@ -2079,20 +2102,17 @@ export function InstructorApp() {
           />
         )}
     </div>
+    </>
   )
 }
 
-/** Read-only 16:9 slide used by the PDF (print) export.
- *  Mirrors the on-screen slide canvas 1:1 (same structure, classes, and
- *  markup) so text wraps and clips exactly like the studio preview. */
+/** Read-only A4 landscape slide used by the PDF export. */
 function PrintSlide({ count, index, slide }: { count: number; index: number; slide: EditableSlide }) {
   const theme = resolveSlideTheme(slide.theme)
   return (
     <div
-      className="print-slide flex flex-col overflow-hidden"
+      className="pdf-page flex flex-col overflow-hidden"
       style={{
-        width: SLIDE_WIDTH,
-        height: SLIDE_HEIGHT,
         backgroundColor: theme.background,
         color: theme.textColor,
       }}
@@ -2101,12 +2121,14 @@ function PrintSlide({ count, index, slide }: { count: number; index: number; sli
         <div className="flex min-h-0 flex-col gap-5">
           <h2
             className="text-5xl font-bold leading-tight"
+            data-pdf-content
             dangerouslySetInnerHTML={{ __html: safeMarkup(slide.titleMarkup ?? initialMarkup(slide.title)) }}
             style={{ color: theme.textColor }}
           />
           <div className="grid min-h-0 flex-1 grid-cols-2 items-center gap-12 pt-5">
             <div
               className="min-h-0 overflow-auto text-2xl leading-relaxed"
+              data-pdf-content
               dangerouslySetInnerHTML={{
                 __html: safeMarkup(slide.bodyMarkup ?? `<ul>${slide.bullets.map((bullet) => `<li>${initialMarkup(bullet).replace(/^<p>|<\/p>$/g, '')}</li>`).join('')}</ul>`),
               }}
@@ -2114,6 +2136,7 @@ function PrintSlide({ count, index, slide }: { count: number; index: number; sli
             />
             <div
               className="flex max-h-full min-h-0 flex-col items-center justify-center gap-5 overflow-auto rounded-xl border-2 border-dashed p-6 text-center"
+              data-pdf-content
               style={{
                 borderColor: theme.accentColor,
                 backgroundColor: theme.cardBackground,
@@ -2170,7 +2193,7 @@ function PrintSlide({ count, index, slide }: { count: number; index: number; sli
   )
 }
 
-/** Read-only quiz question page used by the PDF (print) export. */
+/** Read-only quiz question page used by the PDF export. */
 function PrintQuizQuestion({
   index,
   question,
@@ -2181,20 +2204,22 @@ function PrintQuizQuestion({
   title: string
 }) {
   return (
-    <div className="print-slide flex flex-col bg-white p-20 text-[#262626]">
-      <p className="text-sm font-bold uppercase tracking-wide text-[#A21942]">{title}</p>
-      <h2 className="mt-6 text-3xl font-bold">Question {index + 1}</h2>
-      <p className="mt-4 text-xl">{question.question}</p>
-      <ul className="mt-8 space-y-4">
-        {question.options.map((option, optionIndex) => (
-          <li className="flex items-start gap-3 text-lg" key={optionIndex}>
-            <span className="grid size-7 shrink-0 place-items-center rounded-full border border-gray-300 bg-[#F8FAFC] text-sm font-bold">
-              {String.fromCharCode(65 + optionIndex)}
-            </span>
-            <span>{option}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="pdf-page bg-white">
+      <div className="flex h-full flex-col p-20 text-[#262626]">
+        <p className="text-sm font-bold uppercase tracking-wide text-[#A21942]">{title}</p>
+        <h2 className="mt-6 text-3xl font-bold" data-pdf-content>Question {index + 1}</h2>
+        <p className="mt-4 text-xl" data-pdf-content>{question.question}</p>
+        <ul className="mt-8 space-y-4" data-pdf-content>
+          {question.options.map((option, optionIndex) => (
+            <li className="flex items-start gap-3 text-lg" key={optionIndex}>
+              <span className="grid size-7 shrink-0 place-items-center rounded-full border border-gray-300 bg-[#F8FAFC] text-sm font-bold">
+                {String.fromCharCode(65 + optionIndex)}
+              </span>
+              <span>{option}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }

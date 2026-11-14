@@ -40,3 +40,5 @@ state/
 *.njsproj
 *.sln
 *.sw?
+
+v3-main
