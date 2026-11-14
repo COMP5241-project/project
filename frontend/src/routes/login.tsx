@@ -12,12 +12,18 @@ import { login, requestPasswordReset, verifyPasswordReset } from '../lib/api'
 import { resolveSignedInRole, setCachedSignedInRole } from '../lib/session'
 
 export const Route = createFileRoute('/login')({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { notice?: 'login-required' } => ({
+    notice: search.notice === 'login-required' ? 'login-required' : undefined,
+  }),
   component: LoginPage,
 })
 
 function LoginPage() {
   const navigate = useNavigate()
   const router = useRouter()
+  const { notice } = Route.useSearch()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [resetCode, setResetCode] = useState('')
@@ -25,7 +31,9 @@ function LoginPage() {
   const [resetPasswordConfirmation, setResetPasswordConfirmation] = useState('')
   const [view, setView] = useState<'login' | 'reset-email' | 'reset-password'>('login')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    notice === 'login-required' ? 'Please login first' : null,
+  )
 
   // Defense-in-depth: a user who is already signed in should never see the
   // login form (e.g. clicking a stale "Student Login" link), so redirect
