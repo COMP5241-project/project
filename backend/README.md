@@ -187,7 +187,9 @@ course-plan draft and publish endpoints, and apply
 `supabase/migrations/20261114010000_expose_public_curricula_to_students.sql` to let students
 browse public published plans. Restricted plans are currently instructor-only. The student
 course page displays the curriculum outline; interactive lesson delivery, enrollment, and
-progress tracking are not included.
+progress tracking are not included. If an AI-generated plan fails JSON or schema validation,
+the generator retries up to two times and includes the validation paths and messages in the
+retry prompt.
 Apply all migrations in `../supabase/migrations/`, including the materials migration, before
 using these endpoints.
 

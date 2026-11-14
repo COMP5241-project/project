@@ -1,4 +1,5 @@
 import base64
+import json
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
@@ -2407,8 +2408,51 @@ def test_course_plan_generator_uses_openrouter_and_validates_response(monkeypatc
     assert proposal.title == "Python Basics"
     assert http_client.post.call_args.kwargs["json"]["model"] == "test-course-model"
     assert http_client.post.call_args.kwargs["json"]["messages"][1]["content"] == (
-        '{"topic": "Python basics", "constraints": [], "preferred_formats": []}'
+        'Course brief (JSON):\n{"topic": "Python basics", "constraints": [], "preferred_formats": []}'
     )
+
+
+def test_course_plan_generator_retries_with_validation_feedback(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    proposal = _course_draft_proposal()
+    invalid_proposal = proposal.model_dump(mode="json")
+    invalid_proposal["plan"]["milestones"] = [
+        {"milestone_id": "MS1", "after_module_id": "module-1"},
+    ]
+    invalid_proposal["plan"]["capstone"] = {
+        "title": "Integrated event",
+        "estimated_minutes": 20,
+    }
+
+    invalid_response = Mock()
+    invalid_response.status_code = 200
+    invalid_response.json.return_value = {
+        "choices": [{
+            "message": {"content": json.dumps(invalid_proposal)},
+        }],
+    }
+    valid_response = Mock()
+    valid_response.status_code = 200
+    valid_response.json.return_value = {
+        "choices": [{
+            "message": {"content": proposal.model_dump_json()},
+        }],
+    }
+    http_client = Mock()
+    http_client.post.side_effect = [invalid_response, valid_response]
+
+    result = generate_course_proposal(CourseDraftRequest(topic="Python basics"), http_client)
+
+    assert result.title == proposal.title
+    assert http_client.post.call_count == 2
+    retry_messages = http_client.post.call_args_list[1].kwargs["json"]["messages"]
+    assert retry_messages[-2] == {
+        "role": "assistant",
+        "content": json.dumps(invalid_proposal),
+    }
+    assert "plan.milestones.0" in retry_messages[-1]["content"]
+    assert "plan.capstone" in retry_messages[-1]["content"]
+    assert "valid string" in retry_messages[-1]["content"]
 
 
 def test_course_plan_generator_requires_openrouter_key(monkeypatch):
