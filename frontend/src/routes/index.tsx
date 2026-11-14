@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   Activity,
   ArrowDown,
@@ -26,8 +26,9 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { resolveSignedInRole, type DashboardRole } from '../lib/session'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { ApiError, getCurrentProfile } from '../lib/api'
+import { resolveSignedInRole, setCachedSignedInRole, type DashboardRole } from '../lib/session'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -94,6 +95,20 @@ const fluencyDimensions: FluencyDimension[] = [
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+}
+
+async function verifySignedIn(): Promise<boolean> {
+  try {
+    const { profile } = await getCurrentProfile()
+    setCachedSignedInRole(profile.role)
+    return true
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      setCachedSignedInRole(null)
+      return false
+    }
+    throw error
+  }
 }
 
 function HomePage() {
@@ -850,6 +865,32 @@ function AIFluencySection() {
 }
 
 function InteractivePreview() {
+  const navigate = useNavigate()
+  const [isCheckingSignIn, setIsCheckingSignIn] = useState(false)
+  const [accessError, setAccessError] = useState<string | null>(null)
+
+  async function handleExploreCourseClick(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    if (isCheckingSignIn) return
+
+    setIsCheckingSignIn(true)
+    setAccessError(null)
+
+    try {
+      if (await verifySignedIn()) {
+        window.location.assign('/course.html')
+      } else {
+        await navigate({ to: '/login', search: { notice: 'login-required' } })
+      }
+    } catch (error) {
+      setAccessError(
+        error instanceof Error ? error.message : 'Unable to verify your sign-in. Please try again.',
+      )
+    } finally {
+      setIsCheckingSignIn(false)
+    }
+  }
+
   return (
     <section className="scroll-mt-20 bg-white py-20 sm:py-24" id="preview">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -889,9 +930,17 @@ function InteractivePreview() {
               <a
                 className="mt-8 inline-flex w-fit items-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
                 href="/course.html"
+                aria-busy={isCheckingSignIn}
+                aria-disabled={isCheckingSignIn}
+                onClick={handleExploreCourseClick}
               >
-                Explore our course <ArrowRight aria-hidden="true" size={16} />
+                {isCheckingSignIn ? 'Checking sign-in…' : 'Explore our course'} <ArrowRight aria-hidden="true" size={16} />
               </a>
+              {accessError && (
+                <p className="mt-3 text-sm text-[#801333]" role="alert">
+                  {accessError}
+                </p>
+              )}
             </div>
             <div className="p-5 sm:p-8 lg:p-10">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
@@ -1063,8 +1112,33 @@ interface DemoDialogProps {
 }
 
 function DemoDialog({ onClose }: DemoDialogProps) {
+  const navigate = useNavigate()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [videoPlaying, setVideoPlaying] = useState(false)
+  const [isCheckingSignIn, setIsCheckingSignIn] = useState(false)
+  const [accessError, setAccessError] = useState<string | null>(null)
+
+  async function handleExploreMiniCourses(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    if (isCheckingSignIn) return
+
+    setIsCheckingSignIn(true)
+    setAccessError(null)
+
+    try {
+      if (await verifySignedIn()) {
+        window.location.assign('/course.html')
+      } else {
+        await navigate({ to: '/courses/sample' })
+      }
+    } catch (error) {
+      setAccessError(
+        error instanceof Error ? error.message : 'Unable to verify your sign-in. Please try again.',
+      )
+    } finally {
+      setIsCheckingSignIn(false)
+    }
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -1136,10 +1210,17 @@ function DemoDialog({ onClose }: DemoDialogProps) {
           <a
             className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#A21942] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#801333]"
             href="/course.html"
-            onClick={onClose}
+            aria-busy={isCheckingSignIn}
+            aria-disabled={isCheckingSignIn}
+            onClick={handleExploreMiniCourses}
           >
-            Explore mini-courses <ArrowRight aria-hidden="true" size={16} />
+            {isCheckingSignIn ? 'Checking sign-in…' : 'Explore mini-courses'} <ArrowRight aria-hidden="true" size={16} />
           </a>
+          {accessError && (
+            <p className="mt-3 text-sm text-[#801333]" role="alert">
+              {accessError}
+            </p>
+          )}
         </div>
       </div>
     </dialog>
