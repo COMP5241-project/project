@@ -36,7 +36,7 @@ from app.pptx_export import build_pptx
 from app.hallucination.judge import JudgeUnavailableError, JudgeVerdict, parse_verdict
 from app.schemas.course_plan import CourseDraftProposal, CourseDraftRequest
 from app.identity.auth import get_auth_client, get_optional_auth_client
-from app.identity.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
+from app.identity.sessions import COOKIE_NAME, Session, InMemorySessionStore as SessionStore, get_session_store
 from app.main import app
 from app.routers.hallucination import judge
 

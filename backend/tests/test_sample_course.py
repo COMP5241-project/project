@@ -9,7 +9,7 @@ from httpx import Client as HttpxClient
 
 from app.database.supabase import get_supabase
 from app.identity.auth import get_auth_client, get_optional_auth_client
-from app.identity.sessions import SessionStore, get_session_store
+from app.identity.sessions import InMemorySessionStore as SessionStore, get_session_store
 from app.main import app
 from app.sample_course.quota import GUEST_COOKIE, SampleQuotaStore, get_sample_quota_store
 from app.sample_course.tutor import JudgeUnavailableError, TutorVerdict
