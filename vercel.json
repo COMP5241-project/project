@@ -20,12 +20,6 @@
   },
   "rewrites": [
     {
-      "source": "/api/course-notes-chat",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
       "source": "/api/(.*)",
       "destination": {
         "service": "backend"

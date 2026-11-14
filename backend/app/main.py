@@ -35,7 +35,7 @@ app.include_router(sample_course_router)
 @app.middleware("http")
 async def prevent_auth_caching(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/api/"):
+    if request.url.path.startswith("/api/") and "cache-control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
     return response
 

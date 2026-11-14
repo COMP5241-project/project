@@ -44,6 +44,7 @@ SUPABASE_KEY=your-public-anon-or-publishable-key
 SUPABASE_SECRET_KEY=your-server-only-secret-key
 FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 SESSION_COOKIE_SECURE=false
+OPENROUTER_API_KEY=your-openrouter-api-key
 ```
 
 Configure the Supabase Auth email template used for passwordless sign-in to render
@@ -134,6 +135,7 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | POST | `/api/auth/password-reset/verify` | Verifies the code and updates the account password |
 | GET | `/api/profiles/me` | Validates/refreshes the session and returns email/profile |
 | POST | `/api/auth/logout` | Clears local sessions; best-effort global revocation of Supabase sessions |
+| POST | `/api/course-notes-chat` | Streams grounded course-note tutor responses through OpenRouter |
 | POST | `/api/profiles/hallucination-results` | Saves a "Spot the Hallucination" result for the signed-in user |
 | GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
 | POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
@@ -191,8 +193,11 @@ is slides. Quiz responses contain structured questions with options, a correct a
 and an optional explanation. Slide responses include optional per-slide theme colors which
 are applied in the instructor preview.
 Configure `OPENROUTER_API_KEY` on the backend; optionally set `OPENROUTER_COURSE_MODEL`
-to override the shared OpenRouter model. The API key is never sent to the browser. Instructor
-materials and extracted source text are stored in Supabase Postgres under the authenticated
+for instructor course generation. The course-notes tutor uses the fixed
+`openai/gpt-4o-mini` model. Keep the API key server-side; it is never sent to the browser.
+For Vercel, set `OPENROUTER_API_KEY` in the backend service's Environment Variables and
+redeploy.
+Instructor materials and extracted source text are stored in Supabase Postgres under the authenticated
 account. Uploaded TXT, PDF, and PPTX files are stored in the private `instructor-materials`
 bucket and accessed through short-lived signed URLs. URL sources are fetched once and their
 extracted text is stored with the material.
