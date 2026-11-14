@@ -60,7 +60,7 @@ async def handle_validation_error(request: Request, error: RequestValidationErro
 def read_root():
     return JSONResponse(content={"message": "Hello"})
 
-@app.get("/health")
+@app.get("/api/health")
 def health_check(db_client:Annotated[Client, Depends(get_supabase)]):
     # Perform any necessary health checks here, such as database connectivity
     try:
