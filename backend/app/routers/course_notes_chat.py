@@ -14,11 +14,11 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 
+from app.hallucination.judge import OPENROUTER_CHAT_URL, judge_model
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "baidu/ernie-5.5-flash-preview:free"
 MAX_BODY_BYTES = 200_000
 MAX_HISTORY_MESSAGES = 18
 MAX_MESSAGE_CHARS = 24_000
@@ -243,7 +243,7 @@ async def course_notes_chat(request: Request):
     try:
         upstream_request = http_client.build_request(
             "POST",
-            OPENROUTER_URL,
+            OPENROUTER_CHAT_URL,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -251,7 +251,7 @@ async def course_notes_chat(request: Request):
                 "X-Title": "COMP5241 Course Notes Tutor",
             },
             json={
-                "model": MODEL,
+                "model": judge_model(),
                 "messages": messages,
                 "stream": True,
                 "max_tokens": 700,

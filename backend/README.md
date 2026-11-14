@@ -193,8 +193,9 @@ is slides. Quiz responses contain structured questions with options, a correct a
 and an optional explanation. Slide responses include optional per-slide theme colors which
 are applied in the instructor preview.
 Configure `OPENROUTER_API_KEY` on the backend; optionally set `OPENROUTER_COURSE_MODEL`
-for instructor course generation. The course-notes tutor uses the fixed
-`openai/gpt-4o-mini` model. Keep the API key server-side; it is never sent to the browser.
+for instructor course generation. The course-notes tutor uses `OPENROUTER_MODEL`, or
+defaults to `nvidia/nemotron-3-super-120b-a12b`. Keep the API key server-side; it is
+never sent to the browser.
 For Vercel, set `OPENROUTER_API_KEY` in the backend service's Environment Variables and
 redeploy.
 Instructor materials and extracted source text are stored in Supabase Postgres under the authenticated
