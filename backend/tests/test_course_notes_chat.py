@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.hallucination.judge import OPENROUTER_CHAT_URL
 from app.routers import course_notes_chat
 
 
@@ -55,6 +56,7 @@ def test_course_notes_chat_streams_provider_response(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("OPENROUTER_MODEL", "test/course-notes-model")
     stream = b'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'
     requests = _install_upstream(
         monkeypatch,
@@ -72,8 +74,9 @@ def test_course_notes_chat_streams_provider_response(
     assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
     assert response.headers["cache-control"] == "no-cache, no-transform"
     assert requests[0].headers["authorization"] == "Bearer test-openrouter-key"
+    assert str(requests[0].url) == OPENROUTER_CHAT_URL
     sent = json.loads(requests[0].content)
-    assert sent["model"] == "openai/gpt-4o-mini"
+    assert sent["model"] == "test/course-notes-model"
     assert sent["stream"] is True
     assert sent["messages"][-1] == {
         "role": "user",
