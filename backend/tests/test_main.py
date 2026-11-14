@@ -1,4 +1,5 @@
 import base64
+import json
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
@@ -26,9 +27,14 @@ from app.course_generation import (
     GeneratedQuizContent,
     generate_course_content,
 )
+from app.course_plan_generation import (
+    CoursePlanGeneratorNotConfiguredError,
+    generate_course_proposal,
+)
 from app.routers.materials import _extract_file_text, _fetch_url_text
 from app.pptx_export import build_pptx
 from app.hallucination.judge import JudgeUnavailableError, JudgeVerdict, parse_verdict
+from app.schemas.course_plan import CourseDraftProposal, CourseDraftRequest
 from app.identity.auth import get_auth_client, get_optional_auth_client
 from app.identity.sessions import COOKIE_NAME, Session, SessionStore, get_session_store
 from app.main import app
@@ -832,6 +838,392 @@ def test_instructor_course_generation_returns_quiz(
 def test_instructor_course_generation_validates_request(client: HttpxClient):
     response = client.post("/api/instructor/generate", json={"prompt": ""})
     assert response.status_code == 422
+
+
+def _course_draft_proposal() -> CourseDraftProposal:
+    return CourseDraftProposal.model_validate({
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "default_presentation_format": "text-and-images",
+        "visibility": "restricted",
+        "plan": {
+            "overview": "Learn core Python concepts.",
+            "target_audience": "New programmers.",
+            "assumptions": [],
+            "learning_outcomes": ["Write a basic Python program."],
+            "prerequisites": [],
+            "modules": [{
+                "module_id": "module-1",
+                "title": "First steps",
+                "description": "Learn the basics.",
+                "lessons": [{
+                    "lesson_id": "lesson-1",
+                    "title": "Values and variables",
+                    "purpose": "Store and use simple values.",
+                    "objectives": ["Name a value type.", "Assign a variable."],
+                    "key_topics": ["Variables"],
+                    "suggested_activity": {
+                        "title": "Variable practice",
+                        "description": "Practice assigning values.",
+                        "presentation_format": "text-and-images",
+                    },
+                    "completion_check": "Create a variable.",
+                    "prerequisite_lesson_ids": [],
+                    "estimated_minutes": 15,
+                }],
+            }],
+            "milestones": [],
+            "capstone": "Build a short Python script.",
+        },
+    })
+
+
+def test_instructor_course_plan_generation_rejects_students(
+    client: HttpxClient, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.routers.instructor_courses.generate_course_proposal",
+        lambda *args: (_ for _ in ()).throw(AssertionError("must not be called")),
+    )
+    auth_login(client)
+
+    response = client.post(
+        "/api/instructor/courses/generate",
+        json={"topic": "Python basics"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "instructor_required"
+
+
+def test_instructor_course_plan_generation_returns_proposal(
+    client: HttpxClient, auth_client: Mock, monkeypatch
+):
+    auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data[
+        "role"
+    ] = "instructor"
+    auth_login(client)
+    proposal = _course_draft_proposal()
+    generate = Mock(return_value=proposal)
+    monkeypatch.setattr("app.routers.instructor_courses.generate_course_proposal", generate)
+
+    response = client.post(
+        "/api/instructor/courses/generate",
+        json={
+            "topic": "Python basics",
+            "time_budget_minutes": 60,
+            "preferred_formats": ["text-and-images"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == proposal.model_dump()
+    generate.assert_called_once()
+    assert generate.call_args.args[0].topic == "Python basics"
+
+
+def test_instructor_course_draft_saves_with_authenticated_owner(
+    client: HttpxClient, auth_client: Mock
+):
+    auth_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data[
+        "role"
+    ] = "instructor"
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+        "version_number": 1,
+    }]
+    auth_login(client)
+    proposal = _course_draft_proposal()
+
+    response = client.post("/api/instructor/courses", json=proposal.model_dump())
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+        "version_number": 1,
+        "status": "draft",
+        "visibility": "restricted",
+    }
+    rpc_name, rpc_payload = auth_client.rpc.call_args.args
+    assert rpc_name == "save_instructor_course_draft"
+    assert rpc_payload["p_created_by"] == "student-id"
+    assert rpc_payload["p_course_id"] is None
+
+
+def test_instructor_course_plan_publish_uses_owner_rpc(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = Mock()
+    profile_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "student-id",
+        "email": "student@example.com",
+        "role": "instructor",
+        "cs_qualified": True,
+        "assessment_completed": False,
+        "non_cs_introduction_completed": False,
+    }
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "draft",
+        "created_by": "student-id",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "published_at": "2026-11-14T07:00:00+00:00",
+    }]
+    auth_login(client)
+
+    response = client.post(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/publish",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "published"
+    assert auth_client.rpc.call_args.args[0] == "publish_instructor_course"
+    assert auth_client.rpc.call_args.args[1] == {
+        "p_course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "p_created_by": "student-id",
+    }
+
+
+def _student_profile_table(role: str = "student") -> Mock:
+    table = Mock()
+    table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "student-id",
+        "email": "student@example.com",
+        "role": role,
+        "cs_qualified": True,
+        "assessment_completed": True,
+        "non_cs_introduction_completed": True,
+    }
+    return table
+
+
+def test_student_can_list_available_curriculum_courses(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table()
+    courses_table = Mock()
+    course_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    courses_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{
+        "id": course_id,
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "published_at": "2026-11-14T07:00:00+00:00",
+        "visibility": "restricted",
+    }]
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_login(client)
+
+    response = client.get("/api/curriculum-courses")
+
+    assert response.status_code == 200
+    assert response.json() == [{
+        "id": course_id,
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "publishedAt": "2026-11-14T07:00:00+00:00",
+    }]
+    courses_table.select.return_value.eq.assert_called_once_with("status", "published")
+
+
+def test_student_can_load_available_curriculum_plan(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table()
+    courses_table = Mock()
+    versions_table = Mock()
+    course_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
+    version_id = "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d"
+    proposal = _course_draft_proposal()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": course_id,
+        "title": proposal.title,
+        "description": proposal.description,
+        "default_presentation_format": proposal.default_presentation_format,
+        "published_at": "2026-11-14T07:00:00+00:00",
+        "published_version_id": version_id,
+        "visibility": "restricted",
+    }
+    versions_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": version_id,
+        "plan": proposal.plan.model_dump(mode="json"),
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+        "instructor_course_versions": versions_table,
+    }[name]
+    auth_login(client)
+
+    response = client.get(f"/api/curriculum-courses/{course_id}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == course_id
+    assert response.json()["plan"]["overview"] == proposal.plan.overview
+    assert response.json()["publishedAt"] == "2026-11-14T07:00:00+00:00"
+    courses_table.select.return_value.eq.assert_called_once_with("id", course_id)
+    courses_table.select.return_value.eq.return_value.eq.assert_called_once_with(
+        "status", "published"
+    )
+
+
+def test_instructor_can_list_saved_curriculum_courses(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "status": "published",
+        "visibility": "restricted",
+        "default_presentation_format": "text-and-images",
+        "published_at": "2026-11-14T07:00:00+00:00",
+        "updated_at": "2026-11-14T07:00:00+00:00",
+    }]
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_login(client)
+
+    response = client.get("/api/instructor/courses")
+
+    assert response.status_code == 200
+    assert response.json()[0]["visibility"] == "restricted"
+    assert response.json()[0]["status"] == "published"
+    courses_table.select.return_value.eq.assert_called_once_with("created_by", "student-id")
+
+
+def test_instructor_can_update_course_visibility(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "visibility": "restricted",
+        "current_version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "visibility": "public",
+    }]
+    auth_login(client)
+
+    response = client.patch(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/visibility",
+        json={"visibility": "public"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "visibility": "public",
+    }
+    assert auth_client.rpc.call_args.args[0] == "set_instructor_course_visibility"
+    assert auth_client.rpc.call_args.args[1]["p_created_by"] == "student-id"
+
+
+def test_instructor_can_unpublish_saved_course(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "visibility": "public",
+        "current_version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "draft",
+        "published_at": None,
+    }]
+    auth_login(client)
+
+    response = client.patch(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/status",
+        json={"status": "draft"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "draft"
+    assert auth_client.rpc.call_args.args[0] == "set_instructor_course_status"
+    assert auth_client.rpc.call_args.args[1]["p_status"] == "draft"
+
+
+def test_instructor_can_grant_restricted_course_to_existing_student(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "visibility": "restricted",
+        "current_version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "user_id": "learner-id",
+        "email": "learner@example.com",
+        "granted_at": "2026-11-14T07:00:00+00:00",
+    }]
+    auth_login(client)
+
+    response = client.post(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/access",
+        json={"email": "  learner@example.com  "},
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "user_id": "learner-id",
+        "email": "learner@example.com",
+        "grantedAt": "2026-11-14T07:00:00+00:00",
+    }
+    assert auth_client.rpc.call_args.args[0] == "grant_instructor_course_access"
+    assert auth_client.rpc.call_args.args[1]["p_email"] == "learner@example.com"
+
+
+def test_instructor_cannot_use_student_curriculum_endpoint(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    auth_client.table.side_effect = lambda name: profile_table
+    auth_login(client)
+
+    response = client.get("/api/curriculum-courses")
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "student_required"
 
 
 def test_materials_api_lists_account_materials_with_nested_sources(
@@ -2125,3 +2517,76 @@ def test_judge_parse_verdict_is_defensive():
         parse_verdict("no json at all")
     with pytest.raises(JudgeUnavailableError):
         parse_verdict("[1, 2, 3]")
+
+
+def test_course_plan_generator_uses_openrouter_and_validates_response(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("OPENROUTER_COURSE_MODEL", "test-course-model")
+    http_client = Mock()
+    http_client.post.return_value.status_code = 200
+    http_client.post.return_value.json.return_value = {
+        "choices": [{
+            "message": {"content": _course_draft_proposal().model_dump_json()},
+        }],
+    }
+
+    proposal = generate_course_proposal(
+        CourseDraftRequest(topic="Python basics"),
+        http_client,
+    )
+
+    assert proposal.title == "Python Basics"
+    assert http_client.post.call_args.kwargs["json"]["model"] == "test-course-model"
+    assert http_client.post.call_args.kwargs["json"]["messages"][1]["content"] == (
+        'Course brief (JSON):\n{"topic": "Python basics", "constraints": [], "preferred_formats": []}'
+    )
+
+
+def test_course_plan_generator_retries_with_validation_feedback(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    proposal = _course_draft_proposal()
+    invalid_proposal = proposal.model_dump(mode="json")
+    invalid_proposal["plan"]["milestones"] = [
+        {"milestone_id": "MS1", "after_module_id": "module-1"},
+    ]
+    invalid_proposal["plan"]["capstone"] = {
+        "title": "Integrated event",
+        "estimated_minutes": 20,
+    }
+
+    invalid_response = Mock()
+    invalid_response.status_code = 200
+    invalid_response.json.return_value = {
+        "choices": [{
+            "message": {"content": json.dumps(invalid_proposal)},
+        }],
+    }
+    valid_response = Mock()
+    valid_response.status_code = 200
+    valid_response.json.return_value = {
+        "choices": [{
+            "message": {"content": proposal.model_dump_json()},
+        }],
+    }
+    http_client = Mock()
+    http_client.post.side_effect = [invalid_response, valid_response]
+
+    result = generate_course_proposal(CourseDraftRequest(topic="Python basics"), http_client)
+
+    assert result.title == proposal.title
+    assert http_client.post.call_count == 2
+    retry_messages = http_client.post.call_args_list[1].kwargs["json"]["messages"]
+    assert retry_messages[-2] == {
+        "role": "assistant",
+        "content": json.dumps(invalid_proposal),
+    }
+    assert "plan.milestones.0" in retry_messages[-1]["content"]
+    assert "plan.capstone" in retry_messages[-1]["content"]
+    assert "valid string" in retry_messages[-1]["content"]
+
+
+def test_course_plan_generator_requires_openrouter_key(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+    with pytest.raises(CoursePlanGeneratorNotConfiguredError):
+        generate_course_proposal(CourseDraftRequest(topic="Python basics"), Mock())

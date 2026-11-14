@@ -63,6 +63,8 @@ import {
   type SlideTheme,
 } from './lib/api'
 import { SourcesPanel } from './components/SourcesPanel'
+import { InstructorCourseCreation } from './components/InstructorCourseCreation'
+import { InstructorCourseManagement } from './components/InstructorCourseManagement'
 import { RosterAnalyticsView } from './components/RosterAnalytics'
 import { exportDeckPdf } from './lib/exportPdf'
 
@@ -644,7 +646,9 @@ export function InstructorApp() {
   const [exportMenuResource, setExportMenuResource] = useState<string | null>(null)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [isExportingPptx, setIsExportingPptx] = useState(false)
-  const [studioView, setStudioView] = useState<'workspace' | 'analytics'>('workspace')
+  const [studioView, setStudioView] = useState<
+    'workspace' | 'analytics' | 'course-creation' | 'course-management'
+  >('workspace')
   const stageRef = useRef<HTMLDivElement>(null)
   const slideViewportRef = useRef<HTMLDivElement>(null)
   const promptRef = useRef<HTMLTextAreaElement>(null)
@@ -1401,6 +1405,20 @@ export function InstructorApp() {
             >
               Student Analytics
             </button>
+            <button
+              className={`rounded px-3 py-1.5 text-xs ${studioView === 'course-creation' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+              onClick={() => setStudioView('course-creation')}
+              type="button"
+            >
+              Create Course
+            </button>
+            <button
+              className={`rounded px-3 py-1.5 text-xs ${studioView === 'course-management' ? 'bg-white font-semibold text-[#A21942] shadow-sm' : 'text-gray-600'}`}
+              onClick={() => setStudioView('course-management')}
+              type="button"
+            >
+              Manage Courses
+            </button>
           </div>
           {activeArtifact && studioView === 'workspace' && (
             <input
@@ -2046,8 +2064,12 @@ export function InstructorApp() {
           </div>
         </aside>
         </div>
-      ) : (
+      ) : studioView === 'analytics' ? (
         <RosterAnalyticsView />
+      ) : studioView === 'course-management' ? (
+        <InstructorCourseManagement />
+      ) : (
+        <InstructorCourseCreation onClose={() => setStudioView('workspace')} />
       )}
 
       {studioView === 'workspace' && deleteTarget && (

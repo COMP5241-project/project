@@ -135,6 +135,19 @@ With the server running, visit <http://127.0.0.1:8000/hello>. FastAPI converts t
 | GET | `/api/hallucination/challenges` | Challenge bank for the game (answer fields stay server-side) |
 | POST | `/api/hallucination/judge` | Grades a critique with the AI tutor (OpenRouter, key in `backend/.env`) |
 | POST | `/api/instructor/generate` | Generates or revises slide decks and multiple-choice quizzes for instructors |
+| POST | `/api/instructor/courses/generate` | Generates an editable instructor course-plan proposal |
+| POST | `/api/instructor/courses` | Saves a course-plan draft |
+| PATCH | `/api/instructor/courses/{id}` | Saves a new version of an instructor course-plan draft |
+| POST | `/api/instructor/courses/{id}/publish` | Publishes an instructor course plan |
+| GET | `/api/instructor/courses` | Lists the instructor's saved course plans |
+| GET | `/api/instructor/courses/{id}` | Loads a saved plan for its instructor |
+| PATCH | `/api/instructor/courses/{id}/visibility` | Sets a course to public or restricted |
+| PATCH | `/api/instructor/courses/{id}/status` | Publishes or unpublishes a saved course |
+| GET | `/api/instructor/courses/{id}/access` | Lists students who can access a restricted course |
+| POST | `/api/instructor/courses/{id}/access` | Grants a student access by existing account email |
+| DELETE | `/api/instructor/courses/{id}/access/{learner_id}` | Revokes a student's course access |
+| GET | `/api/curriculum-courses` | Lists published courses available to the signed-in student |
+| GET | `/api/curriculum-courses/{id}` | Loads a published course available to the signed-in student |
 | GET | `/api/materials` | Loads the signed-in instructor's saved materials and material-scoped sources |
 | POST | `/api/materials` | Creates an instructor material |
 | PATCH | `/api/materials/{id}` | Saves material content and chat history |
@@ -152,6 +165,12 @@ loopback spellings `localhost`, `127.0.0.1`, and `[::1]` are treated as the same
 origin (the browser picks whichever `localhost` resolves to); scheme and port are
 still matched strictly. Use the frontend's same-origin `/api` proxy; CORS is not
 enabled. Calls from Swagger must satisfy these origin requirements too.
+
+Instructors can manage saved plans in the Instructor Studio's **Manage Courses**
+view. Public published plans are available to all signed-in students. Restricted
+published plans are available only to the instructor and students granted access
+by their existing student-account email. Unpublishing a plan removes student
+access without deleting its saved content or grant list.
 Responses contain no Supabase tokens and use `Cache-Control: no-store`.
 Errors return `{"error":{"code":"...","message":"...","signed_out":false}}`.
 
@@ -174,6 +193,18 @@ materials and extracted source text are stored in Supabase Postgres under the au
 account. Uploaded TXT, PDF, and PPTX files are stored in the private `instructor-materials`
 bucket and accessed through short-lived signed URLs. URL sources are fetched once and their
 extracted text is stored with the material.
+The Instructor Studio's **Create Course** view uses the same OpenRouter configuration and saves
+structured curricula separately from slide/quiz materials. Apply
+`supabase/migrations/20261114000000_create_instructor_curriculum_courses.sql` before using
+course-plan draft and publish endpoints. Apply
+`supabase/migrations/20261114010000_expose_public_curricula_to_students.sql` and
+`supabase/migrations/20261114020000_manage_instructor_course_access.sql` for student browsing
+and restricted-course grants. Public published plans are visible to all students; restricted
+published plans are visible only to students the instructor grants access to by existing
+account email. The student course page displays the curriculum outline; interactive lesson
+delivery, enrollment, and progress tracking are not included. If an AI-generated plan fails
+JSON or schema validation, the generator retries up to two times and includes the validation
+paths and messages in the retry prompt.
 Apply all migrations in `../supabase/migrations/`, including the materials migration, before
 using these endpoints.
 
