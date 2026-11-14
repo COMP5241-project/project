@@ -50,13 +50,14 @@ def _student_database(
 
 def _database_error(error: Exception) -> ApiError:
     logger.exception("Curriculum course delivery storage operation failed.")
-    if getattr(error, "code", None) in {"PGRST204", "PGRST205"}:
+    if getattr(error, "code", None) in {"PGRST202", "PGRST204", "PGRST205"}:
         return ApiError(
             503,
             "curriculum_courses_not_configured",
             "Curriculum course delivery is not configured. Apply "
             "supabase/migrations/20261114000000_create_instructor_curriculum_courses.sql "
             "and supabase/migrations/20261114010000_expose_public_curricula_to_students.sql "
+            "and supabase/migrations/20261114020000_manage_instructor_course_access.sql "
             "to your Supabase project, then try again.",
         )
     return ApiError(
@@ -74,7 +75,7 @@ def _rows(data: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _public_course_row(database: Client, course_id: UUID) -> dict[str, Any]:
+def _available_course_row(database: Client, course_id: UUID) -> dict[str, Any]:
     try:
         response = (
             database.table("instructor_courses")
@@ -84,7 +85,6 @@ def _public_course_row(database: Client, course_id: UUID) -> dict[str, Any]:
             )
             .eq("id", str(course_id))
             .eq("status", "published")
-            .eq("visibility", "public")
             .maybe_single()
             .execute()
         )
@@ -137,7 +137,6 @@ def list_public_curriculum_courses(
                 database.table("instructor_courses")
                 .select("id, title, description, published_at")
                 .eq("status", "published")
-                .eq("visibility", "public")
                 .order("published_at", desc=True)
                 .limit(100)
                 .execute()
@@ -163,7 +162,7 @@ def get_public_curriculum_course(
     store: StoreDependency,
 ) -> PublicCurriculumCourse:
     with _student_database(request, client, store) as (_user_id, database):
-        course = _public_course_row(database, course_id)
+        course = _available_course_row(database, course_id)
         version = _course_version(database, course.get("published_version_id"))
         try:
             return PublicCurriculumCourse(

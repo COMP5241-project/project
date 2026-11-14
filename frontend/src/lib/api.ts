@@ -402,21 +402,121 @@ export interface PublicCurriculumCourse extends PublicCurriculumCourseSummary {
   plan: CoursePlan
 }
 
-/** Lists the instructor-published courses available to the signed-in student. */
+export type InstructorManagedCourseStatus = 'draft' | 'published' | 'archived'
+export type InstructorManagedCourseVisibility = 'public' | 'restricted'
+
+export interface InstructorManagedCourseSummary {
+  id: string
+  title: string
+  description: string
+  status: InstructorManagedCourseStatus
+  visibility: InstructorManagedCourseVisibility
+  default_presentation_format: CoursePresentationFormat
+  publishedAt: string | null
+  updatedAt: string
+}
+
+export interface InstructorManagedCourse extends InstructorManagedCourseSummary {
+  version_number: number
+  plan: CoursePlan
+}
+
+export interface InstructorCourseAccessEntry {
+  user_id: string
+  email: string
+  grantedAt: string
+}
+
+/** Lists the instructor's saved curriculum plans. */
+export async function fetchInstructorCourses(): Promise<InstructorManagedCourseSummary[]> {
+  const data = await request<InstructorManagedCourseSummary[]>('/instructor/courses')
+  if (!data) throw new ApiError('Unable to load your saved courses.', 503)
+  return data
+}
+
+/** Loads one saved curriculum plan for its instructor. */
+export async function fetchInstructorCourse(courseId: string): Promise<InstructorManagedCourse> {
+  const data = await request<InstructorManagedCourse>(
+    `/instructor/courses/${encodeURIComponent(courseId)}`,
+  )
+  if (!data) throw new ApiError('Unable to load this course plan.', 503)
+  return data
+}
+
+export async function updateInstructorCourseVisibility(
+  courseId: string,
+  visibility: InstructorManagedCourseVisibility,
+): Promise<{ course_id: string; visibility: InstructorManagedCourseVisibility }> {
+  const data = await request<{ course_id: string; visibility: InstructorManagedCourseVisibility }>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/visibility`,
+    { visibility },
+    'PATCH',
+  )
+  if (!data) throw new ApiError('Unable to update course visibility.', 503)
+  return data
+}
+
+export async function updateInstructorCourseStatus(
+  courseId: string,
+  status: 'draft' | 'published',
+): Promise<{ course_id: string; status: 'draft' | 'published'; published_at: string | null }> {
+  const data = await request<{ course_id: string; status: 'draft' | 'published'; published_at: string | null }>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/status`,
+    { status },
+    'PATCH',
+  )
+  if (!data) throw new ApiError('Unable to update course status.', 503)
+  return data
+}
+
+export async function fetchInstructorCourseAccess(
+  courseId: string,
+): Promise<InstructorCourseAccessEntry[]> {
+  const data = await request<InstructorCourseAccessEntry[]>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/access`,
+  )
+  if (!data) throw new ApiError('Unable to load student access.', 503)
+  return data
+}
+
+export async function grantInstructorCourseAccess(
+  courseId: string,
+  email: string,
+): Promise<InstructorCourseAccessEntry> {
+  const data = await request<InstructorCourseAccessEntry>(
+    `/instructor/courses/${encodeURIComponent(courseId)}/access`,
+    { email },
+  )
+  if (!data) throw new ApiError('Unable to grant student access.', 503)
+  return data
+}
+
+export async function revokeInstructorCourseAccess(
+  courseId: string,
+  learnerId: string,
+): Promise<void> {
+  await request(
+    `/instructor/courses/${encodeURIComponent(courseId)}/access/${encodeURIComponent(learnerId)}`,
+    undefined,
+    'DELETE',
+  )
+}
+
+/** Lists the published courses available to the signed-in student. */
 export async function fetchPublishedCourses(): Promise<PublishedCourseSummary[]> {
   const data = await request<PublishedCourseSummary[]>('/courses')
   if (!data) throw new ApiError('Unable to load your courses.', 503)
   return data
 }
 
-/** Lists public, published instructor curriculum plans available to students. */
+/** Lists published instructor curriculum plans available to this student. */
 export async function fetchPublicCurriculumCourses(): Promise<PublicCurriculumCourseSummary[]> {
   const data = await request<PublicCurriculumCourseSummary[]>('/curriculum-courses')
   if (!data) throw new ApiError('Unable to load instructor-created courses.', 503)
   return data
 }
 
-/** Loads a public, published instructor curriculum plan. */
+/** Loads an instructor curriculum plan available to this student. */
 export async function fetchPublicCurriculumCourse(courseId: string): Promise<PublicCurriculumCourse> {
   const data = await request<PublicCurriculumCourse>(
     `/curriculum-courses/${encodeURIComponent(courseId)}`,

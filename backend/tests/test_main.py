@@ -1007,17 +1007,18 @@ def _student_profile_table(role: str = "student") -> Mock:
     return table
 
 
-def test_student_can_list_public_curriculum_courses(
+def test_student_can_list_available_curriculum_courses(
     client: HttpxClient, auth_client: Mock
 ):
     profile_table = _student_profile_table()
     courses_table = Mock()
     course_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
-    courses_table.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{
+    courses_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{
         "id": course_id,
         "title": "Python Basics",
         "description": "A short introduction to Python.",
         "published_at": "2026-11-14T07:00:00+00:00",
+        "visibility": "restricted",
     }]
     auth_client.table.side_effect = lambda name: {
         "profiles": profile_table,
@@ -1035,12 +1036,9 @@ def test_student_can_list_public_curriculum_courses(
         "publishedAt": "2026-11-14T07:00:00+00:00",
     }]
     courses_table.select.return_value.eq.assert_called_once_with("status", "published")
-    courses_table.select.return_value.eq.return_value.eq.assert_called_once_with(
-        "visibility", "public"
-    )
 
 
-def test_student_can_load_public_curriculum_plan(
+def test_student_can_load_available_curriculum_plan(
     client: HttpxClient, auth_client: Mock
 ):
     profile_table = _student_profile_table()
@@ -1049,13 +1047,14 @@ def test_student_can_load_public_curriculum_plan(
     course_id = "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817"
     version_id = "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d"
     proposal = _course_draft_proposal()
-    courses_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
         "id": course_id,
         "title": proposal.title,
         "description": proposal.description,
         "default_presentation_format": proposal.default_presentation_format,
         "published_at": "2026-11-14T07:00:00+00:00",
         "published_version_id": version_id,
+        "visibility": "restricted",
     }
     versions_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
         "id": version_id,
@@ -1078,9 +1077,140 @@ def test_student_can_load_public_curriculum_plan(
     courses_table.select.return_value.eq.return_value.eq.assert_called_once_with(
         "status", "published"
     )
-    courses_table.select.return_value.eq.return_value.eq.return_value.eq.assert_called_once_with(
-        "visibility", "public"
+
+
+def test_instructor_can_list_saved_curriculum_courses(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "title": "Python Basics",
+        "description": "A short introduction to Python.",
+        "status": "published",
+        "visibility": "restricted",
+        "default_presentation_format": "text-and-images",
+        "published_at": "2026-11-14T07:00:00+00:00",
+        "updated_at": "2026-11-14T07:00:00+00:00",
+    }]
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_login(client)
+
+    response = client.get("/api/instructor/courses")
+
+    assert response.status_code == 200
+    assert response.json()[0]["visibility"] == "restricted"
+    assert response.json()[0]["status"] == "published"
+    courses_table.select.return_value.eq.assert_called_once_with("created_by", "student-id")
+
+
+def test_instructor_can_update_course_visibility(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "visibility": "restricted",
+        "current_version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "visibility": "public",
+    }]
+    auth_login(client)
+
+    response = client.patch(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/visibility",
+        json={"visibility": "public"},
     )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "visibility": "public",
+    }
+    assert auth_client.rpc.call_args.args[0] == "set_instructor_course_visibility"
+    assert auth_client.rpc.call_args.args[1]["p_created_by"] == "student-id"
+
+
+def test_instructor_can_unpublish_saved_course(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "visibility": "public",
+        "current_version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "course_id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "draft",
+        "published_at": None,
+    }]
+    auth_login(client)
+
+    response = client.patch(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/status",
+        json={"status": "draft"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "draft"
+    assert auth_client.rpc.call_args.args[0] == "set_instructor_course_status"
+    assert auth_client.rpc.call_args.args[1]["p_status"] == "draft"
+
+
+def test_instructor_can_grant_restricted_course_to_existing_student(
+    client: HttpxClient, auth_client: Mock
+):
+    profile_table = _student_profile_table(role="instructor")
+    courses_table = Mock()
+    courses_table.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
+        "id": "6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817",
+        "status": "published",
+        "visibility": "restricted",
+        "current_version_id": "7d0e2c3a-8f1e-4b5a-9c2d-3e4f5a6b7c8d",
+    }
+    auth_client.table.side_effect = lambda name: {
+        "profiles": profile_table,
+        "instructor_courses": courses_table,
+    }[name]
+    auth_client.rpc.return_value.execute.return_value.data = [{
+        "user_id": "learner-id",
+        "email": "learner@example.com",
+        "granted_at": "2026-11-14T07:00:00+00:00",
+    }]
+    auth_login(client)
+
+    response = client.post(
+        "/api/instructor/courses/6b6bcbf4-9beb-48fd-a4c6-1f3ed71eb817/access",
+        json={"email": "  learner@example.com  "},
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "user_id": "learner-id",
+        "email": "learner@example.com",
+        "grantedAt": "2026-11-14T07:00:00+00:00",
+    }
+    assert auth_client.rpc.call_args.args[0] == "grant_instructor_course_access"
+    assert auth_client.rpc.call_args.args[1]["p_email"] == "learner@example.com"
 
 
 def test_instructor_cannot_use_student_curriculum_endpoint(

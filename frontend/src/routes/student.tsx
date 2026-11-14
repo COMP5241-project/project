@@ -210,7 +210,7 @@ function StudentPage() {
               Explore course plans
             </h2>
             <p className="mt-1 text-sm leading-6 text-gray-600">
-              Public curricula are available to all students. Restricted curricula are not listed here.
+              Public curricula are open to all students. Restricted courses shared with you also appear here.
             </p>
           </div>
           {curriculumCoursesState.courses === null && curriculumCoursesState.error === '' && (
@@ -225,7 +225,7 @@ function StudentPage() {
           )}
           {curriculumCoursesState.courses !== null && curriculumCoursesState.courses.length === 0 && (
             <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
-              <p className="text-sm text-gray-600">No public course plans have been published yet.</p>
+              <p className="text-sm text-gray-600">No course plans are available to you yet.</p>
             </div>
           )}
           {curriculumCoursesState.courses && curriculumCoursesState.courses.length > 0 && (

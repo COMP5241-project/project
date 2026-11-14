@@ -140,7 +140,7 @@ export function InstructorCourseCreation({ onClose }: { onClose: () => void }) {
       setNotice(
         proposal.visibility === 'public'
           ? 'Course published. Its plan is now available in the Student Learning Hub.'
-          : 'Course published as restricted. It remains instructor-only.',
+          : 'Course published as restricted. Add students from Manage Courses to grant access.',
       )
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : 'Unable to publish this course.')
